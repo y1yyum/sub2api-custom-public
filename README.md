@@ -2,7 +2,7 @@
 
 Sub2API Custom Public 是基于 [Wei-Shaw/sub2api](https://github.com/Wei-Shaw/sub2api) 的二开版本，提供统一的 AI API 网关、账号管理、渠道调度、用量统计和管理后台。
 
-本仓库面向实机 Docker 部署。当前公开基线版本为 **v0.3.0**；本仓库不携带生产凭据，也不通过 CI 连接生产服务器。
+本仓库面向实机 Docker 部署。当前公开基线版本为 **v0.3.0**；本仓库不携带生产凭据，CI 只构建、测试和发布镜像，不连接任何服务器。
 
 ## Docker Compose 部署
 
@@ -24,7 +24,20 @@ curl http://127.0.0.1:8080/health
 
 默认应用地址为 `http://127.0.0.1:8080`，容器监听 `0.0.0.0:8080`。数据写入 `deploy/data/`、`deploy/postgres_data/` 和 `deploy/redis_data/`，这些目录需要纳入备份范围。
 
-如果已有经过审查的镜像，可通过 `SUB2API_IMAGE` 覆盖默认的本地构建镜像；公开仓库当前不承诺已发布预构建镜像。
+### 使用预构建镜像
+
+每个版本都会发布 `linux/amd64` 和 `linux/arm64` 镜像到 GHCR。在 `deploy/.env` 中设置 `SUB2API_IMAGE`，即可跳过本地构建：
+
+```bash
+SUB2API_IMAGE=ghcr.io/y1yyum/sub2api-custom-public:0.3.0
+```
+
+```bash
+docker compose -f deploy/docker-compose.local.yml pull sub2api
+docker compose -f deploy/docker-compose.local.yml up -d --no-build
+```
+
+生产环境建议按 Release 说明中的 `@sha256:` Digest 固定镜像。镜像使用 Sigstore 无密钥签名，并附带构建来源证明和 SBOM，验证命令见对应 Release 说明。无法访问 GHCR 时，可下载 Release 附件中的镜像包，用 `docker load` 导入。
 
 ## 升级与回滚
 
@@ -38,7 +51,32 @@ docker compose -f deploy/docker-compose.local.yml ps
 
 应用启动时会执行向前数据库迁移。不要删除数据目录来解决迁移问题；出现异常时保留日志和备份，并按对应版本的发布说明处理。
 
-在线更新只面向带 GitHub Release 资产的正式构建，更新器查询 [公开仓库 Releases](https://github.com/y1yyum/sub2api-custom-public/releases)。源码构建没有可下载的 Release 资产时，应按上面的 Git 拉取和镜像重建流程升级。
+使用预构建镜像时，把 `SUB2API_IMAGE` 改为新版本，再执行 `pull` 和 `up -d --no-build`；回滚时改回上一个版本的镜像，但数据库迁移只能向前，回滚前须恢复升级前的备份。
+
+更新器会查询 [公开仓库 Releases](https://github.com/y1yyum/sub2api-custom-public/releases)，但 Release 只提供容器镜像，不提供可在线替换的二进制包，因此管理后台的在线更新不可用，请按上面的镜像流程升级。
+
+## CI 与发布
+
+- `.github/workflows/ci.yml`：推送到 `main` 和每个 Pull Request 时运行。内容包括：
+  - 后端：`go vet`、编译和 `govulncheck`
+  - 前端：类型检查与构建
+  - 镜像：构建后跑冒烟测试，覆盖迁移、登录、鉴权和重启后的数据持久化
+- `.github/workflows/release.yml`：推送 `vX.Y.Z` 标签时运行，流程如下：
+  1. 校验标签与 `backend/cmd/server/VERSION` 一致，且标签指向的提交在 `main` 上。
+  2. 跑完整 CI。
+  3. 构建双架构镜像，先按 Digest 推送到 GHCR。
+  4. 对该 Digest 跑冒烟测试，通过后才打 `X.Y.Z`、`X.Y` 和 `latest` 标签。
+  5. 签名镜像，生成构建来源证明和 SBOM，创建 GitHub Release。
+
+  带预发布后缀的标签（如 `v0.4.0-rc.1`）发布为 Pre-release，不更新 `X.Y` 和 `latest`。也可以手动触发该工作流，为已存在的标签补发镜像；已存在的 Release 不会被覆盖。
+
+发布新版本：
+
+```bash
+# 先在 main 上把 backend/cmd/server/VERSION 改为新版本并合并
+git tag v0.3.1 origin/main
+git push origin v0.3.1
+```
 
 ## 版本号规则
 
