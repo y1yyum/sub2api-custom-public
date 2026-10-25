@@ -31,7 +31,9 @@ const en: typeof zh = {
       more: 'More',
       balance: 'Available balance',
       balanceTitle: 'Open wallet',
-      frozen: 'Frozen {amount}'
+      frozen: 'Frozen {amount}',
+      admin: 'Admin',
+      adminTitle: 'Switch to the admin console'
     },
     avatar: {
       menu: 'Account menu',
@@ -45,33 +47,118 @@ const en: typeof zh = {
   },
   pages: {
     overview: {
-      chartTitle: 'Usage analytics',
-      range: 'Time range',
-      granularity: 'Granularity',
-      day: 'Daily',
-      hour: 'Hourly',
-      refresh: 'Refresh',
-      dimension: 'Dimension',
-      dimensions: {
-        trend: 'Trend',
-        model: 'Models',
-        group: 'Groups',
-        endpoint: 'Endpoints'
+      heading: 'Dashboard',
+      welcome: "Welcome back! Here's an overview of your account.",
+      live: {
+        title: 'Live status',
+        rpm: 'RPM',
+        tpm: 'TPM',
+        windowHint: 'Last 5-minute average across all API keys; filters do not apply',
+        avgDuration: 'Avg latency',
+        todayCost: 'Spent today',
+        loadFailed: 'Live stats failed to refresh'
       },
-      endpointTitle: 'Endpoint distribution',
-      quotaTitle: 'Subscription quota',
-      quotaManage: 'Manage subscriptions',
-      quotaDaily: 'Today',
-      quotaWeekly: 'This week',
-      quotaMonthly: 'This month',
-      quotaUnlimited: 'Unlimited'
+      toolbar: {
+        invalidRange: 'Invalid range: the end date cannot precede the start date, up to {days} days',
+        filters: 'Filters',
+        activeCount: '{count} active filters',
+        filterPanel: 'Filters',
+        apiKey: 'API key',
+        model: 'Model',
+        group: 'Group',
+        requestType: 'Request type',
+        all: 'All',
+        loadingKeys: 'Loading…',
+        keysFailed: 'Failed to load API keys',
+        retry: 'Retry',
+        reset: 'Reset',
+        close: 'Done',
+        refresh: 'Refresh'
+      },
+      metrics: {
+        label: 'Metrics',
+        tokens: 'Tokens',
+        requests: 'Requests',
+        cost: 'Cost',
+        cacheHitRate: 'Cache hit rate',
+        vsPrevious: 'vs previous period',
+        deltaUp: 'Up {value} from the previous period',
+        deltaDown: 'Down {value} from the previous period',
+        flat: 'Flat',
+        deltaFlat: 'Same as the previous period',
+        new: 'New',
+        deltaNew: 'The previous period was 0',
+        noComparison: 'No previous-period data to compare'
+      },
+      chart: {
+        title: 'Usage trend · {metric}',
+        granularity: {
+          day: 'Daily',
+          hour: 'Hourly'
+        },
+        legend: 'Legend',
+        current: 'Current period',
+        previous: 'Previous period',
+        previousAt: 'Previous period {date}',
+        summary: 'Peak {peak} ({date}), mean {mean}',
+        loading: 'Loading…',
+        empty: 'No usage in the selected range',
+        error: 'Failed to load the trend',
+        retry: 'Retry',
+        series: {
+          input: 'Input',
+          output: 'Output',
+          cache_creation: 'Cache creation',
+          cache_read: 'Cache read'
+        }
+      },
+      ranks: {
+        title: 'Top Models',
+        by: {
+          tokens: 'By tokens',
+          requests: 'By requests',
+          cost: 'By cost'
+        },
+        viewAll: 'View all',
+        others: '{count} more models',
+        error: 'Failed to load the model ranking',
+        empty: 'No model usage yet',
+        applyFilter: 'Filter by this model',
+        clearFilter: 'Clear this model filter'
+      },
+      heatmap: {
+        title: 'Usage Activity',
+        hint: 'Last 365 days, following the filters; select a day for its hourly detail',
+        summary: '{requests} requests over {days} active days',
+        error: 'Failed to load activity',
+        retry: 'Retry',
+        gridLabel: 'Daily request heatmap',
+        cellLabel: '{date}: {requests} requests',
+        requests: 'Requests',
+        tokens: 'Tokens',
+        cost: 'Actual cost',
+        less: 'Less',
+        more: 'More'
+      },
+      announcements: {
+        title: 'Recent Announcements',
+        unread: '{count} unread',
+        empty: 'No announcements',
+        emptyHint: 'New announcements will appear here',
+        noSummary: 'Open to read the announcement'
+      }
     },
     wallet: {
-      available: 'Available balance',
-      frozen: 'Frozen',
-      total: 'Total balance',
+      spent: 'Total spent',
+      spentToday: 'Spent today',
       subscriptions: 'My subscriptions',
-      sectionsLabel: 'Wallet features',
+      recordsLabel: 'Wallet records',
+      history: 'Top-up history',
+      historyEmpty: 'No top-ups yet.',
+      historyFailed: 'Could not load the top-up history. Refresh to try again.',
+      historyHint: 'Showing the latest {count} online top-ups and redeemed codes.',
+      orderBalance: 'Online top-up',
+      orderSubscription: 'Subscription purchase',
       empty: 'No wallet features are available for this account.'
     },
     models: {
@@ -104,8 +191,15 @@ const en: typeof zh = {
   },
   rhineHome: {
     caption: 'Multi-model access / developer platform',
-    greetingLead: 'One gateway for many AI services.',
-    greetingTail: 'Manage keys and see every call.',
+    greetingLead: 'Point your Base URL at this site',
+    greetingTail: 'and call it with a key from the console.',
+    quickStart: {
+      title: 'Quick start',
+      copyUrl: 'Copy URL',
+      copyCurl: 'Copy curl example',
+      copied: 'Copied',
+      copyFailed: 'Copy failed'
+    },
     panelLabel: 'Homepage panel',
     nav: {
       label: 'Quick links',

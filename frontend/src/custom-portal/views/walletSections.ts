@@ -1,20 +1,10 @@
 import type { LocationQuery, LocationQueryValue } from 'vue-router'
 
-/** Wallet tabs, named after the nav links they replace; subscriptions sit above the tabs. */
-export type WalletTab = 'purchase' | 'redeem' | 'affiliate' | 'orders'
+/** Tabs of the wallet records card; purchase, subscriptions and redeem sit on the page itself. */
+export type WalletRecordTab = 'history' | 'orders' | 'affiliate'
 
-export const WALLET_TABS: readonly WalletTab[] = ['purchase', 'redeem', 'affiliate', 'orders']
-
-const SECTION_ALIASES: Record<string, WalletTab> = {
-  purchase: 'purchase',
-  pay: 'purchase',
-  recharge: 'purchase',
-  plans: 'purchase',
-  redeem: 'redeem',
-  affiliate: 'affiliate',
-  orders: 'orders',
-  records: 'orders'
-}
+/** Where a wallet link lands: the redeem field, the subscription list or the records card. */
+export type WalletFocus = 'redeem' | 'subscriptions' | 'records'
 
 function single(value: LocationQueryValue | LocationQueryValue[] | undefined): string | undefined {
   const first = Array.isArray(value) ? value[0] : value
@@ -22,19 +12,42 @@ function single(value: LocationQueryValue | LocationQueryValue[] | undefined): s
 }
 
 /**
- * Picks the visible tab a link asks for: `section` first, then the
- * `records=orders` shortcut, then upstream's `tab=` purchase links (renewals
- * from the subscription list); anything hidden or unknown falls back to the
- * first visible tab.
+ * Records tabs for the visible wallet sections (ids from `walletSections`):
+ * the history merges redeem codes and paid orders, the order list keeps
+ * cancel and refund actions, invites follow the affiliate switch.
  */
-export function resolveWalletTab(query: LocationQuery, visible: readonly WalletTab[]): WalletTab | null {
+export function walletRecordTabs(visibleIds: readonly string[]): WalletRecordTab[] {
+  const tabs: WalletRecordTab[] = []
+  if (visibleIds.includes('redeem') || visibleIds.includes('orders')) tabs.push('history')
+  if (visibleIds.includes('orders')) tabs.push('orders')
+  if (visibleIds.includes('affiliate')) tabs.push('affiliate')
+  return tabs
+}
+
+const RECORD_SECTIONS: Record<string, WalletRecordTab> = {
+  history: 'history',
+  orders: 'orders',
+  records: 'orders',
+  affiliate: 'affiliate'
+}
+
+/** Picks the records tab a link asks for (`section`, then `records=orders`), else the first visible one. */
+export function resolveRecordTab(query: LocationQuery, visible: readonly WalletRecordTab[]): WalletRecordTab | null {
   const section = single(query.section)
-  const requested: (WalletTab | undefined)[] = [
-    section ? SECTION_ALIASES[section] : undefined,
-    single(query.records) === 'orders' ? 'orders' : undefined,
-    single(query.tab) ? 'purchase' : undefined
+  const requested: (WalletRecordTab | undefined)[] = [
+    section ? RECORD_SECTIONS[section] : undefined,
+    single(query.records) === 'orders' ? 'orders' : undefined
   ]
-  return requested.find((tab): tab is WalletTab => !!tab && visible.includes(tab)) ?? visible[0] ?? null
+  return requested.find((tab): tab is WalletRecordTab => !!tab && visible.includes(tab)) ?? visible[0] ?? null
+}
+
+/** The part of the page an old link (`/redeem`, `/orders`, `/subscriptions`, `/affiliate`) should scroll to. */
+export function resolveWalletFocus(query: LocationQuery, subscriptionsFocus: string): WalletFocus | null {
+  const section = single(query.section)
+  if (section === 'redeem') return 'redeem'
+  if (single(query.focus) === subscriptionsFocus) return 'subscriptions'
+  if ((section && RECORD_SECTIONS[section]) || single(query.records) === 'orders') return 'records'
+  return null
 }
 
 /** `section=plans` opens upstream PaymentView on its subscription tab. */

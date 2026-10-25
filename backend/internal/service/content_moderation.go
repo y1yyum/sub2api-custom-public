@@ -169,6 +169,7 @@ type ContentModerationConfig struct {
 	NonHitRetentionDays  int                          `json:"non_hit_retention_days"`
 	PreHashCheckEnabled  bool                         `json:"pre_hash_check_enabled"`
 	BlockedKeywords      []string                     `json:"blocked_keywords"`
+	BlockedRegexps       []string                     `json:"blocked_regexps"`
 	KeywordBlockingMode  string                       `json:"keyword_blocking_mode"`
 	ModelFilter          ContentModerationModelFilter `json:"model_filter"`
 	// CyberPolicyExcludeFromBanCount 为 true 时，cyber_policy 命中不参与自动封号计数：
@@ -209,6 +210,8 @@ type ContentModerationConfigView struct {
 	NonHitRetentionDays            int                                     `json:"non_hit_retention_days"`
 	PreHashCheckEnabled            bool                                    `json:"pre_hash_check_enabled"`
 	BlockedKeywords                []string                                `json:"blocked_keywords"`
+	BlockedRegexps                 []string                                `json:"blocked_regexps"`
+	BlockedRegexpPresets           []string                                `json:"blocked_regexp_presets"`
 	KeywordBlockingMode            string                                  `json:"keyword_blocking_mode"`
 	ModelFilter                    ContentModerationModelFilter            `json:"model_filter"`
 	CyberPolicyExcludeFromBanCount bool                                    `json:"cyber_policy_exclude_from_ban_count"`
@@ -306,6 +309,7 @@ type UpdateContentModerationConfigInput struct {
 	NonHitRetentionDays            *int                          `json:"non_hit_retention_days"`
 	PreHashCheckEnabled            *bool                         `json:"pre_hash_check_enabled"`
 	BlockedKeywords                *[]string                     `json:"blocked_keywords"`
+	BlockedRegexps                 *[]string                     `json:"blocked_regexps"`
 	KeywordBlockingMode            *string                       `json:"keyword_blocking_mode"`
 	ModelFilter                    *ContentModerationModelFilter `json:"model_filter"`
 	CyberPolicyExcludeFromBanCount *bool                         `json:"cyber_policy_exclude_from_ban_count"`
@@ -551,6 +555,7 @@ type contentModerationRuntimeSnapshot struct {
 	riskControlEnabled bool
 	config             *ContentModerationConfig
 	keywordMatcher     *contentModerationKeywordMatcher
+	regexMatcher       *contentModerationRegexMatcher
 	configDigest       [sha256.Size]byte
 	loadedAt           time.Time
 }
@@ -680,6 +685,12 @@ func (s *ContentModerationService) UpdateConfig(ctx context.Context, input Updat
 	}
 	if input.BlockedKeywords != nil {
 		cfg.BlockedKeywords = normalizeBlockedKeywords(*input.BlockedKeywords)
+	}
+	if input.BlockedRegexps != nil {
+		cfg.BlockedRegexps = normalizeBlockedRegexps(*input.BlockedRegexps)
+		if err := validateBlockedRegexps(cfg.BlockedRegexps); err != nil {
+			return nil, err
+		}
 	}
 	if input.KeywordBlockingMode != nil {
 		cfg.KeywordBlockingMode = strings.TrimSpace(*input.KeywordBlockingMode)
@@ -929,37 +940,13 @@ func (s *ContentModerationService) Check(ctx context.Context, input ContentModer
 		return allow, nil
 	}
 	if cfg.Mode == ContentModerationModePreBlock {
-		if cfg.KeywordBlockingMode != ContentModerationKeywordModeAPIOnly && len(cfg.BlockedKeywords) > 0 {
+		if cfg.KeywordBlockingMode != ContentModerationKeywordModeAPIOnly && (len(cfg.BlockedKeywords) > 0 || len(cfg.BlockedRegexps) > 0) {
 			keywordText := extractContentModerationKeywordText(input.Protocol, input.Body)
 			if keyword, hit := runtimeSnapshot.matchBlockedKeyword(keywordText); hit {
-				metricAction := ContentModerationActionKeywordBlock
-				if input.riskControlLogOnly {
-					metricAction = ContentModerationActionAllow
-				}
-				s.recordPreBlockSyncMetric(0, metricAction)
-				slog.Info("content_moderation.keyword_block",
-					"user_id", input.UserID,
-					"api_key_id", input.APIKeyID,
-					"group_id", contentModerationLogGroupID(input.GroupID),
-					"endpoint", input.Endpoint,
-					"protocol", input.Protocol,
-					"keyword_blocking_mode", cfg.KeywordBlockingMode,
-					"keyword", keyword)
-				scores := map[string]float64{contentModerationKeywordCategory: 1.0}
-				log := s.buildLog(input, cfg, ContentModerationActionKeywordBlock, true, contentModerationKeywordCategory, 1.0, scores, keywordText, nil, nil, "")
-				log.MatchedKeyword = keyword
-				s.enqueueRecord(input, cfg, log, (ContentModerationInput{Text: keywordText}).Hash(), false, true)
-				return &ContentModerationDecision{
-					Allowed:         false,
-					Blocked:         true,
-					Flagged:         true,
-					Message:         cfg.BlockMessage,
-					StatusCode:      cfg.BlockStatus,
-					HighestCategory: contentModerationKeywordCategory,
-					HighestScore:    1.0,
-					CategoryScores:  scores,
-					Action:          ContentModerationActionKeywordBlock,
-				}, nil
+				return s.localRuleBlockDecision(input, cfg, keywordText, keyword, contentModerationMatchTypeKeyword), nil
+			}
+			if pattern, hit := runtimeSnapshot.matchBlockedRegexp(keywordText); hit {
+				return s.localRuleBlockDecision(input, cfg, keywordText, pattern, contentModerationMatchTypeRegex), nil
 			}
 		}
 		if cfg.KeywordBlockingMode == ContentModerationKeywordModeKeywordOnly {
@@ -1212,6 +1199,38 @@ func (s *ContentModerationService) enqueueAsync(input ContentModerationCheckInpu
 	default:
 		slog.Warn("content_moderation.async_queue_full", "user_id", input.UserID, "endpoint", input.Endpoint)
 		s.asyncDropped.Add(1)
+	}
+}
+
+func (s *ContentModerationService) localRuleBlockDecision(input ContentModerationCheckInput, cfg *ContentModerationConfig, keywordText, rule, matchType string) *ContentModerationDecision {
+	metricAction := ContentModerationActionKeywordBlock
+	if input.riskControlLogOnly {
+		metricAction = ContentModerationActionAllow
+	}
+	s.recordPreBlockSyncMetric(0, metricAction)
+	slog.Info("content_moderation.keyword_block",
+		"user_id", input.UserID,
+		"api_key_id", input.APIKeyID,
+		"group_id", contentModerationLogGroupID(input.GroupID),
+		"endpoint", input.Endpoint,
+		"protocol", input.Protocol,
+		"keyword_blocking_mode", cfg.KeywordBlockingMode,
+		"match_type", matchType,
+		"keyword", rule)
+	scores := map[string]float64{contentModerationKeywordCategory: 1.0}
+	log := s.buildLog(input, cfg, ContentModerationActionKeywordBlock, true, contentModerationKeywordCategory, 1.0, scores, keywordText, nil, nil, "")
+	log.MatchedKeyword = truncateContentModerationMatchedRule(rule)
+	s.enqueueRecord(input, cfg, log, (ContentModerationInput{Text: keywordText}).Hash(), false, true)
+	return &ContentModerationDecision{
+		Allowed:         false,
+		Blocked:         true,
+		Flagged:         true,
+		Message:         cfg.BlockMessage,
+		StatusCode:      cfg.BlockStatus,
+		HighestCategory: contentModerationKeywordCategory,
+		HighestScore:    1.0,
+		CategoryScores:  scores,
+		Action:          ContentModerationActionKeywordBlock,
 	}
 }
 
@@ -1620,6 +1639,7 @@ func (s *ContentModerationService) refreshRuntimeSnapshot(ctx context.Context) (
 			riskControlEnabled: values[SettingKeyRiskControlEnabled] == "true",
 			config:             current.config,
 			keywordMatcher:     current.keywordMatcher,
+			regexMatcher:       current.regexMatcher,
 			configDigest:       configDigest,
 			loadedAt:           time.Now(),
 		}
@@ -1637,6 +1657,7 @@ func (s *ContentModerationService) refreshRuntimeSnapshot(ctx context.Context) (
 		riskControlEnabled: values[SettingKeyRiskControlEnabled] == "true",
 		config:             cfg,
 		keywordMatcher:     newContentModerationKeywordMatcher(cfg.BlockedKeywords),
+		regexMatcher:       newContentModerationRegexMatcher(cfg.BlockedRegexps),
 		configDigest:       configDigest,
 		loadedAt:           time.Now(),
 	}
@@ -1657,6 +1678,7 @@ func (s *ContentModerationService) replaceRuntimeConfig(cfg *ContentModerationCo
 	}
 	config := cfg.effectiveEngine(cfg.Engine)
 	keywordMatcher := newContentModerationKeywordMatcher(cfg.BlockedKeywords)
+	regexMatcher := newContentModerationRegexMatcher(cfg.BlockedRegexps)
 	configDigest := sha256.Sum256(raw)
 
 	s.runtimeRefreshMu.Lock()
@@ -1670,6 +1692,7 @@ func (s *ContentModerationService) replaceRuntimeConfig(cfg *ContentModerationCo
 		riskControlEnabled: current.riskControlEnabled,
 		config:             config,
 		keywordMatcher:     keywordMatcher,
+		regexMatcher:       regexMatcher,
 		configDigest:       configDigest,
 		loadedAt:           time.Now(),
 	})
@@ -2161,6 +2184,7 @@ func defaultContentModerationConfig() *ContentModerationConfig {
 		NonHitRetentionDays:  defaultContentModerationNonHitRetentionDays,
 		PreHashCheckEnabled:  false,
 		BlockedKeywords:      []string{},
+		BlockedRegexps:       []string{},
 		KeywordBlockingMode:  ContentModerationKeywordModeKeywordAndAPI,
 		ModelFilter: ContentModerationModelFilter{
 			Type:   ContentModerationModelFilterAll,
@@ -2182,6 +2206,7 @@ func cloneContentModerationConfig(cfg *ContentModerationConfig) *ContentModerati
 	clone.APIKeys = append([]string(nil), cfg.APIKeys...)
 	clone.GroupIDs = append([]int64(nil), cfg.GroupIDs...)
 	clone.BlockedKeywords = append([]string(nil), cfg.BlockedKeywords...)
+	clone.BlockedRegexps = append([]string(nil), cfg.BlockedRegexps...)
 	clone.Thresholds = cloneFloatMap(cfg.Thresholds)
 	clone.ModelFilter = ContentModerationModelFilter{
 		Type:   cfg.ModelFilter.Type,
@@ -2270,6 +2295,7 @@ func (cfg *ContentModerationConfig) normalize() {
 	cfg.GroupIDs = normalizeInt64IDs(cfg.GroupIDs)
 	cfg.Thresholds = mergeContentModerationThresholds(ContentModerationDefaultThresholds(), cfg.Thresholds)
 	cfg.BlockedKeywords = normalizeBlockedKeywords(cfg.BlockedKeywords)
+	cfg.BlockedRegexps = normalizeBlockedRegexps(cfg.BlockedRegexps)
 	cfg.KeywordBlockingMode = normalizeKeywordBlockingMode(cfg.KeywordBlockingMode)
 	cfg.ModelFilter = normalizeContentModerationModelFilter(cfg.ModelFilter)
 }
@@ -2501,6 +2527,8 @@ func (s *ContentModerationService) configView(cfg *ContentModerationConfig) *Con
 		NonHitRetentionDays:            cfg.NonHitRetentionDays,
 		PreHashCheckEnabled:            cfg.PreHashCheckEnabled,
 		BlockedKeywords:                append([]string(nil), cfg.BlockedKeywords...),
+		BlockedRegexps:                 append([]string{}, cfg.BlockedRegexps...),
+		BlockedRegexpPresets:           ContentModerationBlockedRegexpPresets(),
 		KeywordBlockingMode:            cfg.KeywordBlockingMode,
 		ModelFilter:                    cloneContentModerationModelFilter(cfg.ModelFilter),
 		CyberPolicyExcludeFromBanCount: cfg.CyberPolicyExcludeFromBanCount,

@@ -7,8 +7,7 @@
       <div class="flex min-w-0 items-center gap-3">
         <router-link to="/dashboard" class="flex shrink-0 items-center gap-2" data-testid="portal-brand">
           <span class="flex h-8 w-8 items-center justify-center overflow-hidden rounded-lg bg-gray-900 dark:bg-white">
-            <img v-if="siteLogo" :src="siteLogo" :alt="siteName" class="h-full w-full object-contain" />
-            <span v-else class="text-xs font-bold text-white dark:text-gray-900">{{ siteInitials }}</span>
+            <img :src="siteLogo || '/logo.svg'" :alt="siteName" class="h-full w-full object-contain" />
           </span>
           <span class="hidden text-sm font-semibold text-gray-900 dark:text-white sm:inline">{{ siteName }}</span>
         </router-link>
@@ -65,6 +64,18 @@
           </router-link>
         </PortalDropdown>
 
+        <router-link
+          v-if="isAdmin"
+          :to="ADMIN_HOME_PATH"
+          :class="topButton"
+          :title="pt('shell.topbar.adminTitle')"
+          :aria-label="pt('shell.topbar.adminTitle')"
+          data-testid="portal-admin-entry"
+        >
+          <Icon name="shield" size="sm" />
+          <span class="hidden sm:inline">{{ pt('shell.topbar.admin') }}</span>
+        </router-link>
+
         <AnnouncementBell v-if="user" />
 
         <SubscriptionProgressMini v-if="user && subscriptionFeatureEnabled" />
@@ -73,15 +84,15 @@
           :is="walletPath ? 'router-link' : 'span'"
           v-if="user"
           v-bind="walletPath ? { to: walletPath, title: pt('shell.topbar.balanceTitle') } : {}"
-          class="hidden items-center gap-1.5 rounded-xl bg-primary-50 px-3 py-1.5 text-sm font-semibold text-primary-700 dark:bg-primary-900/20 dark:text-primary-300 sm:flex"
+          class="flex items-center gap-1.5 rounded-xl bg-primary-50 px-2 py-1.5 text-sm font-semibold tabular-nums text-primary-700 dark:bg-primary-900/20 dark:text-primary-300 sm:px-3"
           :aria-label="pt('shell.topbar.balance')"
           data-testid="portal-balance"
         >
-          <Icon name="dollar" size="sm" />
+          <Icon name="dollar" size="sm" class="hidden sm:block" />
           {{ balance }}
           <span
             v-if="frozenBalance > 0"
-            class="rounded-full bg-amber-100 px-1.5 py-0.5 text-xs font-medium text-amber-700 dark:bg-amber-900/40 dark:text-amber-200"
+            class="hidden rounded-full bg-amber-100 px-1.5 py-0.5 text-xs font-medium text-amber-700 dark:bg-amber-900/40 dark:text-amber-200 sm:inline"
             data-testid="portal-frozen-balance"
           >
             {{ pt('shell.topbar.frozen', { amount: formatMoney(frozenBalance) }) }}
@@ -132,10 +143,12 @@ const authStore = useAuthStore()
 const topButton =
   'flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-sm font-medium text-gray-600 transition-colors hover:bg-gray-100 hover:text-gray-900 dark:text-dark-400 dark:hover:bg-dark-800 dark:hover:text-white'
 
+const ADMIN_HOME_PATH = '/admin/dashboard'
+
 const user = computed(() => authStore.user)
+const isAdmin = computed(() => authStore.isAdmin)
 const siteName = computed(() => appStore.siteName)
 const siteLogo = computed(() => sanitizeUrl(appStore.siteLogo || '', { allowRelative: true, allowDataUrl: true }))
-const siteInitials = computed(() => siteName.value.substring(0, 2).toUpperCase())
 const formatMoney = (value: number) => `$${value.toFixed(2)}`
 const balance = computed(() => formatMoney(Number(user.value?.balance || 0)))
 const frozenBalance = computed(() => Number(user.value?.frozen_balance || 0))

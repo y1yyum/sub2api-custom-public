@@ -29,7 +29,9 @@ const zh = {
       more: '更多',
       balance: '可用余额',
       balanceTitle: '查看钱包',
-      frozen: '冻结 {amount}'
+      frozen: '冻结 {amount}',
+      admin: '管理后台',
+      adminTitle: '切换到管理端后台'
     },
     avatar: {
       menu: '账户菜单',
@@ -43,33 +45,118 @@ const zh = {
   },
   pages: {
     overview: {
-      chartTitle: '用量分析',
-      range: '时间范围',
-      granularity: '粒度',
-      day: '按天',
-      hour: '按小时',
-      refresh: '刷新',
-      dimension: '维度',
-      dimensions: {
-        trend: '趋势',
+      heading: '仪表盘',
+      welcome: '欢迎回来！这是你的账户概览。',
+      live: {
+        title: '实时状态',
+        rpm: 'RPM',
+        tpm: 'TPM',
+        windowHint: '近 5 分钟平均，统计全部 API Key，不受筛选影响',
+        avgDuration: '平均延迟',
+        todayCost: '今日花费',
+        loadFailed: '实时数据刷新失败'
+      },
+      toolbar: {
+        invalidRange: '日期无效：结束日期不能早于开始日期，最长 {days} 天',
+        filters: '筛选',
+        activeCount: '已启用 {count} 个筛选',
+        filterPanel: '筛选条件',
+        apiKey: 'API Key',
         model: '模型',
         group: '分组',
-        endpoint: '端点'
+        requestType: '请求类型',
+        all: '全部',
+        loadingKeys: '加载中…',
+        keysFailed: 'API Key 列表加载失败',
+        retry: '重试',
+        reset: '重置',
+        close: '完成',
+        refresh: '刷新'
       },
-      endpointTitle: '端点分布',
-      quotaTitle: '订阅额度',
-      quotaManage: '管理订阅',
-      quotaDaily: '今日',
-      quotaWeekly: '本周',
-      quotaMonthly: '本月',
-      quotaUnlimited: '不限额'
+      metrics: {
+        label: '指标',
+        tokens: 'Token',
+        requests: '请求数',
+        cost: '花费',
+        cacheHitRate: '缓存命中率',
+        vsPrevious: '较上一周期',
+        deltaUp: '较上一周期增长 {value}',
+        deltaDown: '较上一周期下降 {value}',
+        flat: '持平',
+        deltaFlat: '与上一周期持平',
+        new: '新增',
+        deltaNew: '上一周期为 0，本期新增',
+        noComparison: '无可比较的上一周期数据'
+      },
+      chart: {
+        title: '用量趋势 · {metric}',
+        granularity: {
+          day: '按天',
+          hour: '按小时'
+        },
+        legend: '图例',
+        current: '本期',
+        previous: '上一周期',
+        previousAt: '上一周期 {date}',
+        summary: '峰值 {peak}（{date}），均值 {mean}',
+        loading: '加载中…',
+        empty: '所选范围内暂无用量',
+        error: '趋势数据加载失败',
+        retry: '重试',
+        series: {
+          input: '输入',
+          output: '输出',
+          cache_creation: '缓存创建',
+          cache_read: '缓存读取'
+        }
+      },
+      ranks: {
+        title: '热门模型',
+        by: {
+          tokens: '按 Token',
+          requests: '按请求数',
+          cost: '按花费'
+        },
+        viewAll: '查看全部',
+        others: '其余 {count} 个模型',
+        error: '模型排行加载失败',
+        empty: '暂无模型用量',
+        applyFilter: '按此模型筛选',
+        clearFilter: '取消此模型筛选'
+      },
+      heatmap: {
+        title: '用量活跃度',
+        hint: '近 365 天，跟随筛选条件；点击某天查看当天的小时明细',
+        summary: '{requests} 次请求，{days} 天活跃',
+        error: '活跃度数据加载失败',
+        retry: '重试',
+        gridLabel: '每日请求量热力图',
+        cellLabel: '{date}：{requests} 次请求',
+        requests: '请求',
+        tokens: 'Token',
+        cost: '实际花费',
+        less: '少',
+        more: '多'
+      },
+      announcements: {
+        title: '最近公告',
+        unread: '{count} 条未读',
+        empty: '暂无公告',
+        emptyHint: '有新公告时会显示在这里',
+        noSummary: '点击查看公告详情'
+      }
     },
     wallet: {
-      available: '可用余额',
-      frozen: '冻结金额',
-      total: '总余额',
+      spent: '总消费',
+      spentToday: '今日消费',
       subscriptions: '我的订阅',
-      sectionsLabel: '钱包功能',
+      recordsLabel: '钱包记录',
+      history: '充值记录',
+      historyEmpty: '暂无充值记录。',
+      historyFailed: '充值记录加载失败，请稍后刷新。',
+      historyHint: '显示最近 {count} 条在线充值与兑换记录。',
+      orderBalance: '在线充值',
+      orderSubscription: '购买订阅',
       empty: '当前账户没有可用的钱包功能。'
     },
     models: {
@@ -102,8 +189,15 @@ const zh = {
   },
   rhineHome: {
     caption: '多模型接入 / 开发者服务平台',
-    greetingLead: '统一接入多种 AI 服务。',
-    greetingTail: '管理密钥，掌握每一次调用。',
+    greetingLead: '把 Base URL 换成本站地址，',
+    greetingTail: '用控制台创建的密钥即可调用。',
+    quickStart: {
+      title: '快速接入',
+      copyUrl: '复制地址',
+      copyCurl: '复制 curl 示例',
+      copied: '已复制',
+      copyFailed: '复制失败'
+    },
     panelLabel: '首页展示面板',
     nav: {
       label: '快捷入口',

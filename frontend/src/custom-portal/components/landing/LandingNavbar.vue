@@ -4,8 +4,7 @@
       <!-- Brand Logo & Name -->
       <router-link to="/v2" class="flex items-center gap-3 group">
         <div class="relative flex h-10 w-10 items-center justify-center overflow-hidden rounded-xl bg-gradient-to-br from-primary-500 to-primary-700 shadow-md shadow-primary-500/20 transition-transform group-hover:scale-105">
-          <img v-if="siteLogo" :src="siteLogo" alt="Logo" class="h-full w-full object-contain p-1" />
-          <span v-else class="text-lg font-black tracking-wider text-white">S2</span>
+          <img :src="siteLogo || '/logo.svg'" alt="Logo" class="h-full w-full object-contain p-1" />
         </div>
         <div class="flex flex-col">
           <div class="flex items-center gap-2">

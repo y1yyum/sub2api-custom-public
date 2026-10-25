@@ -1046,6 +1046,45 @@
                 {{ t('admin.riskControl.blockedKeywordsLimit', { max: blockedKeywordMax }) }}
               </p>
             </div>
+
+            <div>
+              <div class="mb-2 flex items-center justify-between">
+                <label class="input-label mb-0">{{ t('admin.riskControl.blockedRegexps') }}</label>
+                <span class="inline-flex rounded-md bg-gray-100 px-2 py-1 text-xs text-gray-500 dark:bg-dark-700 dark:text-gray-300">
+                  {{ t('admin.riskControl.blockedRegexpCount', { count: blockedRegexpList.length }) }}
+                </span>
+              </div>
+              <textarea
+                v-model="configForm.blocked_regexps_text"
+                data-test="blocked-regexps-textarea"
+                class="input min-h-40 resize-y font-mono text-sm"
+                :placeholder="t('admin.riskControl.blockedRegexpsPlaceholder')"
+                :disabled="configForm.keyword_blocking_mode === 'api_only'"
+              ></textarea>
+              <p class="mt-2 text-xs text-gray-500 dark:text-gray-400">
+                {{ t('admin.riskControl.blockedRegexpsDescription') }}
+              </p>
+              <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                {{ t('admin.riskControl.blockedRegexpsLimit', { max: blockedRegexpMax, maxLength: blockedRegexpMaxLength }) }}
+              </p>
+              <p v-if="blockedRegexpError" data-test="blocked-regexps-error" class="mt-1 text-xs text-red-600 dark:text-red-400">
+                {{ blockedRegexpError }}
+              </p>
+              <div v-if="blockedRegexpPresets.length > 0" class="mt-3 flex flex-wrap items-center gap-2">
+                <button
+                  type="button"
+                  data-test="blocked-regexp-presets-insert"
+                  class="btn btn-secondary btn-sm"
+                  :disabled="missingBlockedRegexpPresets.length === 0 || configForm.keyword_blocking_mode === 'api_only'"
+                  @click="insertBlockedRegexpPresets"
+                >
+                  {{ t('admin.riskControl.blockedRegexpPresetsInsert', { count: missingBlockedRegexpPresets.length }) }}
+                </button>
+                <span class="text-xs text-gray-500 dark:text-gray-400">
+                  {{ t('admin.riskControl.blockedRegexpPresetsHint') }}
+                </span>
+              </div>
+            </div>
           </div>
 
           <div v-else class="grid grid-cols-1 gap-5 lg:grid-cols-2">
@@ -1208,6 +1247,8 @@ const maxModerationTestImages = 1
 const maxModerationTestImageSize = 8 * 1024 * 1024
 const maxVisibleApiKeyRows: number = 3
 const blockedKeywordMax = 10000
+const blockedRegexpMax = 500
+const blockedRegexpMaxLength = 255
 const riskThresholdDefaults: Record<string, number> = {
   harassment: 98,
   'harassment/threatening': 90,
@@ -1291,6 +1332,7 @@ const configForm = reactive({
   pre_hash_check_enabled: false,
   thresholds: { ...riskThresholdDefaults } as Record<string, number>,
   blocked_keywords_text: '',
+  blocked_regexps_text: '',
   keyword_blocking_mode: 'keyword_and_api' as KeywordBlockingMode,
   model_filter_type: 'all' as ContentModerationModelFilterType,
   model_filter_models: [] as string[],
@@ -1522,6 +1564,36 @@ const inputApiKeyCount = computed(() => parseApiKeys(configForm.api_keys_text).l
 const blockedKeywordList = computed(() => parseBlockedKeywords(configForm.blocked_keywords_text))
 
 const blockedKeywordCount = computed(() => blockedKeywordList.value.length)
+
+const blockedRegexpList = computed(() => parseBlockedRegexps(configForm.blocked_regexps_text))
+
+const savedBlockedRegexps = ref<string[]>([])
+
+const blockedRegexpPresets = ref<string[]>([])
+
+const missingBlockedRegexpPresets = computed(() => {
+  const present = new Set(blockedRegexpList.value)
+  return blockedRegexpPresets.value.filter((pattern) => !present.has(pattern))
+})
+
+const blockedRegexpServerError = ref<{ text: string; message: string } | null>(null)
+
+const blockedRegexpsChanged = computed(() => !sameStringList(blockedRegexpList.value, savedBlockedRegexps.value))
+
+const blockedRegexpError = computed(() => {
+  // 未改动的存量规则不会随保存提交，超限也不应阻断其他设置的保存
+  if (blockedRegexpsChanged.value) {
+    const tooLongLine = findTooLongRegexpLine(configForm.blocked_regexps_text, blockedRegexpMaxLength)
+    if (tooLongLine > 0) {
+      return t('admin.riskControl.blockedRegexpTooLong', { line: tooLongLine, maxLength: blockedRegexpMaxLength })
+    }
+    if (blockedRegexpList.value.length > blockedRegexpMax) {
+      return t('admin.riskControl.blockedRegexpsTooMany', { max: blockedRegexpMax, count: blockedRegexpList.value.length })
+    }
+  }
+  const serverError = blockedRegexpServerError.value
+  return serverError && serverError.text === configForm.blocked_regexps_text ? serverError.message : ''
+})
 
 const pendingDeletedApiKeyCount = computed(() => pendingDeleteApiKeyHashes.value.length)
 
@@ -1818,6 +1890,9 @@ function applyConfig(config: ContentModerationConfig) {
   configForm.pre_hash_check_enabled = config.pre_hash_check_enabled ?? false
   configForm.thresholds = riskThresholdsFromConfig(config.thresholds)
   configForm.blocked_keywords_text = Array.isArray(config.blocked_keywords) ? config.blocked_keywords.join('\n') : ''
+  configForm.blocked_regexps_text = Array.isArray(config.blocked_regexps) ? config.blocked_regexps.join('\n') : ''
+  savedBlockedRegexps.value = parseBlockedRegexps(configForm.blocked_regexps_text)
+  blockedRegexpPresets.value = Array.isArray(config.blocked_regexp_presets) ? [...config.blocked_regexp_presets] : []
   configForm.keyword_blocking_mode = normalizeKeywordBlockingMode(config.keyword_blocking_mode)
   const modelFilter = normalizeModelFilter(config.model_filter)
   configForm.model_filter_type = modelFilter.type
@@ -1883,6 +1958,10 @@ async function saveConfig() {
       appStore.showError(t('admin.riskControl.modelFilterModelsRequired'))
       return
     }
+    if (blockedRegexpError.value) {
+      appStore.showError(blockedRegexpError.value)
+      return
+    }
     const payload: UpdateContentModerationConfig = {
       engine: configForm.engine,
       enabled: configForm.enabled,
@@ -1915,6 +1994,10 @@ async function saveConfig() {
       keyword_blocking_mode: configForm.keyword_blocking_mode,
       model_filter: modelFilterPayload,
     }
+    // 未改动时省略该字段，让后端保留存量规则，存量中的无效规则不会阻断其他设置的保存
+    if (blockedRegexpsChanged.value) {
+      payload.blocked_regexps = blockedRegexpList.value
+    }
     const keys = parseApiKeys(configForm.api_keys_text)
     if (!payload.clear_api_key && configForm.api_keys_mode === 'replace' && keys.length === 0) {
       appStore.showError(t('admin.riskControl.apiKeysReplaceNoInput'))
@@ -1937,7 +2020,8 @@ async function saveConfig() {
     appStore.showSuccess(t('admin.riskControl.saved'))
     await Promise.all([loadStatus(true), loadLogs()])
   } catch (err: unknown) {
-    appStore.showError(extractApiErrorMessage(err, t('admin.riskControl.saveFailed')))
+    const message = blockedRegexpErrorWithLine(err) ?? extractApiErrorMessage(err, t('admin.riskControl.saveFailed'))
+    appStore.showError(message)
   } finally {
     saving.value = false
   }
@@ -2433,6 +2517,52 @@ function parseBlockedKeywords(value: string): string[] {
     out.push(kw)
   }
   return out
+}
+
+function parseBlockedRegexps(value: string): string[] {
+  const rules = value.split(/\r?\n/).map((line) => line.trim()).filter(Boolean)
+  return [...new Set(rules)]
+}
+
+// The backend numbers rules after trimming and de-duplication; map its rule
+// text back to the first textarea line so the admin can find it.
+function blockedRegexpErrorWithLine(err: unknown): string | undefined {
+  const apiError = (err ?? {}) as { reason?: unknown; metadata?: Record<string, unknown> }
+  if (apiError.reason !== 'INVALID_CONTENT_MODERATION_BLOCKED_REGEXP') return undefined
+  const { pattern, kind, detail } = apiError.metadata ?? {}
+  if (typeof pattern !== 'string') return undefined
+  const text = configForm.blocked_regexps_text
+  const line = text.split(/\r?\n/).findIndex((candidate) => candidate.trim() === pattern) + 1
+  if (line <= 0) return undefined
+  let message: string
+  if (kind === 'too_long') {
+    message = t('admin.riskControl.blockedRegexpTooLong', { line, maxLength: blockedRegexpMaxLength })
+  } else if (kind === 'invalid_syntax' && typeof detail === 'string') {
+    message = t('admin.riskControl.blockedRegexpInvalid', { line, detail })
+  } else {
+    message = t('admin.riskControl.blockedRegexpServerError', {
+      message: extractApiErrorMessage(err, t('admin.riskControl.saveFailed')),
+      line,
+    })
+  }
+  blockedRegexpServerError.value = { text, message }
+  return message
+}
+
+function insertBlockedRegexpPresets() {
+  const missing = missingBlockedRegexpPresets.value
+  if (missing.length === 0) return
+  const current = configForm.blocked_regexps_text.replace(/\s+$/, '')
+  configForm.blocked_regexps_text = [current, ...missing].filter(Boolean).join('\n')
+}
+
+function sameStringList(left: string[], right: string[]): boolean {
+  return left.length === right.length && left.every((value, index) => value === right[index])
+}
+
+function findTooLongRegexpLine(value: string, maxLength: number): number {
+  const index = value.split(/\r?\n/).findIndex((line) => [...line.trim()].length > maxLength)
+  return index + 1
 }
 
 function violationCountText(row: ContentModerationLog): string {

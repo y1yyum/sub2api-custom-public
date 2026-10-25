@@ -21,8 +21,21 @@
     <div class="side-label" aria-hidden="true">{{ siteCode }} — UNIFIED ACCESS / DEVELOPER PORTAL</div>
 
     <section class="greeting" aria-labelledby="rhine-greeting-title">
-      <div class="greeting-label">BUILT FOR DEVELOPERS <span aria-hidden="true">↗</span></div>
-      <h1 id="rhine-greeting-title">ONE<br />API<span class="title-square" aria-hidden="true"></span></h1>
+      <div class="greeting-label">QUICK START <span aria-hidden="true">↗</span></div>
+      <div class="quick-start" data-testid="rhine-quick-start">
+        <h1 id="rhine-greeting-title">{{ pt('rhineHome.quickStart.title') }}</h1>
+        <span class="quick-label">BASE URL</span>
+        <code class="quick-url" data-testid="rhine-base-url">{{ baseUrl }}</code>
+        <div class="quick-actions">
+          <button type="button" data-testid="rhine-copy-url" @click="copy('url', baseUrl)">
+            {{ copyLabel('url', pt('rhineHome.quickStart.copyUrl')) }}
+          </button>
+          <button type="button" data-testid="rhine-copy-curl" @click="copy('curl', curlExample)">
+            {{ copyLabel('curl', pt('rhineHome.quickStart.copyCurl')) }}
+          </button>
+        </div>
+        <span class="title-square" aria-hidden="true"></span>
+      </div>
       <p>{{ pt('rhineHome.greetingLead') }}<br />{{ pt('rhineHome.greetingTail') }}</p>
     </section>
 
@@ -100,6 +113,7 @@
 <script setup lang="ts">
 import { computed, nextTick, onBeforeUnmount, onMounted, ref } from 'vue'
 import { useAppStore, useAuthStore } from '@/stores'
+import { useClipboard } from '@/composables/useClipboard'
 import LocaleSwitcher from '@/components/common/LocaleSwitcher.vue'
 import { sanitizeUrl } from '@/utils/url'
 import { FeatureFlags, resolveFeatureFlag } from '@/utils/featureFlags'
@@ -107,6 +121,7 @@ import { usePortalI18n } from '../../i18n'
 import { MODELS_PATH } from '../../pageRoutes'
 import type { PlazaAccess } from '../../api/homepage'
 import RhineModelPricing from './RhineModelPricing.vue'
+import { buildQuickStartCurl, resolveQuickStartBaseUrl } from './quickStart'
 
 interface NavItem {
   key: string
@@ -119,15 +134,21 @@ interface NavItem {
   primary?: boolean
 }
 
+type CopyTarget = 'url' | 'curl'
+
 const ENTRY_DURATION_MS = 3100
+const COPY_FEEDBACK_MS = 1600
 
 const { pt } = usePortalI18n()
 const appStore = useAppStore()
 const authStore = useAuthStore()
+const { copyToClipboard } = useClipboard()
 
 const rootEl = ref<HTMLElement | null>(null)
 const entryState = ref<'idle' | 'entering' | 'entered'>('idle')
 let entryTimer: ReturnType<typeof setTimeout> | undefined
+let copyTimer: ReturnType<typeof setTimeout> | undefined
+const copyState = ref<{ target: CopyTarget; ok: boolean } | null>(null)
 let unmounted = false
 
 const siteName = computed(() => appStore.cachedPublicSettings?.site_name || appStore.siteName || 'Sub2API')
@@ -137,6 +158,26 @@ const wordmark = computed(() => {
   const dot = name.lastIndexOf('.')
   return dot > 0 ? { head: name.slice(0, dot), tail: name.slice(dot) } : { head: name, tail: '' }
 })
+
+const baseUrl = computed(() =>
+  resolveQuickStartBaseUrl(appStore.cachedPublicSettings?.api_base_url, window.location.origin)
+)
+const curlExample = computed(() => buildQuickStartCurl(baseUrl.value))
+
+async function copy(target: CopyTarget, text: string): Promise<void> {
+  const ok = await copyToClipboard(text, pt('rhineHome.quickStart.copied'))
+  if (unmounted) return
+  copyState.value = { target, ok }
+  clearTimeout(copyTimer)
+  copyTimer = setTimeout(() => {
+    copyState.value = null
+  }, COPY_FEEDBACK_MS)
+}
+
+function copyLabel(target: CopyTarget, idle: string): string {
+  if (copyState.value?.target !== target) return idle
+  return pt(copyState.value.ok ? 'rhineHome.quickStart.copied' : 'rhineHome.quickStart.copyFailed')
+}
 
 const docUrl = computed(() => sanitizeUrl(appStore.cachedPublicSettings?.doc_url || appStore.docUrl || ''))
 // Pricing lives on the models page behind login; the plaza page itself has no entry.
@@ -228,6 +269,7 @@ onMounted(() => {
 onBeforeUnmount(() => {
   unmounted = true
   clearTimeout(entryTimer)
+  clearTimeout(copyTimer)
   window.removeEventListener('focus', syncSession)
   window.removeEventListener('pageshow', syncSession)
   window.removeEventListener('storage', syncSession)
@@ -310,7 +352,13 @@ onBeforeUnmount(() => {
 .greeting::after { content: ''; position: absolute; z-index: -1; background: var(--rh-ink); pointer-events: none; transform-origin: center; }
 .greeting::before { width: 1px; height: 100vh; top: 0; left: 0; }
 .greeting::after { height: 1px; width: 220vw; top: 0; left: 50%; transform: translateX(-50%); }
-.greeting h1 { position: relative; font-size: clamp(44px, 4.5vw, 72px); line-height: 0.92; letter-spacing: -0.055em; margin: 0; background: var(--rh-ink); color: #f6f5f0; padding: 30px 18px 35px; font-weight: 800; white-space: nowrap; }
+.quick-start { position: relative; display: flex; flex-direction: column; gap: 8px; background: var(--rh-ink); color: #f6f5f0; padding: 22px 18px 26px; }
+.greeting h1 { font-size: clamp(26px, 2.4vw, 38px); line-height: 1; letter-spacing: 0.04em; margin: 0 0 6px; font-weight: 800; white-space: nowrap; }
+.quick-label { font-size: 8px; letter-spacing: 0.18em; color: var(--rh-accent); }
+.quick-url { font-family: 'JetBrains Mono', Consolas, monospace; font-size: 12px; line-height: 1.45; word-break: break-all; padding: 6px 8px; border: 1px solid #4a4f44; background: #22251f; }
+.quick-actions { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 4px; }
+.quick-actions button { flex: 1 1 auto; min-height: 30px; padding: 5px 9px; border: 1px solid #6c7262; background: transparent; color: #f6f5f0; font-size: 11px; letter-spacing: 0.06em; cursor: pointer; transition: background 0.2s, color 0.2s; }
+.quick-actions button:hover { background: var(--rh-accent); border-color: var(--rh-accent); color: var(--rh-ink); }
 .greeting-label { position: absolute; top: -24px; left: 0; height: 24px; display: flex; justify-content: space-between; align-items: center; width: 80%; padding: 0 8px; background: #f5f4ed; font-size: 9px; font-weight: bold; letter-spacing: 0.08em; border: 1px solid var(--rh-ink); }
 .greeting-label span { font-size: 16px; }
 .title-square { position: absolute; width: 8px; height: 8px; right: 18px; bottom: 13px; background: var(--rh-accent); }
@@ -416,7 +464,7 @@ onBeforeUnmount(() => {
 
 @media (max-width: 1100px) and (min-width: 901px) {
   .greeting { left: 10%; width: 210px; }
-  .greeting h1 { font-size: 48px; }
+  .greeting h1 { font-size: 26px; }
   .display-panel { left: 35%; right: 4%; }
   .section-nav { right: 5%; width: 28%; }
   .nav-name { font-size: 19px; }
@@ -432,7 +480,7 @@ onBeforeUnmount(() => {
   .brand-caption { font-size: 9px; }
   .side-label { top: 42px; right: 22px; left: auto; font-size: 8px; }
   .greeting { position: relative; left: auto; top: auto; width: 240px; margin: 68px 0 45px 24px; }
-  .greeting h1 { font-size: 58px; padding: 24px 18px 28px; }
+  .greeting h1 { font-size: 32px; }
   .greeting::before { height: 1400px; }
   .greeting::after { width: 220vw; }
   .greeting p { font-size: 11px; }
@@ -472,7 +520,7 @@ onBeforeUnmount(() => {
   .brand-subtitle { font-size: 10px; }
   .brand-system { font-size: 26px; }
   .greeting { margin-left: 14px; width: 215px; }
-  .greeting h1 { font-size: 51px; }
+  .greeting h1 { font-size: 28px; }
   .display-panel { height: 700px; }
   .image-card { top: 8%; left: 8%; width: 84%; height: 46%; }
   .section-nav { top: 59%; left: 8%; right: 8%; width: auto; flex-direction: row; gap: 8px; }

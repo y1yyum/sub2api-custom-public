@@ -1426,7 +1426,7 @@ func (r *userRepository) GetFirstAdmin(ctx context.Context) (*service.User, erro
 			dbuser.RoleEQ(service.RoleAdmin),
 			dbuser.StatusEQ(service.StatusActive),
 		).
-		Order(dbent.Asc(dbuser.FieldID)).
+		Order(dbent.Asc(dbuser.FieldCreatedAt), dbent.Asc(dbuser.FieldID)).
 		First(ctx)
 	if err != nil {
 		return nil, translatePersistenceError(err, service.ErrUserNotFound, nil)
