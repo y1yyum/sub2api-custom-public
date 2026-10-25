@@ -1,0 +1,438 @@
+/*
+ * Rhine Lab theme for the upstream console. Every rule sits under
+ * `:where(html.theme-rhine)`, which adds no specificity, so each override ties
+ * with the upstream rule it replaces and wins only by loading later
+ * (see install.ts). Component overrides come first so the re-emitted
+ * utilities below still beat them, mirroring upstream's components→utilities
+ * order. Only colour, radius and shadow are touched; layout is upstream's.
+ */
+@config "./tailwind.rhine.config.js";
+
+:where(html.theme-rhine) body {
+  background: linear-gradient(125deg, #eeece6 0%, #e4e2dc 58%, #d9d9d2 100%) fixed;
+  @apply text-gray-900;
+}
+
+:where(html.theme-rhine).dark body {
+  background: linear-gradient(125deg, #151816 0%, #111413 58%, #0d0f0e 100%) fixed;
+  @apply text-dark-100;
+}
+
+:where(html.theme-rhine) * {
+  @apply border-gray-200 dark:border-dark-700;
+}
+
+:where(html.theme-rhine) ::selection {
+  @apply bg-primary-400/40 text-gray-900 dark:text-dark-50;
+}
+
+/* ============ Buttons ============ */
+:where(html.theme-rhine) .btn {
+  @apply rounded-xl focus:ring-primary-500/50;
+}
+
+:where(html.theme-rhine) .btn-primary {
+  background-image: none;
+  @apply bg-gray-900 text-white;
+  @apply hover:bg-primary-400 hover:text-gray-900;
+  @apply dark:bg-primary-400 dark:text-dark-950 dark:hover:bg-primary-300;
+}
+
+/*
+ * The hard shadow goes through --tw-shadow because upstream `.btn:focus`
+ * (higher specificity) rebuilds box-shadow from the ring and --tw-shadow; a
+ * literal box-shadow here would be replaced by the ring on focus.
+ */
+:where(html.theme-rhine) .btn-primary,
+:where(html.theme-rhine) .btn-primary:hover,
+:where(html.theme-rhine).dark .btn-primary {
+  box-shadow: var(--tw-ring-offset-shadow, 0 0 #0000), var(--tw-ring-shadow, 0 0 #0000), var(--tw-shadow);
+}
+
+:where(html.theme-rhine) .btn-primary {
+  --tw-shadow: 4px 4px 0 #c3d45a;
+}
+
+:where(html.theme-rhine) .btn-primary:hover {
+  --tw-shadow: 4px 4px 0 #191b18;
+}
+
+:where(html.theme-rhine).dark .btn-primary {
+  --tw-shadow: 4px 4px 0 #090b0a;
+}
+
+:where(html.theme-rhine) .btn-secondary {
+  @apply border-gray-300 bg-white text-gray-800 hover:border-gray-900 hover:bg-gray-50;
+  @apply dark:border-dark-600 dark:bg-dark-800 dark:text-dark-100;
+  @apply dark:hover:border-dark-400 dark:hover:bg-dark-700;
+}
+
+:where(html.theme-rhine) .btn-ghost {
+  @apply text-gray-600 hover:bg-gray-100 dark:text-dark-300 dark:hover:bg-dark-800;
+}
+
+:where(html.theme-rhine) .btn-sm,
+:where(html.theme-rhine) .btn-md,
+:where(html.theme-rhine) .btn-icon {
+  @apply rounded-lg;
+}
+
+:where(html.theme-rhine) .btn-lg {
+  @apply rounded-xl;
+}
+
+/* ============ Inputs ============ */
+:where(html.theme-rhine) .input {
+  @apply rounded-lg border-gray-300 bg-white text-gray-900 placeholder:text-gray-500;
+  @apply focus:border-gray-900 focus:ring-primary-400/50;
+  @apply disabled:bg-gray-100;
+  @apply dark:border-dark-600 dark:bg-dark-800 dark:text-dark-100 dark:placeholder:text-dark-400;
+  @apply dark:focus:border-primary-500 dark:disabled:bg-dark-900;
+}
+
+:where(html.theme-rhine) .input-label {
+  @apply text-gray-700 dark:text-dark-200;
+}
+
+:where(html.theme-rhine) .input-hint {
+  @apply text-gray-500 dark:text-dark-400;
+}
+
+/* ============ Surfaces ============ */
+:where(html.theme-rhine) .glass {
+  @apply bg-white/85 dark:bg-dark-800/85;
+}
+
+:where(html.theme-rhine) .glass-card,
+:where(html.theme-rhine) .card-glass {
+  @apply rounded-2xl border-gray-300/70 bg-white/80 dark:border-dark-600/60 dark:bg-dark-800/80;
+}
+
+:where(html.theme-rhine) .card {
+  @apply rounded-2xl border-gray-300/80 bg-white shadow-card;
+  @apply dark:border-dark-600/70 dark:bg-dark-800;
+}
+
+:where(html.theme-rhine) .card-hover {
+  @apply hover:border-gray-900 hover:shadow-card-hover dark:hover:border-dark-400;
+}
+
+:where(html.theme-rhine).dark .card-hover:hover {
+  box-shadow: 6px 6px 0 #090b0a;
+}
+
+:where(html.theme-rhine) .card-header,
+:where(html.theme-rhine) .card-footer {
+  @apply border-gray-200 dark:border-dark-700;
+}
+
+/* ============ Stats ============ */
+:where(html.theme-rhine) .stat-icon {
+  @apply rounded-lg;
+}
+
+:where(html.theme-rhine) .stat-icon-primary {
+  @apply bg-primary-100 text-primary-700 dark:bg-primary-500/15 dark:text-primary-400;
+}
+
+:where(html.theme-rhine) .stat-value {
+  font-variant-numeric: tabular-nums;
+  @apply text-gray-900 dark:text-dark-50;
+}
+
+:where(html.theme-rhine) .stat-label {
+  @apply text-gray-500 dark:text-dark-400;
+}
+
+/* ============ Tables ============ */
+:where(html.theme-rhine) .table-container {
+  @apply rounded-xl border-gray-300 dark:border-dark-600;
+}
+
+:where(html.theme-rhine) .table {
+  font-variant-numeric: tabular-nums;
+}
+
+:where(html.theme-rhine) .table th {
+  letter-spacing: 0.04em;
+  @apply border-gray-300 bg-gray-100 text-gray-600 dark:border-dark-600 dark:bg-dark-900 dark:text-dark-300;
+}
+
+:where(html.theme-rhine) .table td {
+  @apply border-gray-200 text-gray-700 dark:border-dark-700 dark:text-dark-200;
+}
+
+:where(html.theme-rhine) .table tbody tr {
+  @apply hover:bg-primary-50/70 dark:hover:bg-dark-700/40;
+}
+
+/* ============ Badges ============ */
+:where(html.theme-rhine) .badge {
+  @apply rounded-sm;
+}
+
+:where(html.theme-rhine) .badge-primary {
+  @apply bg-primary-100 text-primary-800 dark:bg-primary-500/15 dark:text-primary-300;
+}
+
+:where(html.theme-rhine) .badge-gray {
+  @apply bg-gray-100 text-gray-700 dark:bg-dark-700 dark:text-dark-300;
+}
+
+/* ============ Menus, modals, toasts ============ */
+:where(html.theme-rhine) .dropdown {
+  @apply rounded-xl border-gray-300 bg-white dark:border-dark-600 dark:bg-dark-800;
+}
+
+:where(html.theme-rhine) .dropdown-item {
+  @apply text-gray-700 hover:bg-gray-100 dark:text-dark-200 dark:hover:bg-dark-700;
+}
+
+:where(html.theme-rhine) .modal-content,
+:where(html.theme-rhine) .dialog-container {
+  box-shadow: 7px 7px 0 #d4d8c5;
+  @apply rounded-2xl border-gray-300 bg-white dark:border-dark-600 dark:bg-dark-800;
+}
+
+:where(html.theme-rhine).dark .modal-content,
+:where(html.theme-rhine).dark .dialog-container {
+  box-shadow: 6px 6px 0 #090b0a;
+}
+
+:where(html.theme-rhine) .modal-header,
+:where(html.theme-rhine) .modal-footer,
+:where(html.theme-rhine) .dialog-header,
+:where(html.theme-rhine) .dialog-footer {
+  @apply border-gray-200 dark:border-dark-700;
+}
+
+:where(html.theme-rhine) .dialog-footer {
+  @apply bg-gray-50/60 dark:bg-dark-900/40;
+}
+
+:where(html.theme-rhine) .modal-title {
+  @apply text-gray-900 dark:text-dark-50;
+}
+
+:where(html.theme-rhine) .toast {
+  @apply rounded-xl bg-white dark:bg-dark-800;
+}
+
+:where(html.theme-rhine) .toast-info {
+  @apply border-l-primary-500;
+}
+
+/* ============ Sidebar ============ */
+:where(html.theme-rhine) .sidebar {
+  @apply border-gray-300 bg-white dark:border-dark-700 dark:bg-dark-900;
+}
+
+:where(html.theme-rhine) .sidebar-header {
+  @apply border-gray-200 dark:border-dark-700;
+}
+
+:where(html.theme-rhine) .sidebar-link {
+  @apply rounded-lg text-gray-600 hover:bg-gray-100 hover:text-gray-900;
+  @apply dark:text-dark-300 dark:hover:bg-dark-800 dark:hover:text-dark-50;
+}
+
+:where(html.theme-rhine) .sidebar-link-active {
+  box-shadow: inset 3px 0 0 #c3d45a;
+  @apply bg-gray-900 text-white hover:bg-gray-800 hover:text-white;
+  @apply dark:bg-dark-700 dark:text-primary-300 dark:hover:bg-dark-600;
+}
+
+:where(html.theme-rhine) .sidebar-section-title {
+  letter-spacing: 0.12em;
+  @apply text-gray-500 dark:text-dark-500;
+}
+
+/* ============ Page chrome ============ */
+:where(html.theme-rhine) .page-title {
+  @apply text-gray-900 dark:text-dark-50;
+}
+
+:where(html.theme-rhine) .page-description {
+  @apply text-gray-500 dark:text-dark-400;
+}
+
+:where(html.theme-rhine) .empty-state-icon {
+  @apply text-gray-300 dark:text-dark-600;
+}
+
+:where(html.theme-rhine) .empty-state-title {
+  @apply text-gray-900 dark:text-dark-50;
+}
+
+:where(html.theme-rhine) .skeleton {
+  @apply rounded bg-gray-200 dark:bg-dark-700;
+}
+
+:where(html.theme-rhine) .divider {
+  @apply bg-gray-300 dark:bg-dark-700;
+}
+
+/* The class is repeated to tie with AuthLayout's scoped `.text-gradient[data-v-*]`. */
+:where(html.theme-rhine) .text-gradient.text-gradient {
+  @apply from-gray-900 to-gray-700 dark:from-primary-300 dark:to-primary-400;
+}
+
+/* ============ Tabs, progress, switch, code ============ */
+:where(html.theme-rhine) .tabs {
+  @apply rounded-xl bg-gray-200/70 dark:bg-dark-800;
+}
+
+:where(html.theme-rhine) .tab {
+  @apply rounded-lg text-gray-600 hover:text-gray-900 dark:text-dark-400 dark:hover:text-dark-50;
+}
+
+:where(html.theme-rhine) .tab-active {
+  @apply bg-white text-gray-900 dark:bg-dark-700 dark:text-dark-50;
+}
+
+:where(html.theme-rhine) .progress {
+  @apply bg-gray-200 dark:bg-dark-700;
+}
+
+:where(html.theme-rhine) .progress-bar {
+  @apply from-primary-500 to-primary-400;
+}
+
+:where(html.theme-rhine) .switch {
+  @apply bg-gray-300 dark:bg-dark-600;
+}
+
+:where(html.theme-rhine) .switch-active {
+  @apply bg-primary-500;
+}
+
+:where(html.theme-rhine) .switch-thumb {
+  @apply bg-white;
+}
+
+:where(html.theme-rhine) .code {
+  @apply rounded bg-gray-100 text-primary-700 dark:bg-dark-800 dark:text-primary-400;
+}
+
+:where(html.theme-rhine) .code-block {
+  @apply rounded-xl bg-gray-900 text-gray-100;
+}
+
+/*
+ * ============ Upstream scoped component residue ============
+ * Scoped upstream styles compile `@apply primary-*` to fixed teal on
+ * `.x[data-v-*]`; repeating the last class ties that specificity so the
+ * later theme sheet wins without touching the components.
+ */
+/* RelayPulseMatrix reads this optional variable (falls back to indigo). */
+:where(html.theme-rhine) {
+  --color-primary-500: 122 136 32;
+}
+
+:where(html.theme-rhine) .select-trigger.select-trigger,
+:where(html.theme-rhine) .date-picker-trigger.date-picker-trigger,
+:where(html.theme-rhine) .date-picker-input.date-picker-input {
+  @apply focus:border-gray-900 focus:ring-primary-400/50 dark:focus:border-primary-500;
+}
+
+:where(html.theme-rhine) .select-trigger-open.select-trigger-open,
+:where(html.theme-rhine) .date-picker-trigger-open.date-picker-trigger-open {
+  @apply border-gray-900 ring-primary-400/50 dark:border-primary-500;
+}
+
+/* Re-asserted, dark variants included, because the focus and open overrides above outrank upstream's. */
+:where(html.theme-rhine) .select-trigger-error.select-trigger-error {
+  @apply border-red-500 focus:border-red-500 focus:ring-red-500/30;
+  @apply dark:border-red-500 dark:focus:border-red-500;
+}
+
+:where(html.theme-rhine) .select-option-selected.select-option-selected,
+:where(html.theme-rhine) .date-picker-preset-active.date-picker-preset-active,
+:where(html.theme-rhine) .toc-item.toc-active.toc-active {
+  @apply bg-primary-100 text-primary-800 dark:bg-primary-500/15 dark:text-primary-300;
+}
+
+:where(html.theme-rhine) .date-picker-apply.date-picker-apply {
+  @apply bg-gray-900 text-white hover:bg-primary-400 hover:text-gray-900;
+  @apply dark:bg-primary-400 dark:text-dark-950 dark:hover:bg-primary-300;
+}
+
+:where(html.theme-rhine) .settings-tab.settings-tab:focus-visible {
+  @apply ring-primary-500/40 ring-offset-white dark:ring-offset-dark-900;
+}
+
+:where(html.theme-rhine) .settings-tab-active.settings-tab-active {
+  @apply border-gray-300 bg-white text-gray-900;
+  @apply dark:border-primary-400/30 dark:bg-dark-700 dark:text-primary-200;
+}
+
+:where(html.theme-rhine) .settings-tab-active.settings-tab-active::after {
+  background-image: none;
+  background-color: #c3d45a;
+}
+
+:where(html.theme-rhine) .settings-tab-active .settings-tab-icon.settings-tab-icon {
+  @apply bg-primary-100 text-primary-700 dark:bg-primary-400/10 dark:text-primary-300;
+}
+
+:where(html.theme-rhine) .channel-tab-active.channel-tab-active {
+  @apply border-gray-900 text-gray-900 dark:border-primary-400 dark:text-primary-400;
+}
+
+:where(html.theme-rhine) .plaza-description.plaza-description a,
+:where(html.theme-rhine) .legal-document-content.legal-document-content a,
+:where(html.theme-rhine) .markdown-page-content.markdown-page-content a {
+  @apply text-primary-600 hover:text-primary-700 dark:text-primary-300 dark:hover:text-primary-200;
+}
+
+:where(html.theme-rhine) .input-ring.input-ring:focus {
+  border-color: #7a8820;
+  box-shadow: 0 0 0 3px rgba(195, 212, 90, 0.45);
+}
+
+/* Onboarding tour (driver.js); upstream rules are !important. */
+:where(html.theme-rhine) .driver-active-element {
+  outline-color: rgba(195, 212, 90, 0.55) !important;
+}
+
+:where(html.theme-rhine) .theme-tour-popover .driver-popover-next-btn {
+  background-color: #191b18 !important;
+  color: #f9f9f2 !important;
+}
+
+:where(html.theme-rhine) .theme-tour-popover .driver-popover-next-btn:hover {
+  background-color: #c3d45a !important;
+  color: #191b18 !important;
+}
+
+@tailwind utilities;
+/* Variant utilities (hover:, dark:, placeholder:) would otherwise land at the very end. */
+@tailwind variants;
+
+/*
+ * ============ After utilities ============
+ * These replace re-emitted utilities, so they must follow them and their variants.
+ */
+
+/* AuthLayout and the upstream home draw a teal grid with an arbitrary utility. */
+:where(html.theme-rhine) [class*='rgba(20,184,166,0.03)'] {
+  background-image:
+    linear-gradient(rgba(25, 27, 24, 0.05) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(25, 27, 24, 0.05) 1px, transparent 1px);
+}
+
+:where(html.theme-rhine).dark [class*='rgba(20,184,166,0.03)'] {
+  background-image:
+    linear-gradient(rgba(195, 212, 90, 0.04) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(195, 212, 90, 0.04) 1px, transparent 1px);
+}
+
+/*
+ * gray-400 placeholders are 2.66:1 on the Rhine surface; gray-500 reaches 4.6:1.
+ * The dark rule also overrides an explicit upstream dark:placeholder:* on the
+ * same element, deliberately: dark-400 is the highest-contrast option there.
+ */
+:where(html.theme-rhine) .placeholder\:text-gray-400::placeholder,
+:where(html.theme-rhine) .select-search-input.select-search-input::placeholder {
+  @apply text-gray-500 dark:text-dark-400;
+}
