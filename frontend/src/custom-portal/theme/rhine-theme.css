@@ -1,20 +1,68 @@
 /*
- * Rhine Lab theme for the upstream console. Every rule sits under
- * `:where(html.theme-rhine)`, which adds no specificity, so each override ties
- * with the upstream rule it replaces and wins only by loading later
- * (see install.ts). Component overrides come first so the re-emitted
- * utilities below still beat them, mirroring upstream's components→utilities
- * order. Only colour, radius and shadow are touched; layout is upstream's.
+ * Pixel-pastel theme for the upstream console (kept under the historical
+ * Rhine names). Every rule sits under `:where(html.theme-rhine)`, which adds no
+ * specificity, so each override ties with the upstream rule it replaces and
+ * wins only by loading later (see install.ts). Component overrides come first
+ * so the re-emitted utilities below still beat them, mirroring upstream's
+ * components→utilities order. Only colour, radius, border, shadow, background
+ * painting, font family and motion are touched; box sizes and grids are upstream's.
  */
 @config "./tailwind.rhine.config.js";
 
+/*
+ * Fusion Pixel 12px (OFL-1.1), subset by scripts/subset-pixel-font.py. Glyphs
+ * are drawn on a 12px grid, so use it only at 12/24/36px and never synthesise
+ * bold or italic, which smears the pixels.
+ */
+@font-face {
+  font-family: 'Fusion Pixel 12';
+  src: url('./fonts/fusion-pixel-12px-proportional-zh_hans.subset.woff2') format('woff2');
+  font-display: swap;
+}
+
+/*
+ * --pp-edge outlines cards (decorative), --pp-control outlines inputs and must
+ * reach 3:1 against the surface (WCAG 1.4.11), --pp-ink draws focus outlines.
+ * --pp-notch-* are 9-slice border images in the --pp-edge colour: sm cuts one
+ * 2px pixel off each corner, lg draws a two-step corner. Unlike clip-path they
+ * clip neither shadows, focus rings nor overflowing menus.
+ */
+:where(html.theme-rhine) {
+  --pp-font-pixel: 'Fusion Pixel 12', ui-monospace, monospace;
+  --pp-ink: #2c2e33;
+  --pp-edge: #2c2e33;
+  --pp-control: #2c2e33;
+  --pp-shadow: #2c2e33;
+  --pp-grid: rgba(44, 46, 51, 0.05);
+  --pp-notch-sm: url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' width='6' height='6' shape-rendering='crispEdges'><path fill='%232c2e33' d='M2 0h2v2H2zM0 2h2v2H0zM4 2h2v2H4zM2 4h2v2H2z'/></svg>");
+  --pp-notch-lg: url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' width='18' height='18' shape-rendering='crispEdges'><path fill='%232c2e33' d='M4 0h10v2H4zM4 16h10v2H4zM0 4h2v10H0zM16 4h2v10h-2zM2 2h2v2H2zM14 2h2v2h-2zM2 14h2v2H2zM14 14h2v2h-2z'/></svg>");
+  --pp-dither: rgba(44, 46, 51, 0.06);
+}
+
+:where(html.theme-rhine).dark {
+  --pp-ink: #e6e8ee;
+  --pp-edge: #383c4a;
+  --pp-control: #6b7186;
+  --pp-shadow: #0e0f13;
+  --pp-grid: rgba(255, 255, 255, 0.04);
+  --pp-notch-sm: url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' width='6' height='6' shape-rendering='crispEdges'><path fill='%23383c4a' d='M2 0h2v2H2zM0 2h2v2H0zM4 2h2v2H4zM2 4h2v2H2z'/></svg>");
+  --pp-notch-lg: url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' width='18' height='18' shape-rendering='crispEdges'><path fill='%23383c4a' d='M4 0h10v2H4zM4 16h10v2H4zM0 4h2v10H0zM16 4h2v10h-2zM2 2h2v2H2zM14 2h2v2h-2zM2 14h2v2H2zM14 14h2v2h-2z'/></svg>");
+  --pp-dither: rgba(255, 255, 255, 0.05);
+}
+
 :where(html.theme-rhine) body {
-  background: linear-gradient(125deg, #eeece6 0%, #e4e2dc 58%, #d9d9d2 100%) fixed;
+  background-color: #f8f7f2;
+  background-image:
+    repeating-linear-gradient(to right, var(--pp-grid) 0 1px, transparent 1px 16px),
+    repeating-linear-gradient(to bottom, var(--pp-grid) 0 1px, transparent 1px 16px);
   @apply text-gray-900;
 }
 
 :where(html.theme-rhine).dark body {
-  background: linear-gradient(125deg, #151816 0%, #111413 58%, #0d0f0e 100%) fixed;
+  background-color: #1c1e26;
+  background-image:
+    repeating-linear-gradient(to right, var(--pp-grid) 0 1px, transparent 1px 16px),
+    repeating-linear-gradient(to bottom, var(--pp-grid) 0 1px, transparent 1px 16px);
   @apply text-dark-100;
 }
 
@@ -23,71 +71,108 @@
 }
 
 :where(html.theme-rhine) ::selection {
-  @apply bg-primary-400/40 text-gray-900 dark:text-dark-50;
+  @apply bg-primary-500 text-gray-900 dark:bg-primary-400 dark:text-dark-900;
+}
+
+/* Titles, numbers and short labels whose upstream size is already 12 or 24px. */
+:where(html.theme-rhine) .page-title,
+:where(html.theme-rhine) .stat-value,
+:where(html.theme-rhine) .badge,
+:where(html.theme-rhine) .btn-sm,
+:where(html.theme-rhine) .sidebar-section-title {
+  font-family: var(--pp-font-pixel);
+  font-synthesis: none;
 }
 
 /* ============ Buttons ============ */
-:where(html.theme-rhine) .btn {
-  @apply rounded-xl focus:ring-primary-500/50;
-}
-
-:where(html.theme-rhine) .btn-primary {
-  background-image: none;
-  @apply bg-gray-900 text-white;
-  @apply hover:bg-primary-400 hover:text-gray-900;
-  @apply dark:bg-primary-400 dark:text-dark-950 dark:hover:bg-primary-300;
-}
-
 /*
  * The hard shadow goes through --tw-shadow because upstream `.btn:focus`
  * (higher specificity) rebuilds box-shadow from the ring and --tw-shadow; a
  * literal box-shadow here would be replaced by the ring on focus.
  */
-:where(html.theme-rhine) .btn-primary,
-:where(html.theme-rhine) .btn-primary:hover,
-:where(html.theme-rhine).dark .btn-primary {
+:where(html.theme-rhine) .btn {
+  border-width: 2px;
+  border-style: solid;
+  border-color: var(--pp-edge);
+  --tw-shadow: 2px 2px 0 var(--pp-shadow);
   box-shadow: var(--tw-ring-offset-shadow, 0 0 #0000), var(--tw-ring-shadow, 0 0 #0000), var(--tw-shadow);
+  border-image: var(--pp-notch-sm) 2 / 2px;
+  background-clip: padding-box;
+  transition: transform 80ms steps(2), box-shadow 80ms steps(2), background-color 80ms steps(2);
+  @apply rounded-xl focus:ring-primary-500/50;
+}
+
+:where(html.theme-rhine) .btn:hover {
+  --tw-shadow: 3px 3px 0 var(--pp-shadow);
+  transform: translate(-1px, -1px);
+}
+
+:where(html.theme-rhine) .btn:active {
+  --tw-shadow: 1px 1px 0 var(--pp-shadow);
+  transform: translate(1px, 1px);
+}
+
+/* Primary actions sit higher and press further. */
+:where(html.theme-rhine) .btn-primary:hover {
+  --tw-shadow: 5px 5px 0 var(--pp-shadow);
+}
+
+:where(html.theme-rhine) .btn-primary:active {
+  --tw-shadow: 1px 1px 0 var(--pp-shadow);
+  transform: translate(3px, 3px);
+}
+
+:where(html.theme-rhine) .btn:disabled {
+  --tw-shadow: 0 0 #0000;
+  transform: none;
 }
 
 :where(html.theme-rhine) .btn-primary {
-  --tw-shadow: 4px 4px 0 #c3d45a;
-}
-
-:where(html.theme-rhine) .btn-primary:hover {
-  --tw-shadow: 4px 4px 0 #191b18;
-}
-
-:where(html.theme-rhine).dark .btn-primary {
-  --tw-shadow: 4px 4px 0 #090b0a;
+  --tw-shadow: 4px 4px 0 var(--pp-shadow);
+  background-image: none;
+  @apply bg-primary-500 text-gray-900 hover:bg-primary-400;
+  @apply dark:bg-primary-400 dark:text-dark-900 dark:hover:bg-primary-300;
 }
 
 :where(html.theme-rhine) .btn-secondary {
-  @apply border-gray-300 bg-white text-gray-800 hover:border-gray-900 hover:bg-gray-50;
-  @apply dark:border-dark-600 dark:bg-dark-800 dark:text-dark-100;
-  @apply dark:hover:border-dark-400 dark:hover:bg-dark-700;
+  @apply bg-white text-gray-800 hover:bg-gray-100;
+  @apply dark:bg-dark-800 dark:text-dark-100 dark:hover:bg-dark-700;
 }
 
 :where(html.theme-rhine) .btn-ghost {
+  border-color: transparent;
+  border-image-source: none;
+  --tw-shadow: 0 0 #0000;
   @apply text-gray-600 hover:bg-gray-100 dark:text-dark-300 dark:hover:bg-dark-800;
+}
+
+:where(html.theme-rhine) .btn-ghost:is(:hover, :active) {
+  --tw-shadow: 0 0 #0000;
+  transform: none;
 }
 
 :where(html.theme-rhine) .btn-sm,
 :where(html.theme-rhine) .btn-md,
+:where(html.theme-rhine) .btn-lg,
 :where(html.theme-rhine) .btn-icon {
   @apply rounded-lg;
 }
 
-:where(html.theme-rhine) .btn-lg {
-  @apply rounded-xl;
-}
-
 /* ============ Inputs ============ */
 :where(html.theme-rhine) .input {
-  @apply rounded-lg border-gray-300 bg-white text-gray-900 placeholder:text-gray-500;
-  @apply focus:border-gray-900 focus:ring-primary-400/50;
+  border-width: 2px;
+  border-color: var(--pp-control);
+  @apply rounded-lg bg-white text-gray-900 placeholder:text-gray-500;
+  @apply focus:ring-primary-400/50;
   @apply disabled:bg-gray-100;
-  @apply dark:border-dark-600 dark:bg-dark-800 dark:text-dark-100 dark:placeholder:text-dark-400;
-  @apply dark:focus:border-primary-500 dark:disabled:bg-dark-900;
+  @apply dark:bg-dark-800 dark:text-dark-100 dark:placeholder:text-dark-400;
+  @apply dark:disabled:bg-dark-900;
+}
+
+/* Forced-colors mode drops box-shadow rings, so focus is also a real outline. */
+:where(html.theme-rhine) .input:focus-visible {
+  outline: 2px solid var(--pp-ink);
+  outline-offset: 2px;
 }
 
 :where(html.theme-rhine) .input-label {
@@ -100,25 +185,41 @@
 
 /* ============ Surfaces ============ */
 :where(html.theme-rhine) .glass {
-  @apply bg-white/85 dark:bg-dark-800/85;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  @apply bg-white dark:bg-dark-800;
 }
 
 :where(html.theme-rhine) .glass-card,
 :where(html.theme-rhine) .card-glass {
-  @apply rounded-2xl border-gray-300/70 bg-white/80 dark:border-dark-600/60 dark:bg-dark-800/80;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  border-width: 2px;
+  border-style: solid;
+  border-color: var(--pp-edge);
+  border-image: var(--pp-notch-lg) 6 / 6px;
+  background-clip: padding-box;
+  box-shadow: 4px 4px 0 var(--pp-shadow);
+  @apply rounded-2xl bg-white dark:bg-dark-800;
 }
 
 :where(html.theme-rhine) .card {
-  @apply rounded-2xl border-gray-300/80 bg-white shadow-card;
-  @apply dark:border-dark-600/70 dark:bg-dark-800;
+  border-width: 2px;
+  border-style: solid;
+  border-color: var(--pp-edge);
+  border-image: var(--pp-notch-lg) 6 / 6px;
+  background-clip: padding-box;
+  box-shadow: 4px 4px 0 var(--pp-shadow);
+  @apply rounded-2xl bg-white dark:bg-dark-800;
 }
 
-:where(html.theme-rhine) .card-hover {
-  @apply hover:border-gray-900 hover:shadow-card-hover dark:hover:border-dark-400;
+/* A border image ignores border-color, so state borders (the selected metric card) fall back to a plain edge. */
+:where(html.theme-rhine) .card[class*='border-primary'] {
+  border-image-source: none;
 }
 
-:where(html.theme-rhine).dark .card-hover:hover {
-  box-shadow: 6px 6px 0 #090b0a;
+:where(html.theme-rhine) .card-hover:hover {
+  box-shadow: 5px 5px 0 var(--pp-shadow);
 }
 
 :where(html.theme-rhine) .card-header,
@@ -132,7 +233,7 @@
 }
 
 :where(html.theme-rhine) .stat-icon-primary {
-  @apply bg-primary-100 text-primary-700 dark:bg-primary-500/15 dark:text-primary-400;
+  @apply bg-primary-100 text-primary-700 dark:bg-primary-500/15 dark:text-primary-300;
 }
 
 :where(html.theme-rhine) .stat-value {
@@ -146,7 +247,9 @@
 
 /* ============ Tables ============ */
 :where(html.theme-rhine) .table-container {
-  @apply rounded-xl border-gray-300 dark:border-dark-600;
+  border-width: 2px;
+  border-color: var(--pp-edge);
+  @apply rounded-xl;
 }
 
 :where(html.theme-rhine) .table {
@@ -155,7 +258,15 @@
 
 :where(html.theme-rhine) .table th {
   letter-spacing: 0.04em;
-  @apply border-gray-300 bg-gray-100 text-gray-600 dark:border-dark-600 dark:bg-dark-900 dark:text-dark-300;
+  border-bottom-width: 2px;
+  border-bottom-color: var(--pp-edge);
+  background-image: repeating-conic-gradient(rgba(44, 46, 51, 0.06) 0 25%, transparent 0 50%);
+  background-size: 4px 4px;
+  @apply bg-gray-100 text-gray-600 dark:bg-dark-900 dark:text-dark-300;
+}
+
+:where(html.theme-rhine).dark .table th {
+  background-image: repeating-conic-gradient(var(--pp-dither) 0 25%, transparent 0 50%);
 }
 
 :where(html.theme-rhine) .table td {
@@ -163,11 +274,14 @@
 }
 
 :where(html.theme-rhine) .table tbody tr {
-  @apply hover:bg-primary-50/70 dark:hover:bg-dark-700/40;
+  @apply hover:bg-primary-50 dark:hover:bg-dark-700/40;
 }
 
 /* ============ Badges ============ */
 :where(html.theme-rhine) .badge {
+  border-width: 1px;
+  border-style: solid;
+  border-color: currentColor;
   @apply rounded-sm;
 }
 
@@ -181,7 +295,13 @@
 
 /* ============ Menus, modals, toasts ============ */
 :where(html.theme-rhine) .dropdown {
-  @apply rounded-xl border-gray-300 bg-white dark:border-dark-600 dark:bg-dark-800;
+  border-width: 2px;
+  border-style: solid;
+  border-color: var(--pp-edge);
+  border-image: var(--pp-notch-lg) 6 / 6px;
+  background-clip: padding-box;
+  box-shadow: 2px 2px 0 var(--pp-shadow);
+  @apply rounded-xl bg-white dark:bg-dark-800;
 }
 
 :where(html.theme-rhine) .dropdown-item {
@@ -190,13 +310,13 @@
 
 :where(html.theme-rhine) .modal-content,
 :where(html.theme-rhine) .dialog-container {
-  box-shadow: 7px 7px 0 #d4d8c5;
-  @apply rounded-2xl border-gray-300 bg-white dark:border-dark-600 dark:bg-dark-800;
-}
-
-:where(html.theme-rhine).dark .modal-content,
-:where(html.theme-rhine).dark .dialog-container {
-  box-shadow: 6px 6px 0 #090b0a;
+  border-width: 2px;
+  border-style: solid;
+  border-color: var(--pp-edge);
+  border-image: var(--pp-notch-lg) 6 / 6px;
+  background-clip: padding-box;
+  box-shadow: 4px 4px 0 var(--pp-shadow);
+  @apply rounded-2xl bg-white dark:bg-dark-800;
 }
 
 :where(html.theme-rhine) .modal-header,
@@ -207,7 +327,7 @@
 }
 
 :where(html.theme-rhine) .dialog-footer {
-  @apply bg-gray-50/60 dark:bg-dark-900/40;
+  @apply bg-gray-50 dark:bg-dark-900;
 }
 
 :where(html.theme-rhine) .modal-title {
@@ -215,6 +335,12 @@
 }
 
 :where(html.theme-rhine) .toast {
+  border-width: 2px;
+  border-style: solid;
+  border-color: var(--pp-edge);
+  border-image: var(--pp-notch-lg) 6 / 6px;
+  background-clip: padding-box;
+  box-shadow: 2px 2px 0 var(--pp-shadow);
   @apply rounded-xl bg-white dark:bg-dark-800;
 }
 
@@ -237,14 +363,14 @@
 }
 
 :where(html.theme-rhine) .sidebar-link-active {
-  box-shadow: inset 3px 0 0 #c3d45a;
-  @apply bg-gray-900 text-white hover:bg-gray-800 hover:text-white;
-  @apply dark:bg-dark-700 dark:text-primary-300 dark:hover:bg-dark-600;
+  box-shadow: inset 3px 0 0 var(--pp-ink);
+  @apply bg-primary-500 text-gray-900 hover:bg-primary-400 hover:text-gray-900;
+  @apply dark:bg-primary-400 dark:text-dark-900 dark:hover:bg-primary-300 dark:hover:text-dark-900;
 }
 
 :where(html.theme-rhine) .sidebar-section-title {
   letter-spacing: 0.12em;
-  @apply text-gray-500 dark:text-dark-500;
+  @apply text-gray-500 dark:text-dark-400;
 }
 
 /* ============ Page chrome ============ */
@@ -265,6 +391,8 @@
 }
 
 :where(html.theme-rhine) .skeleton {
+  background-image: repeating-conic-gradient(var(--pp-dither) 0 25%, transparent 0 50%);
+  background-size: 4px 4px;
   @apply rounded bg-gray-200 dark:bg-dark-700;
 }
 
@@ -274,12 +402,12 @@
 
 /* The class is repeated to tie with AuthLayout's scoped `.text-gradient[data-v-*]`. */
 :where(html.theme-rhine) .text-gradient.text-gradient {
-  @apply from-gray-900 to-gray-700 dark:from-primary-300 dark:to-primary-400;
+  @apply from-gray-900 to-gray-900 dark:from-primary-300 dark:to-primary-300;
 }
 
 /* ============ Tabs, progress, switch, code ============ */
 :where(html.theme-rhine) .tabs {
-  @apply rounded-xl bg-gray-200/70 dark:bg-dark-800;
+  @apply rounded-xl bg-gray-200 dark:bg-dark-800;
 }
 
 :where(html.theme-rhine) .tab {
@@ -287,6 +415,7 @@
 }
 
 :where(html.theme-rhine) .tab-active {
+  box-shadow: 2px 2px 0 var(--pp-shadow);
   @apply bg-white text-gray-900 dark:bg-dark-700 dark:text-dark-50;
 }
 
@@ -295,7 +424,14 @@
 }
 
 :where(html.theme-rhine) .progress-bar {
-  @apply from-primary-500 to-primary-400;
+  background-image: repeating-conic-gradient(rgba(44, 46, 51, 0.18) 0 25%, transparent 0 50%);
+  background-size: 4px 4px;
+  @apply bg-primary-500;
+}
+
+/* Upstream rounds the thumb fully; pixel scrollbars are square. */
+:where(html.theme-rhine) ::-webkit-scrollbar-thumb {
+  border-radius: 0;
 }
 
 :where(html.theme-rhine) .switch {
@@ -311,7 +447,7 @@
 }
 
 :where(html.theme-rhine) .code {
-  @apply rounded bg-gray-100 text-primary-700 dark:bg-dark-800 dark:text-primary-400;
+  @apply rounded bg-gray-100 text-primary-700 dark:bg-dark-800 dark:text-primary-300;
 }
 
 :where(html.theme-rhine) .code-block {
@@ -326,18 +462,21 @@
  */
 /* RelayPulseMatrix reads this optional variable (falls back to indigo). */
 :where(html.theme-rhine) {
-  --color-primary-500: 122 136 32;
+  --color-primary-500: 143 168 136;
 }
 
 :where(html.theme-rhine) .select-trigger.select-trigger,
 :where(html.theme-rhine) .date-picker-trigger.date-picker-trigger,
 :where(html.theme-rhine) .date-picker-input.date-picker-input {
-  @apply focus:border-gray-900 focus:ring-primary-400/50 dark:focus:border-primary-500;
+  border-width: 2px;
+  border-color: var(--pp-control);
+  border-radius: 0;
+  @apply focus:border-gray-900 focus:ring-primary-400/50 dark:focus:border-primary-400;
 }
 
 :where(html.theme-rhine) .select-trigger-open.select-trigger-open,
 :where(html.theme-rhine) .date-picker-trigger-open.date-picker-trigger-open {
-  @apply border-gray-900 ring-primary-400/50 dark:border-primary-500;
+  @apply border-gray-900 ring-primary-400/50 dark:border-primary-400;
 }
 
 /* Re-asserted, dark variants included, because the focus and open overrides above outrank upstream's. */
@@ -353,8 +492,8 @@
 }
 
 :where(html.theme-rhine) .date-picker-apply.date-picker-apply {
-  @apply bg-gray-900 text-white hover:bg-primary-400 hover:text-gray-900;
-  @apply dark:bg-primary-400 dark:text-dark-950 dark:hover:bg-primary-300;
+  @apply bg-primary-500 text-gray-900 hover:bg-primary-400;
+  @apply dark:bg-primary-400 dark:text-dark-900 dark:hover:bg-primary-300;
 }
 
 :where(html.theme-rhine) .settings-tab.settings-tab:focus-visible {
@@ -362,13 +501,13 @@
 }
 
 :where(html.theme-rhine) .settings-tab-active.settings-tab-active {
-  @apply border-gray-300 bg-white text-gray-900;
-  @apply dark:border-primary-400/30 dark:bg-dark-700 dark:text-primary-200;
+  @apply border-gray-900 bg-white text-gray-900;
+  @apply dark:border-dark-600 dark:bg-dark-700 dark:text-primary-200;
 }
 
 :where(html.theme-rhine) .settings-tab-active.settings-tab-active::after {
   background-image: none;
-  background-color: #c3d45a;
+  background-color: #8fa888;
 }
 
 :where(html.theme-rhine) .settings-tab-active .settings-tab-icon.settings-tab-icon {
@@ -386,23 +525,47 @@
 }
 
 :where(html.theme-rhine) .input-ring.input-ring:focus {
-  border-color: #7a8820;
-  box-shadow: 0 0 0 3px rgba(195, 212, 90, 0.45);
+  border-color: #58724f;
+  box-shadow: 0 0 0 3px rgba(143, 168, 136, 0.45);
 }
 
 /* Onboarding tour (driver.js); upstream rules are !important. */
 :where(html.theme-rhine) .driver-active-element {
-  outline-color: rgba(195, 212, 90, 0.55) !important;
+  outline-color: rgba(143, 168, 136, 0.55) !important;
 }
 
 :where(html.theme-rhine) .theme-tour-popover .driver-popover-next-btn {
-  background-color: #191b18 !important;
-  color: #f9f9f2 !important;
+  background-color: #2c2e33 !important;
+  color: #f8f7f2 !important;
 }
 
 :where(html.theme-rhine) .theme-tour-popover .driver-popover-next-btn:hover {
-  background-color: #c3d45a !important;
-  color: #191b18 !important;
+  background-color: #8fa888 !important;
+  color: #2c2e33 !important;
+}
+
+/* Forced colours repaint borders but not border images, which would keep the theme's charcoal. */
+@media (forced-colors: active) {
+  :where(html.theme-rhine) .btn,
+  :where(html.theme-rhine) .card,
+  :where(html.theme-rhine) .glass-card,
+  :where(html.theme-rhine) .card-glass,
+  :where(html.theme-rhine) .dropdown,
+  :where(html.theme-rhine) .modal-content,
+  :where(html.theme-rhine) .dialog-container,
+  :where(html.theme-rhine) .toast {
+    border-image-source: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :where(html.theme-rhine) .btn {
+    transition: none;
+  }
+
+  :where(html.theme-rhine) .btn:is(:hover, :active) {
+    transform: none;
+  }
 }
 
 @tailwind utilities;
@@ -417,18 +580,12 @@
 /* AuthLayout and the upstream home draw a teal grid with an arbitrary utility. */
 :where(html.theme-rhine) [class*='rgba(20,184,166,0.03)'] {
   background-image:
-    linear-gradient(rgba(25, 27, 24, 0.05) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(25, 27, 24, 0.05) 1px, transparent 1px);
-}
-
-:where(html.theme-rhine).dark [class*='rgba(20,184,166,0.03)'] {
-  background-image:
-    linear-gradient(rgba(195, 212, 90, 0.04) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(195, 212, 90, 0.04) 1px, transparent 1px);
+    linear-gradient(var(--pp-grid) 1px, transparent 1px),
+    linear-gradient(90deg, var(--pp-grid) 1px, transparent 1px);
 }
 
 /*
- * gray-400 placeholders are 2.66:1 on the Rhine surface; gray-500 reaches 4.6:1.
+ * gray-400 placeholders are 2.5:1 on white; gray-500 reaches 5.4:1.
  * The dark rule also overrides an explicit upstream dark:placeholder:* on the
  * same element, deliberately: dark-400 is the highest-contrast option there.
  */

@@ -163,7 +163,6 @@ export default {
 
   // Navigation
   nav: {
-    relayMonitor: 'Relay Monitor',
     dashboard: 'Dashboard',
     announcements: 'Announcements',
     apiKeys: 'API Keys',

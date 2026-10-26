@@ -163,7 +163,6 @@ export default {
 
   // Navigation
   nav: {
-    relayMonitor: '中转站监控',
     dashboard: '仪表盘',
     announcements: '公告',
     apiKeys: 'API 密钥',

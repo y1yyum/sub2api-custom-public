@@ -6,52 +6,53 @@ type ChartModule = { Chart: ChartStatic; Tooltip: typeof Tooltip }
 type ColorTable = Readonly<Record<string, string>>
 
 /**
- * Upstream charts hard-code Tailwind neutrals; these map them onto the Rhine
- * warm grays. Upstream `dark-*` is Tailwind slate.
+ * Upstream charts hard-code Tailwind neutrals; these map them step for step
+ * onto the console grays. Upstream `dark-*` is Tailwind slate.
  */
 const NEUTRALS: ColorTable = {
   // gray
-  f9fafb: 'f1f0ea',
-  f3f4f6: 'e8e6df',
-  e5e7eb: 'd9d7cd',
-  d1d5db: 'c1c3b3',
-  '9ca3af': '989c8d',
-  '6b7280': '6e7267',
-  '4b5563': '5c6056',
-  '374151': '44483f',
-  '1f2937': '2c2f29',
-  '111827': '191b18',
-  '030712': '0f100e',
+  f9fafb: 'f8f7f2',
+  f3f4f6: 'efede6',
+  e5e7eb: 'e3e1d9',
+  d1d5db: 'cfccc2',
+  '9ca3af': 'a3a69c',
+  '6b7280': '686c62',
+  '4b5563': '55594f',
+  '374151': '43463f',
+  '1f2937': '34363a',
+  '111827': '2c2e33',
+  '030712': '1f2024',
   // slate
-  f8fafc: 'eef0ea',
-  f1f5f9: 'e0e3dc',
-  e2e8f0: 'cdd3cb',
-  cbd5e1: 'b3bcb4',
-  '94a3b8': '8a948c',
-  '64748b': '6b766d',
-  '475569': '414a43',
-  '334155': '2b332f',
-  '1e293b': '1c211f',
-  '0f172a': '141816',
-  '020617': '0d0f0e'
+  f8fafc: 'f3f4f7',
+  f1f5f9: 'e6e8ee',
+  e2e8f0: 'd3d6df',
+  cbd5e1: 'b8bdcb',
+  '94a3b8': '9aa0b2',
+  '64748b': '7d8396',
+  '475569': '6b7186',
+  '334155': '383c4a',
+  '1e293b': '232630',
+  '0f172a': '1c1e26',
+  '020617': '16181f'
 }
 
 /**
- * Upstream primary (teal). Applied only to the sole series of a chart: across
- * several datasets or inside a palette array teal is a categorical colour.
+ * Upstream primary (teal) onto sage. Applied only to the sole series of a
+ * chart: across several datasets or inside a palette array teal is a
+ * categorical colour.
  */
 const BRAND: ColorTable = {
-  f0fdfa: 'f6f8e4',
-  ccfbf1: 'edf1c6',
-  '99f6e4': 'dfe79b',
-  '5eead4': 'd0dd78',
-  '2dd4bf': 'c3d45a',
-  '14b8a6': '7a8820',
-  '0d9488': '5f6b16',
-  '0f766e': '4c5612',
-  '115e59': '3b430f',
-  '134e4a': '2c320c',
-  '042f2e': '1a1e06'
+  f0fdfa: 'f1f5ef',
+  ccfbf1: 'e2ebdf',
+  '99f6e4': 'c9d8c4',
+  '5eead4': 'b4c8ae',
+  '2dd4bf': 'a3bca0',
+  '14b8a6': '8fa888',
+  '0d9488': '58724f',
+  '0f766e': '46603f',
+  '115e59': '364a31',
+  '134e4a': '283826',
+  '042f2e': '192317'
 }
 
 const SERIES: ColorTable = { ...NEUTRALS, ...BRAND }
@@ -110,6 +111,18 @@ function recolorDataset(dataset: Record<string, unknown>, scalarTable: ColorTabl
   }
 }
 
+/** Pixel geometry: straight line segments, square points and square bars. Idempotent. */
+function squareGeometry(config: Pick<ChartConfiguration, 'type' | 'data'>): void {
+  for (const dataset of (config.data?.datasets ?? []) as unknown as Record<string, unknown>[]) {
+    const type = dataset.type ?? config.type
+    if (type === 'line') {
+      dataset.tension = 0
+      dataset.pointStyle = 'rect'
+    }
+    else if (type === 'bar') dataset.borderRadius = 0
+  }
+}
+
 /** Rewrites upstream colours in place; mapping is idempotent. */
 export function recolorChartConfig(config: Pick<ChartConfiguration, 'data' | 'options'>): void {
   recolorOptions(config.options, new WeakSet())
@@ -129,23 +142,27 @@ export const rhineChartPlugin: Plugin = {
   id: 'rhineTheme',
   // Runs after scales are rebuilt but before any colour is resolved for layout or drawing.
   beforeUpdate(chart) {
-    if (themeActive(chart)) recolorChartConfig(chart.config as unknown as ChartConfiguration)
+    if (!themeActive(chart)) return
+    const config = chart.config as unknown as ChartConfiguration
+    recolorChartConfig(config)
+    squareGeometry(config)
   }
 }
 
 function applyDefaults(ChartJS: ChartStatic, dark: boolean): void {
   const { defaults } = ChartJS
-  defaults.color = dark ? '#b3bcb4' : '#5c6056'
-  defaults.borderColor = dark ? 'rgba(224, 227, 220, 0.08)' : 'rgba(25, 27, 24, 0.08)'
+  defaults.color = dark ? '#9aa0b2' : '#55594f'
+  defaults.borderColor = dark ? 'rgba(230, 232, 238, 0.08)' : 'rgba(44, 46, 51, 0.08)'
   // Exists only once the Tooltip plugin is registered (the loader does that).
   const tooltip = defaults.plugins.tooltip
   if (!tooltip) return
-  tooltip.backgroundColor = dark ? '#0d0f0e' : '#191b18'
-  tooltip.titleColor = '#f9f9f2'
-  tooltip.bodyColor = '#e8e6df'
-  tooltip.borderColor = '#c3d45a'
-  tooltip.borderWidth = 1
-  tooltip.cornerRadius = 2
+  tooltip.backgroundColor = dark ? '#232630' : '#ffffff'
+  tooltip.titleColor = dark ? '#e6e8ee' : '#2c2e33'
+  tooltip.bodyColor = dark ? '#d3d6df' : '#43463f'
+  // Charcoal vanishes on the dark card, so dark mode uses the control border.
+  tooltip.borderColor = dark ? '#6b7186' : '#2c2e33'
+  tooltip.borderWidth = 2
+  tooltip.cornerRadius = 0
 }
 
 function snapshotDefaults(ChartJS: ChartStatic): () => void {
@@ -175,7 +192,7 @@ function refreshCharts(ChartJS: ChartStatic): void {
 }
 
 /**
- * Registers the recolouring plugin and Rhine defaults, follows dark-mode
+ * Registers the recolouring plugin and pixel-pastel defaults, follows dark-mode
  * toggles, and refreshes charts that were created before the theme loaded.
  */
 export function installRhineChartTheme(ChartJS: ChartStatic, doc: Document): () => void {

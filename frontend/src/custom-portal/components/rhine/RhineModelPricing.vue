@@ -131,9 +131,14 @@ defineExpose({ load })
 
 .model-columns {
   font-size: 8px;
-  color: #626951;
-  border-bottom: 1px solid #a9b092;
-  padding-bottom: 8px;
+  font-family: ui-monospace, 'Courier New', monospace;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  color: #62695c;
+  border-bottom: 2px solid #e0ded6;
+  padding-bottom: 6px;
+  background-image: repeating-conic-gradient(rgba(44, 46, 51, 0.06) 0 25%, transparent 0 50%);
+  background-size: 4px 4px;
 }
 
 .model-columns > span:not(:first-child),
@@ -152,8 +157,8 @@ defineExpose({ load })
 }
 
 .model-row {
-  padding: 4px 0;
-  border-bottom: 1px solid #d5d9c8;
+  padding: 5px 0;
+  border-bottom: 1px solid #ebe8df;
   flex-shrink: 0;
 }
 
@@ -171,7 +176,8 @@ defineExpose({ load })
   text-overflow: ellipsis;
   white-space: nowrap;
   font-size: clamp(11px, 0.9vw, 13px);
-  font-weight: 600;
+  font-weight: 700;
+  color: #2c2e33;
 }
 
 .model-description > span {
@@ -179,8 +185,9 @@ defineExpose({ load })
   overflow: hidden;
   text-overflow: ellipsis;
   font-size: 8px;
-  margin-top: 4px;
-  color: #626951;
+  font-family: ui-monospace, 'Courier New', monospace;
+  margin-top: 3px;
+  color: #62695c;
   white-space: nowrap;
 }
 
@@ -189,10 +196,11 @@ defineExpose({ load })
 }
 
 .model-metric {
-  font-size: 11px;
+  font-size: 12px;
+  font-family: var(--pp-font-pixel);
   font-variant-numeric: tabular-nums;
-  font-weight: 600;
-  color: #425016;
+  font-weight: 700;
+  color: #4a6344;
 }
 
 .status-card-bottom {
@@ -202,8 +210,9 @@ defineExpose({ load })
   gap: 6px;
   flex-shrink: 0;
   font-size: 8px;
-  color: #626951;
-  border-top: 1px solid #a9b092;
+  font-family: ui-monospace, 'Courier New', monospace;
+  color: #62695c;
+  border-top: 2px solid #e0ded6;
   padding-top: 6px;
 }
 
@@ -212,13 +221,30 @@ defineExpose({ load })
 }
 
 .status-card-bottom button {
-  font-size: 20px;
-  padding: 0 3px;
-  line-height: 1;
-  border: 0;
+  font-size: 12px;
+  font-family: var(--pp-font-pixel);
+  padding: 1px 5px;
+  line-height: 1.2;
+  border: 2px solid var(--rh-ink);
+  border-radius: 0;
   color: var(--rh-ink);
-  background: transparent;
+  background: #f8f7f2;
+  box-shadow: 1px 1px 0 var(--rh-ink);
   cursor: pointer;
+  transition: transform 0.08s steps(2), box-shadow 0.08s steps(2), background-color 0.15s steps(2);
+  border-image: var(--rh-notch-sm) 2 / 2px;
+  background-clip: padding-box;
+}
+
+.status-card-bottom button:hover:not(:disabled) {
+  background-color: #e8ded2;
+  transform: translate(-1px, -1px);
+  box-shadow: 2px 2px 0 var(--rh-ink);
+}
+
+.status-card-bottom button:active:not(:disabled) {
+  transform: translate(1px, 1px);
+  box-shadow: 0 0 0 var(--rh-ink);
 }
 
 .status-card-bottom button:disabled {
@@ -230,6 +256,13 @@ defineExpose({ load })
   margin: 1em 0;
   font-size: 11px;
   line-height: 1.8;
-  color: #626951;
+  color: #62695c;
+}
+
+/* Forced colours repaint borders but not border images, which would keep the landing ink. */
+@media (forced-colors: active) {
+  .status-card-bottom button {
+    border-image-source: none;
+  }
 }
 </style>

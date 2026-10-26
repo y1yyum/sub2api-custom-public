@@ -184,11 +184,8 @@ issues/
 !docs/LOCAL_GITEA_CI.md
 !docs/SECURITY_REVIEW.md
 !docs/UPSTREAM_SYNC.md
-!docs/RELAY_MONITOR.md
-!docs/RELAY_MONITOR_NOTICE.md
 !docs/superpowers/
 !docs/superpowers/plans/
-!docs/superpowers/plans/2026-10-17-relay-monitor.md
 !docs/PUBLIC_SECURITY_CHECKLIST.md
 !docs/PUBLIC_REPOSITORY_SETTINGS.md
 !docs/LICENSE_REVIEW.md

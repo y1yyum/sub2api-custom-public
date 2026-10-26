@@ -169,3 +169,17 @@ const pageTitle = computed(() => {
   return (route.meta.title as string) || pt('shell.pageFallback')
 })
 </script>
+
+<style scoped>
+h1 {
+  font-family: var(--pp-font-pixel);
+  font-size: 12px;
+  font-synthesis: none;
+}
+
+@media (min-width: 640px) {
+  h1 {
+    font-size: 24px;
+  }
+}
+</style>

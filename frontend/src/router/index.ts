@@ -416,12 +416,6 @@ const routes: RouteRecordRaw[] = [
     }
   },
   {
-    path: '/admin/relay-monitor',
-    name: 'AdminRelayMonitor',
-    component: () => import('@/relay-monitor/RelayMonitorView.vue'),
-    meta: { requiresAuth: true, requiresAdmin: true, title: 'Relay Monitor', titleKey: 'nav.relayMonitor' }
-  },
-  {
     path: '/admin/ops',
     name: 'AdminOps',
     component: () => import('@/views/admin/ops/OpsDashboard.vue'),

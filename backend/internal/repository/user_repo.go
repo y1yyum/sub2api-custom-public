@@ -683,8 +683,13 @@ func userListOrder(params pagination.PaginationParams) []func(*entsql.Selector) 
 		field = dbuser.FieldLastActiveAt
 		defaultField = false
 		nullsLastField = true
-	default:
+	case "id":
 		field = dbuser.FieldID
+	default:
+		// User IDs are allocated randomly (Issue #97), so only created_at
+		// reflects signup order.
+		field = dbuser.FieldCreatedAt
+		defaultField = false
 	}
 
 	if sortOrder == pagination.SortOrderAsc {

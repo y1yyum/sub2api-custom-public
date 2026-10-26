@@ -77,7 +77,7 @@ const dockRef = ref<HTMLElement | null>(null)
 
 const itemClass =
   'flex min-w-[3.25rem] flex-col items-center gap-0.5 rounded-xl px-2 py-1.5 text-[11px] font-medium transition-colors sm:min-w-[4rem] sm:px-3'
-const activeClass = 'bg-gray-900 text-white dark:bg-primary-500 dark:text-dark-950'
+const activeClass = 'bg-primary-500 text-gray-900 dark:bg-primary-400 dark:text-dark-900'
 const idleClass = 'text-gray-600 hover:bg-gray-100 hover:text-gray-900 dark:text-dark-300 dark:hover:bg-dark-800 dark:hover:text-white'
 
 function isActive(entry: ResolvedDockEntry): boolean {
@@ -110,6 +110,37 @@ onBeforeUnmount(() => document.removeEventListener('click', onDocumentClick))
 <style scoped>
 .portal-dock {
   padding-bottom: env(safe-area-inset-bottom);
+}
+
+/* Solid pixel bar: the template's translucent fill and blur stay for the upstream shell. */
+.portal-dock > ul,
+.portal-dock ul[role='menu'] {
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  border-width: 2px;
+  border-color: var(--pp-edge);
+  border-image: var(--pp-notch-lg) 6 / 6px;
+  background-clip: padding-box;
+  box-shadow: 2px 2px 0 var(--pp-shadow);
+  background-color: #ffffff;
+}
+
+:where(html.dark) .portal-dock > ul,
+:where(html.dark) .portal-dock ul[role='menu'] {
+  background-color: #232630;
+}
+
+@media (forced-colors: active) {
+  .portal-dock > ul,
+  .portal-dock ul[role='menu'] {
+    border-image-source: none;
+  }
+}
+
+.portal-dock-label {
+  font-family: var(--pp-font-pixel);
+  font-size: 12px;
+  font-synthesis: none;
 }
 
 .portal-dock-pop-enter-active,

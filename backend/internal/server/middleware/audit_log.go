@@ -157,12 +157,6 @@ var auditBodyOmittedRoutes = map[string]struct{}{
 	"POST /api/v1/admin/prompt-audit/events/batch-delete":       {},
 	"POST /api/v1/admin/prompt-audit/events/delete-preview":     {},
 	"POST /api/v1/admin/prompt-audit/events/delete-by-filter":   {},
-
-	// Relay Monitor: token and notification-channel bodies carry credentials.
-	"POST /api/v1/admin/relay-monitor/stations/:id/tokens":         {},
-	"PUT /api/v1/admin/relay-monitor/stations/:id/tokens/:tokenId": {},
-	"POST /api/v1/admin/relay-monitor/notifications/channels":      {},
-	"PUT /api/v1/admin/relay-monitor/notifications/channels/:id":   {},
 }
 
 // NewAuditLogMiddleware 创建审计中间件。

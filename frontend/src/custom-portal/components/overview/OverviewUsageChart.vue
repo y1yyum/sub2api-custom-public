@@ -345,7 +345,7 @@ const summaryText = computed(() => {
 
 <style scoped>
 .legend-chip {
-  @apply inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-medium transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 motion-reduce:transition-none;
+  @apply inline-flex items-center gap-1.5 rounded-none border px-2.5 py-1 text-xs font-medium transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 motion-reduce:transition-none;
 }
 
 .legend-chip-on {
