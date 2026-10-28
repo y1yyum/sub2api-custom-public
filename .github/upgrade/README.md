@@ -123,7 +123,7 @@ not add that skip or claim the corresponding behavior has passed. Track that
 coverage gap separately; restored tests and passing jobs are not proof of zero
 skips or complete end-to-end deployment coverage.
 
-## Temporary fail-closed backend execution quarantine
+## Historical unrestricted-backend execution quarantine
 
 A local full-unit-suite operation was rejected by execution safety review for a
 potential external Google Cloud request. The rejected action was an output poll
@@ -155,3 +155,37 @@ The guard is an unconditional first step of both matrix jobs; it has no
 continue-on-error, success fallback or conditional bypass. This temporary
 quarantine does not broaden authority to contact external providers, publish a
 release, migrate a live database or merge a PR.
+
+## Approved isolated unit follow-up
+
+The user explicitly approved continuing with a separate isolated-test PR. Unit
+execution now has only one path: the fail-closed runner described in
+[the isolation boundary](../isolation/README.md). Its host and in-container
+preflights must pass before any test code runs. This is a materially different
+network-none operation, not authorization to retry real cloud requests. The
+original unrestricted commands above are historical reference, **not an approved
+execution path**. That initial follow-up kept integration quarantined until the separate
+database/Redis isolation described below was reviewed. Receipt and actual CI outcomes, not this plan, establish
+which tests ran and passed.
+
+## Isolated integration follow-up
+
+A separately reviewed PostgreSQL/Redis fixture lane now uses the same verified
+network-none boundary. Fixed synthetic loopback databases are newly initialized
+inside the test container; Redis uses per-test local processes/private Unix
+sockets. No Docker daemon/socket, host service or operator DSN is exposed to
+tests. The six prompt-audit PostgreSQL tests and three Redis-dependent tests are explicitly integration-tagged,
+not silently skipped. See [fixture contract](INTEGRATION_ISOLATION.md). Both
+lanes fail on missing isolation/fixture evidence; neither is declared passing
+until its exact CI artifacts establish execution and outcomes.
+
+## Stage-correct validation after harness backport
+
+This baseline stage retains the pinned .16 test revision and unchanged baseline
+production bytes. The verified isolation infrastructure is shared, but target .18
+CI receipts do not validate this stage: fresh exact-source unit, integration and
+other CI checks are required. The next core stage retains its ten explicit .16
+payment/Stripe test overrides until the payment stage moves those tests to .18.
+PR4/5 retain the historical isolation development/evidence; once this harness is
+forward-integrated, they are not extra production merge steps. All remain Draft
+until the user decides otherwise; no merge or deployment is performed.
