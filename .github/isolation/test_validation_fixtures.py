@@ -39,6 +39,62 @@ class HermeticValidationFixtures(unittest.TestCase):
                 self.assertEqual(assertions(before), assertions(after))
                 self.assertNotIn('t.Skip(', after)
 
+    def test_large_frame_watchdogs_only_change_five_finite_fixture_budgets(self):
+        adapter = runpy.run_path(str(ROOT / '.github/upgrade/adapt-large-frame-watchdog.py'))
+        path = adapter['PATH']
+        for revision, expected in MANIFEST['test_adaptations'][path].items():
+            with self.subTest(revision=revision):
+                raw = subprocess.check_output(['git', '-C', str(ROOT), 'show', revision + ':' + path])
+                self.assertEqual(hashlib.sha256(raw).hexdigest(), expected)
+                before = raw.decode()
+                after = adapter['adapt'](path, before)
+                start = before.index(adapter['ANCHOR'])
+                end = before.find('\nfunc ', start + 1) + 1
+                section = after[start:after.find('\nfunc ', start + 1) + 1]
+                for old, new in adapter['REPLACEMENTS'].items():
+                    self.assertEqual(section.count(new), 1)
+                    section = section.replace(new, old, 1)
+                self.assertEqual(section, before[start:end])
+                self.assertEqual(after[:start], before[:start])
+                self.assertEqual(after[after.find('\nfunc ', start + 1) + 1:], before[end:])
+                for token in ('require.', 'assert.', 't.Fatal(', 't.Skip(', 't.Parallel('):
+                    self.assertEqual(before.count(token), after.count(token))
+                self.assertIn('context.WithTimeout(context.Background(), 5*time.Second)', section)
+                with self.assertRaises(ValueError):
+                    adapter['adapt'](path, before[:start] + before[start:].replace('17*1024*1024 + 512', '17*1024*1024 + 513', 1))
+                with self.assertRaises(ValueError):
+                    adapter['adapt']('backend/unreviewed_test.go', before)
+                with self.assertRaises(ValueError):
+                    adapter['adapt'](path, after)
+
+    def test_stale_scope_initialization_preserves_real_refresh_and_all_assertions(self):
+        adapter = runpy.run_path(str(ROOT / '.github/upgrade/adapt-stale-scope-fixture.py'))
+        path = adapter['PATH']
+        adapter['verify_production']((ROOT / adapter['PRODUCTION_PATH']).read_bytes())
+        with self.assertRaises(ValueError):
+            adapter['verify_production']((ROOT / adapter['PRODUCTION_PATH']).read_bytes() + b'\n')
+        for revision, expected in MANIFEST['test_adaptations'][path].items():
+            with self.subTest(revision=revision):
+                raw = subprocess.check_output(['git', '-C', str(ROOT), 'show', revision + ':' + path])
+                self.assertEqual(hashlib.sha256(raw).hexdigest(), expected)
+                before = raw.decode()
+                after = adapter['adapt'](path, before)
+                self.assertEqual(after.count(adapter['AFTER']), 1)
+                self.assertEqual(after.replace(adapter['AFTER'], adapter['BEFORE'], 1), before)
+                start = after.index(adapter['ANCHOR'])
+                section = after[start:after.index(adapter['END'], start)]
+                for code in ('svc.RecordCyberPolicyEvent(', 'svc.loadRuntimeSnapshot(',
+                             'svc.runtimeSnapshot.Store(&expired)', 'return calls == 2',
+                             'require.Equal(t, 2, getMultiple)', 'time.Minute'):
+                    self.assertIn(code, section)
+                self.assertNotIn('NewContentModerationService(', section)
+                with self.assertRaises(ValueError):
+                    adapter['adapt'](path, before[:start] + before[start:].replace('return calls == 2', 'return calls == 1', 1))
+                with self.assertRaises(ValueError):
+                    adapter['adapt']('backend/unreviewed_test.go', before)
+                with self.assertRaises(ValueError):
+                    adapter['adapt'](path, after)
+
     def test_public_catalog_is_the_only_pinned_frontend_input(self):
         self.assertEqual(set(MANIFEST['public_test_inputs']), {PUBLIC})
         self.assertEqual(hashlib.sha256((ROOT / PUBLIC).read_bytes()).hexdigest(), MANIFEST['public_test_inputs'][PUBLIC])

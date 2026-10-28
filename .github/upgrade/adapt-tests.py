@@ -85,6 +85,12 @@ def adapt(path, text):
     if path in ('backend/internal/handler/payment_handler_resume_test.go', 'backend/internal/service/account_test_service_gemini_test.go', 'backend/internal/service/gateway_forward_as_chat_completions_test.go', 'backend/internal/service/gateway_forward_as_responses_test.go', 'backend/internal/service/openai_compat_model_test.go', 'backend/internal/service/openai_fast_service_tier_test.go', 'backend/internal/service/account_test_service_openai_test.go'):
         fixture = Path(__file__).with_name('adapt-gin-mode-fixtures.py')
         return runpy.run_path(str(fixture))['adapt'](path, text)
+    if path == 'backend/internal/service/openai_ws_http_bridge_test.go':
+        fixture = Path(__file__).with_name('adapt-large-frame-watchdog.py')
+        return runpy.run_path(str(fixture))['adapt'](path, text)
+    if path == 'backend/internal/service/content_moderation_cyber_test.go':
+        fixture = Path(__file__).with_name('adapt-stale-scope-fixture.py')
+        return runpy.run_path(str(fixture))['adapt'](path, text)
     if path.startswith('frontend/'):
         frontend = Path(__file__).with_name('adapt-frontend-tests.py')
         return runpy.run_path(str(frontend))['adapt'](path, text)
