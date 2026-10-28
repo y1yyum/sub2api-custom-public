@@ -850,7 +850,9 @@ WHERE NOT EXISTS (
 	WHERE order_id = $1::text
 	  AND action IN ('AFFILIATE_REBATE_APPLIED', 'AFFILIATE_REBATE_SKIPPED')
 )
-ON CONFLICT (order_id, action) DO NOTHING
+ON CONFLICT (order_id, action)
+WHERE action NOT IN ('REFUND_PENDING', 'REFUND_FAILED')
+DO NOTHING
 RETURNING id`, nowExpr), []any{orderID, detail}
 	}
 	return fmt.Sprintf(`
