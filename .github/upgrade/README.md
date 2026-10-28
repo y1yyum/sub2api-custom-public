@@ -123,7 +123,7 @@ not add that skip or claim the corresponding behavior has passed. Track that
 coverage gap separately; restored tests and passing jobs are not proof of zero
 skips or complete end-to-end deployment coverage.
 
-## Temporary fail-closed backend execution quarantine
+## Historical unrestricted-backend execution quarantine
 
 A local full-unit-suite operation was rejected by execution safety review for a
 potential external Google Cloud request. The rejected action was an output poll
@@ -155,3 +155,15 @@ The guard is an unconditional first step of both matrix jobs; it has no
 continue-on-error, success fallback or conditional bypass. This temporary
 quarantine does not broaden authority to contact external providers, publish a
 release, migrate a live database or merge a PR.
+
+## Approved isolated unit follow-up
+
+The user explicitly approved continuing with a separate isolated-test PR. Unit
+execution now has only one path: the fail-closed runner described in
+[the isolation boundary](../isolation/README.md). Its host and in-container
+preflights must pass before any test code runs. This is a materially different
+network-none operation, not authorization to retry real cloud requests. The
+original unrestricted commands above are historical reference, **not an approved
+execution path**. Integration remains explicitly quarantined pending separate
+database/Redis isolation. Receipt and actual CI outcomes, not this plan, establish
+which tests ran and passed.
