@@ -21,7 +21,8 @@ import sys
 
 GO = '/usr/local/go/bin/go'
 GO_VERSION = 'go1.27.3'
-COMMAND = [GO, 'test', '-json', '-p', '1', '-race', '-count=1', '-tags=unit', '-mod=readonly', '-timeout=20m', './...']
+TEST_FLAGS = ['-test.v=test2json', '-test.timeout=20m', '-test.count=1']
+COMPILED_ROOT = Path('/opt/isolation/compiled')
 
 
 class IsolationError(Exception):
@@ -35,6 +36,14 @@ def require(condition, message):
 
 def digest(data):
     return hashlib.sha256(data).hexdigest()
+
+
+def file_digest(path):
+    checksum = hashlib.sha256()
+    with path.open('rb') as stream:
+        for block in iter(lambda: stream.read(1024 * 1024), b''):
+            checksum.update(block)
+    return checksum.hexdigest()
 
 
 def check_environment(env):
@@ -176,7 +185,8 @@ def verify_sources(root, manifest_path, expected_digest):
             require(files.get(name) == expected, 'tracked backend source receipt mismatch')
     for item in receipt.get('validation_support', []):
         destination, source = item.get('destination', ''), item.get('source', '')
-        require(destination.startswith('backend/internal/isolatedfixture/') and
+        require((destination.startswith('backend/internal/isolatedfixture/') or
+                 destination == 'backend/internal/securityaudit/isolated_shared_fixture_test.go') and
                 source.startswith('.github/upgrade/fixtures/') and
                 files.get(destination) == item.get('sha256') == tracked.get(source),
                 'validation-only support receipt mismatch')
@@ -214,21 +224,103 @@ def preflight(source, manifest, expected_digest):
     return doc
 
 
+def verify_compiled(source, doc, expected_digest, suite, compiled=COMPILED_ROOT):
+    require(not compiled.is_symlink() and compiled.is_dir(), 'compiled directory missing or symlink')
+    receipt_path = compiled / 'compile-receipt.json'
+    inventory_path = compiled / 'package-inventory.json'
+    require(not receipt_path.is_symlink() and not inventory_path.is_symlink(), 'compiled manifest symlink prohibited')
+    raw = receipt_path.read_bytes()
+    receipt = json.loads(raw)
+    require(receipt.get('schema') == 1 and receipt.get('suite') == suite, 'compiled suite mismatch')
+    require(receipt.get('source_commit') == doc['source_commit'] and
+            receipt.get('source_manifest_sha256') == expected_digest and
+            receipt.get('source_receipt_sha256') == doc['source_receipt_sha256'], 'compiled source provenance mismatch')
+    require(re.fullmatch(r'go version go1\.27\.3 linux/(amd64|arm64)', receipt.get('go_version', '')), 'compiled toolchain mismatch')
+    flags = ['-p', '1', '-race', '-tags=' + suite, '-mod=readonly']
+    require(receipt.get('build_flags') == flags and receipt.get('test_binaries_executed') is False and
+            receipt.get('network_mode') == 'none_verified_loopback_only', 'compiled isolation or flags mismatch')
+    require(receipt.get('inventory_command') == [GO, 'list', '-json', '-race', '-tags=' + suite, '-mod=readonly', './...'], 'package discovery flags differ from compilation')
+    raw_inventory = inventory_path.read_bytes()
+    require(digest(raw_inventory) == receipt.get('package_inventory_sha256'), 'package inventory checksum mismatch')
+    inventory, records = json.loads(raw_inventory), receipt.get('packages')
+    require(isinstance(inventory, list) and inventory and isinstance(records, list) and
+            len(records) == len(inventory) == receipt.get('package_count'), 'incomplete compiled package inventory')
+    seen, expected_files = set(), {'compile-receipt.json', 'package-inventory.json'}
+    for item, record in zip(inventory, records):
+        require(isinstance(item, dict) and isinstance(record, dict), 'invalid package record')
+        require(all(record.get(k) == item.get(k) for k in ('package', 'directory', 'TestGoFiles', 'XTestGoFiles')), 'compiled package inventory differs')
+        name, relative = item.get('package', ''), item.get('directory', '')
+        require(isinstance(name, str) and re.fullmatch(r'[A-Za-z0-9_./-]+', name) and name not in seen, 'invalid or duplicate compiled package')
+        seen.add(name)
+        pure = PurePosixPath(relative)
+        require(not pure.is_absolute() and '..' not in pure.parts and str(pure) == relative and
+                (relative == 'backend' or relative.startswith('backend/')), 'invalid package source directory')
+        directory = source / relative
+        require(directory.is_dir() and not directory.is_symlink() and directory.resolve().is_relative_to((source / 'backend').resolve()), 'package source directory missing or escaping')
+        for field in ('TestGoFiles', 'XTestGoFiles'):
+            values = item.get(field)
+            require(isinstance(values, list) and len(values) == len(set(values)), 'invalid compiled test file inventory')
+            for filename in values:
+                require(isinstance(filename, str) and Path(filename).name == filename and filename.endswith('.go') and
+                        (directory / filename).is_file() and not (directory / filename).is_symlink(), 'missing compiled test source')
+        filename = 'binaries/' + digest(name.encode()) + '.test'
+        expected_command = [GO, 'test', '-c', *flags, '-o', str(COMPILED_ROOT / filename), '.']
+        require(record.get('compile_command') == expected_command, 'unexpected compile command')
+        has_tests = bool(item['TestGoFiles'] or item['XTestGoFiles'])
+        if not has_tests:
+            require(record.get('binary') is None and record.get('compile_status') == 'no_test_files', 'no-test package metadata mismatch')
+            continue
+        require(record.get('compile_status') == 'compiled' and record.get('binary') == filename, 'missing compiled binary record')
+        binary = compiled / filename
+        require(binary.is_file() and not binary.is_symlink(), 'compiled binary missing or symlink')
+        mode = stat.S_IMODE(binary.stat().st_mode)
+        require(mode & 0o111 and not mode & 0o7022 and format(mode, '04o') == record.get('binary_mode'), 'compiled binary permissions mismatch')
+        require(file_digest(binary) == record.get('binary_sha256'), 'compiled binary checksum mismatch')
+        expected_files.add(filename)
+    actual = set()
+    for path in compiled.rglob('*'):
+        require(not path.is_symlink(), 'compiled directory contains symlink')
+        if path.is_dir():
+            continue
+        require(path.is_file(), 'compiled directory contains special file')
+        actual.add(path.relative_to(compiled).as_posix())
+    require(actual == expected_files, 'compiled file inventory mismatch')
+    return receipt, digest(raw)
+
+
+def binary_command(record):
+    return [GO, 'tool', 'test2json', '-p', record['package'], '-t',
+            str(COMPILED_ROOT / record['binary']), *TEST_FLAGS]
+
+
 def execute_suite(source, doc, env, expected_digest, suite, execute, fixture=None):
+    # Verify every binary and every package before running the first test.
+    compiled, compiled_digest = verify_compiled(source, doc, expected_digest, suite)
     for name in ('home', 'gopath', 'gocache', 'gotmp'):
         Path('/tmp', name).mkdir(mode=0o700, exist_ok=True)
-    command = [arg if arg != '-tags=unit' else '-tags='+suite for arg in COMMAND]
     receipt = {'isolation_preflight': 'passed', 'suite': suite,
                'source_commit': doc['source_commit'], 'manifest_sha256': expected_digest,
                'source_receipt_sha256': doc['source_receipt_sha256'], 'files': doc['files'],
-               'environment_keys': sorted(env), 'test_command': command,
+               'environment_keys': sorted(env), 'test_execution': 'all precompiled race binaries, sequential test2json',
+               'compile_receipt_sha256': compiled_digest, 'compiled_package_count': compiled['package_count'],
+               'test_commands': [binary_command(r) for r in compiled['packages'] if r['binary'] is not None],
+               'no_test_file_packages': [r['package'] for r in compiled['packages'] if r['binary'] is None],
                'test_exit_code': None, 'runtime_observations': doc.get('runtime_observations', {}),
-               'fixture_receipt': fixture}
+               'fixture_receipt': fixture, 'package_results': []}
     print(json.dumps({'record_type': 'isolation_receipt', **receipt}, sort_keys=True), flush=True)
-    completed = execute(command, cwd=source / 'backend', env=env, check=False,
-                        stdout=sys.stdout, stderr=subprocess.STDOUT)
-    receipt['raw_test_exit_code'] = completed.returncode
-    receipt['test_exit_code'] = completed.returncode if completed.returncode >= 0 else 128 - completed.returncode
+    failed = False
+    for record in compiled['packages']:
+        if record['binary'] is None:
+            # Compile-only success is recorded, not invented test execution.
+            receipt['package_results'].append({'package': record['package'], 'status': 'no_test_files', 'compiled': True})
+            continue
+        completed = execute(binary_command(record), cwd=source / record['directory'], env=env, check=False,
+                            stdout=sys.stdout, stderr=subprocess.STDOUT)
+        code = completed.returncode if completed.returncode >= 0 else 128 - completed.returncode
+        failed = failed or code != 0
+        receipt['package_results'].append({'package': record['package'], 'raw_exit_code': completed.returncode,
+                                           'exit_code': code, 'binary_sha256': record['binary_sha256']})
+    receipt['test_exit_code'] = 1 if failed else 0
     return receipt
 
 

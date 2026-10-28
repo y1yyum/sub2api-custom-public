@@ -62,9 +62,31 @@ python3 .github/scripts/run-isolated-unit.py --suite integration /tmp/sub2api-is
 ```
 
 Both lanes remain fail-closed on isolation/fixture failure. Source assertions are
-not skipped to obtain green. Prompt-audit's six database tests are explicitly
+not skipped to obtain green. Prompt-audit's six PostgreSQL tests and three Redis-dependent tests are explicitly
 classified as integration instead of silently skipping the unit lane without a
 DSN. Inherited upstream skips are individually recorded in artifacts; they are
 not passing coverage. Actual CI execution/receipts are required before claiming
 either application suite passes. No merge, release, deployment or live database
 operation is authorized by this test harness.
+
+## Offline compile-only images (storage correction)
+
+The first isolated run proved the runtime boundary, but a cold race build filled
+its 4 GiB private tmpfs: two packages never linked. Increasing writable host
+access or disabling race/readonly checks is not the fix. Dependencies are still
+prepared separately; the exact receipted source is then compiled with
+`go test -c` in an explicit Docker build `RUN --network=none` step. This step
+never executes a test binary, package init, or TestMain. Package/test-file and
+binary-hash inventory is preserved in `compile-receipt.json`. Runtime verifies
+that inventory and runs every binary, in its original package working directory,
+through `test2json`, with the same tags, race instrumentation, count and timeout.
+There is no fallback to networked or runtime suite compilation. Tests that
+explicitly exercise code generation (the Ent schema fixture) retain that behavior
+inside the verified offline runtime and use private temporary scratch.
+
+`image-build.log` and `build-capacity.json` preserve compile failures and actual
+Docker-storage free space / runner memory observations. Build failure is a hard
+failure before tests, never an empty passing suite. The existing runtime limits,
+read-only source/root, private tmpfs, nonroot identity and no-mount/no-socket
+boundary remain unchanged. These corrections require a new actual CI run; static
+checks alone do not establish complete backend coverage.

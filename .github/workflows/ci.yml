@@ -117,7 +117,7 @@ jobs:
   backend-unit-isolated:
     name: Backend unit (network isolated)
     runs-on: ubuntu-latest
-    timeout-minutes: 60
+    timeout-minutes: 80
     steps:
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
         with:
@@ -135,6 +135,9 @@ jobs:
         with:
           name: isolated-unit-evidence
           path: |
+            ${{ runner.temp }}/isolated-unit/image-build.log
+            ${{ runner.temp }}/isolated-unit/build-capacity.json
+            ${{ runner.temp }}/isolated-unit/compile-receipt.json
             ${{ runner.temp }}/isolated-unit/host-receipt.json
             ${{ runner.temp }}/isolated-unit/isolation-receipt.json
             ${{ runner.temp }}/isolated-unit/unit-tests.jsonl
@@ -148,17 +151,21 @@ jobs:
   backend-integration-isolated:
     name: Backend integration (network isolated)
     runs-on: ubuntu-latest
-    timeout-minutes: 60
+    timeout-minutes: 80
     steps:
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
         with:
           ref: ${{ inputs.ref || github.sha }}
           persist-credentials: false
+      - name: Fetch the two pinned public fixture revisions for static hash checks
+        run: |
+          git fetch --no-tags --depth=1 https://github.com/Wei-Shaw/sub2api.git 01842576b3d5c1e2545b5a99ad555d36e28ed306 ac1b8f1271be0d674fa6f074403c1410f30a3a81
       - name: Check isolation and fixture adapters without executing Go or databases
         run: |
           python3 -m unittest discover -s .github/isolation -p 'test_*.py' -v
           python3 .github/scripts/test-isolated-unit-entrypoint.py
           python3 .github/upgrade/test-isolated-fixtures.py
+          python3 .github/upgrade/test-race-fixtures.py
       - name: Prepare dependencies then run verified offline integration container
         run: python3 .github/scripts/run-isolated-unit.py --suite integration "$RUNNER_TEMP/isolated-integration"
       - name: Preserve actual isolation, fixture and test evidence
@@ -167,6 +174,9 @@ jobs:
         with:
           name: isolated-integration-evidence
           path: |
+            ${{ runner.temp }}/isolated-integration/image-build.log
+            ${{ runner.temp }}/isolated-integration/build-capacity.json
+            ${{ runner.temp }}/isolated-integration/compile-receipt.json
             ${{ runner.temp }}/isolated-integration/host-receipt.json
             ${{ runner.temp }}/isolated-integration/isolation-receipt.json
             ${{ runner.temp }}/isolated-integration/integration-tests.jsonl

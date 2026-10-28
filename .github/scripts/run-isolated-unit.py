@@ -102,6 +102,13 @@ def collect_stream(work, expected_commit, expected_manifest, suite='unit'):
     return receipt
 
 
+
+def allowed_support_path(path):
+    return ('..' not in Path(path).parts and
+            (path.startswith('backend/internal/isolatedfixture/') or
+             path == 'backend/internal/securityaudit/isolated_shared_fixture_test.go'))
+
+
 def prepare_context(work, suite='unit'):
     if output(['git', '-C', str(ROOT), 'status', '--porcelain', '--untracked-files=no']):
         raise RuntimeError('commit the exact tracked source before preparing isolation')
@@ -118,7 +125,7 @@ def prepare_context(work, suite='unit'):
     for item in support:
         dest, source = item['destination'], item['source']
         expected = support_specs[dest]
-        if (not dest.startswith('backend/internal/isolatedfixture/') or
+        if (not allowed_support_path(dest) or
                 item['sha256'] != expected['sha256'] or source != expected['source'] or
                 receipt['source_sha256'].get(source) != item['sha256'] or
                 sha(overlay / dest) != item['sha256']):
@@ -145,6 +152,7 @@ def prepare_context(work, suite='unit'):
     (context / 'source-manifest.json').write_text(json.dumps(manifest, sort_keys=True, indent=2)+'\n')
     shutil.copy2(ROOT / ('.github/isolation/'+suite+'.Dockerfile'), context / 'Dockerfile')
     shutil.copy2(ROOT / '.github/scripts/isolated-unit-entrypoint.py', context / 'isolated-unit-entrypoint.py')
+    shutil.copy2(ROOT / '.github/scripts/compile-isolated-tests.py', context / 'compile-isolated-tests.py')
     if suite == 'integration':
         shutil.copy2(ROOT / '.github/scripts/integration-bootstrap.py', context / 'integration-bootstrap.py')
     return context, manifest
@@ -174,10 +182,28 @@ def main():
         if len(digests) != 1:
             raise RuntimeError('ambiguous dependency image digest: '+repository)
         resolved[argument] = digests[0]
-    build = ['docker', 'build']
+    manifest_sha = sha(context / 'source-manifest.json')
+    docker_root = output(['docker', 'info', '--format', '{{.DockerRootDir}}'])
+    if not Path(docker_root).is_absolute():
+        raise RuntimeError('invalid Docker storage root')
+    capacity = {'docker_storage_path': docker_root,
+                'before_build': dict(zip(('total', 'used', 'free'), shutil.disk_usage(docker_root))),
+                'memory': {line.split(':', 1)[0]: line.split(':', 1)[1].strip()
+                           for line in Path('/proc/meminfo').read_text().splitlines()
+                           if line.startswith(('MemTotal:', 'MemAvailable:', 'SwapTotal:'))}}
+    (work / 'build-capacity.json').write_text(json.dumps(capacity, indent=2)+'\n')
+    build = ['docker', 'build', '--progress=plain', '--build-arg', 'SOURCE_MANIFEST_SHA256='+manifest_sha]
     for argument, digest in resolved.items():
         build += ['--build-arg', argument+'='+digest]
-    run([*build, '--iidfile', str(work / 'image-id'), str(context)])
+    try:
+        with (work / 'image-build.log').open('w') as log:
+            completed = subprocess.run([*build, '--iidfile', str(work / 'image-id'), str(context)],
+                                       stdout=log, stderr=subprocess.STDOUT, timeout=2400)
+        if completed.returncode:
+            raise RuntimeError('offline compile/image build failed; inspect image-build.log (no tests executed)')
+    finally:
+        capacity['after_build'] = dict(zip(('total', 'used', 'free'), shutil.disk_usage(docker_root)))
+        (work / 'build-capacity.json').write_text(json.dumps(capacity, indent=2)+'\n')
     image_id = (work / 'image-id').read_text().strip()
     if not image_id.startswith('sha256:') or len(image_id) != 71:
         raise RuntimeError('invalid immutable test image ID')
@@ -221,6 +247,7 @@ def main():
         receipt['container_exit_code'] = state['ExitCode']
         receipt['oom_killed'] = state['OOMKilled']
         (work / 'host-receipt.json').write_text(json.dumps(receipt, indent=2)+'\n')
+        run(['docker', 'cp', cid+':/opt/isolation/compiled/compile-receipt.json', str(work / 'compile-receipt.json')])
         run(['docker', 'cp', cid+':/opt/isolation/modules.json', str(work / 'modules.json')])
         run(['docker', 'cp', cid+':/opt/isolation/os-packages.txt', str(work / 'os-packages.txt')])
         runtime = collect_stream(work, source['source_commit'], manifest_sha, args.suite)

@@ -470,12 +470,36 @@
     "backend/internal/securityaudit/prompt_repository_integration_test.go": {
       "01842576b3d5c1e2545b5a99ad555d36e28ed306": "ae7e4b7d460f4a05bb1197a27d252f8e1ef7229c7f6d3125ea12c50d77347901",
       "ac1b8f1271be0d674fa6f074403c1410f30a3a81": "ae7e4b7d460f4a05bb1197a27d252f8e1ef7229c7f6d3125ea12c50d77347901"
+    },
+    "backend/internal/handler/admin/grok_import_probe_test.go": {
+      "01842576b3d5c1e2545b5a99ad555d36e28ed306": "be51abc3d3f8ad633feaa39bcbf139aadce54509776f8e3205f724215782d070",
+      "ac1b8f1271be0d674fa6f074403c1410f30a3a81": "be51abc3d3f8ad633feaa39bcbf139aadce54509776f8e3205f724215782d070"
+    },
+    "backend/internal/handler/admin/grok_oauth_handler_test.go": {
+      "01842576b3d5c1e2545b5a99ad555d36e28ed306": "a5a3c187be2a8cdf53fb5182e0d6b2c1db0d525676050a10e2044323a0b6a0b5",
+      "ac1b8f1271be0d674fa6f074403c1410f30a3a81": "a5a3c187be2a8cdf53fb5182e0d6b2c1db0d525676050a10e2044323a0b6a0b5"
+    },
+    "backend/ent/schema/auth_identity_schema_test.go": {
+      "01842576b3d5c1e2545b5a99ad555d36e28ed306": "1b9f45f9c8e8e5ca6e30f517285110dcf1dc3cc178e999649374ea3feda41668",
+      "ac1b8f1271be0d674fa6f074403c1410f30a3a81": "1b9f45f9c8e8e5ca6e30f517285110dcf1dc3cc178e999649374ea3feda41668"
+    },
+    "backend/internal/securityaudit/prompt_config_integration_test.go": {
+      "01842576b3d5c1e2545b5a99ad555d36e28ed306": "8b1505e432877ab03cc231e1255087834e5ce5f5e852da6119a085fd8a5a2edb",
+      "ac1b8f1271be0d674fa6f074403c1410f30a3a81": "8b1505e432877ab03cc231e1255087834e5ce5f5e852da6119a085fd8a5a2edb"
+    },
+    "backend/internal/securityaudit/prompt_payload_store_integration_test.go": {
+      "01842576b3d5c1e2545b5a99ad555d36e28ed306": "d721151b9142200bd2ce1f2c25d1f209afa268b3a2ff38a7cd1195acddb965e0",
+      "ac1b8f1271be0d674fa6f074403c1410f30a3a81": "d721151b9142200bd2ce1f2c25d1f209afa268b3a2ff38a7cd1195acddb965e0"
     }
   },
   "validation_support": {
     "backend/internal/isolatedfixture/fixture.go": {
       "source": ".github/upgrade/fixtures/isolated_fixture.go",
       "sha256": "b77b52e64497b8e93c9e37dbe0eb3108917bd45077afb4075006652d1433de50"
+    },
+    "backend/internal/securityaudit/isolated_shared_fixture_test.go": {
+      "source": ".github/upgrade/fixtures/isolated_shared_fixture_test.go",
+      "sha256": "6151bfb7035debf7d1b3f5c03e5f047553dde5d78786625f8e6702855b84b391"
     }
   },
   "test_reclassifications": [
@@ -492,6 +516,25 @@
         "TestPromptAuditServiceConfirmationKeepsPostPreviewEventsAndConcurrentDeletesAreSafe"
       ],
       "count": 6
+    },
+    {
+      "path": "backend/internal/securityaudit/prompt_config_integration_test.go",
+      "from": "untagged; skipped without operator Redis endpoint",
+      "to": "integration; fresh isolated Redis required; missing fixture fails",
+      "test_functions": [
+        "TestPromptAuditConfigCASSecretRoundTripInvalidationAndTTL"
+      ],
+      "count": 1
+    },
+    {
+      "path": "backend/internal/securityaudit/prompt_payload_store_integration_test.go",
+      "from": "untagged; skipped without operator Redis endpoint",
+      "to": "integration; fresh isolated Redis required; missing fixture fails",
+      "test_functions": [
+        "TestRedisPayloadStoreRoundTripTTLNamespaceAndDelete",
+        "TestPromptRuntimeAggregatesConfigWorkersQueueRedisEndpointsAndGuardMetrics"
+      ],
+      "count": 2
     }
   ]
 }

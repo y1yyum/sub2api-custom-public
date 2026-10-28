@@ -16,7 +16,17 @@ PATHS = (
     'backend/internal/middleware/rate_limiter_integration_test.go',
     'backend/internal/server/routes/auth_rate_limit_integration_test.go',
     'backend/internal/securityaudit/prompt_repository_integration_test.go',
+    'backend/internal/securityaudit/prompt_config_integration_test.go',
+    'backend/internal/securityaudit/prompt_payload_store_integration_test.go',
 )
+
+
+def without_redis_lifecycle(text):
+    # Normalize only the reviewed endpoint/client setup, not any business assertion.
+    text = re.sub(r'\t(?:redisAddress|address) := strings.TrimSpace\(os.Getenv\(promptAuditRedisTestEnv\)\)\n\tif (?:redisAddress|address) == "" \{\n\t\tt.Skip\(promptAuditRedisTestEnv \+ " is not set"\)\n\t}\n', '', text)
+    text = re.sub(r'\t(?:redisClient|client) := redis.NewClient\(&redis.Options\{Addr: (?:redisAddress|address)}\)\n\tt.Cleanup\(func\(\) \{ require.NoError\(t, (?:redisClient|client).Close\(\)\) }\)', '', text)
+    text = re.sub(r'\t(?:redisClient|client), stopRedis, err := isolatedfixture.StartRedis\(context.Background\(\)\)\n\trequire.NoError\(t, err, "isolated prompt-audit Redis fixture must be available"\)\n\tt.Cleanup\(func\(\) \{ require.NoError\(t, stopRedis\(\), "isolated prompt-audit Redis cleanup"\) }\)', '', text)
+    return text
 
 
 class IsolatedFixtureStaticTests(unittest.TestCase):
@@ -29,17 +39,22 @@ class IsolatedFixtureStaticTests(unittest.TestCase):
                     before = raw.decode()
                     after = ADAPT(path, before)
                     pattern = r'(?ms)^func (Test(?!Main)\w*\(.*?)(?=^func |\Z)'
-                    self.assertEqual(re.findall(pattern, before), re.findall(pattern, after))
+                    self.assertEqual(re.findall(pattern, without_redis_lifecycle(before)),
+                                     re.findall(pattern, without_redis_lifecycle(after)))
                     self.assertNotIn('testcontainers', after)
                     self.assertNotIn('DOCKER_HOST', after)
                     self.assertNotIn('t.Skip(', after)
 
     def test_support_is_pinned_and_does_not_accept_operator_endpoints(self):
         for destination, spec in MANIFEST['validation_support'].items():
-            self.assertEqual(destination, 'backend/internal/isolatedfixture/fixture.go')
+            self.assertIn(destination, {'backend/internal/isolatedfixture/fixture.go',
+                                        'backend/internal/securityaudit/isolated_shared_fixture_test.go'})
             data = (ROOT / spec['source']).read_bytes()
             self.assertEqual(hashlib.sha256(data).hexdigest(), spec['sha256'])
             text = data.decode()
+            if destination.endswith('isolated_shared_fixture_test.go'):
+                self.assertNotIn('//go:build', text)
+                continue
             self.assertIn('Network: "unix"', text)
             self.assertIn('"--port", "0"', text)
             self.assertIn('exec.Command("/usr/local/bin/redis-server"', text)
@@ -50,10 +65,36 @@ class IsolatedFixtureStaticTests(unittest.TestCase):
 
     def test_prompt_reclassification_is_explicit(self):
         records = MANIFEST['test_reclassifications']
-        self.assertEqual(len(records), 1)
-        self.assertEqual(records[0]['path'], PATHS[-1])
-        self.assertEqual(records[0]['count'], 6)
-        self.assertEqual(len(set(records[0]['test_functions'])), 6)
+        self.assertEqual(len(records), 3)
+        self.assertEqual([r['count'] for r in records], [6, 1, 2])
+        self.assertEqual(sum(r['count'] for r in records), 9)
+        for record in records:
+            upstream = subprocess.check_output(['git', '-C', str(ROOT), 'show',
+                MANIFEST['target'] + ':' + record['path']]).decode()
+            self.assertEqual(record['test_functions'], re.findall(r'^func (Test\w+)\(', upstream, re.M))
+            self.assertEqual(len(set(record['test_functions'])), record['count'])
+            self.assertTrue(ADAPT(record['path'], upstream).startswith('//go:build integration\n'))
+
+    def test_shared_helpers_retained_verbatim_and_untagged(self):
+        shared = (ROOT / '.github/upgrade/fixtures/isolated_shared_fixture_test.go').read_text()
+        for path, name in [(PATHS[3], 'integrationResult'), (PATHS[4], 'promptAuditUpdateRequest')]:
+            pattern = r'(?ms)^func ' + name + r'\(.*?^}\n'
+            for revision in MANIFEST['test_adaptations'][path]:
+                before = subprocess.check_output(['git', '-C', str(ROOT), 'show', revision + ':' + path]).decode()
+                helper = re.search(pattern, before).group(0)
+                self.assertEqual(shared.count(helper), 1)
+                self.assertNotIn('func ' + name + '(', ADAPT(path, before))
+        self.assertNotIn('//go:build', shared)
+
+    def test_shared_helper_allowlist_is_one_exact_securityaudit_path(self):
+        for script in ['prepare-upgrade-validation.py', 'run-isolated-unit.py']:
+            allow = runpy.run_path(str(ROOT / '.github/scripts' / script))['allowed_support_path']
+            self.assertTrue(allow('backend/internal/securityaudit/isolated_shared_fixture_test.go'))
+            for path in ['backend/internal/securityaudit/arbitrary.go',
+                         'backend/internal/securityaudit/isolated_shared_fixture_test.go/extra',
+                         'backend/internal/securityaudit/../service/file.go',
+                         'backend/internal/isolatedfixture/../service/file.go']:
+                self.assertFalse(allow(path), path)
 
 
 if __name__ == '__main__':

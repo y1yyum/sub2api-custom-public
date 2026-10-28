@@ -33,6 +33,13 @@ def test_input(path):
                      'frontend/.eslintignore', 'backend/.golangci.yml'})
 
 
+
+def allowed_support_path(path):
+    return ('..' not in Path(path).parts and
+            (path.startswith('backend/internal/isolatedfixture/') or
+             path == 'backend/internal/securityaudit/isolated_shared_fixture_test.go'))
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('destination', type=Path)
@@ -84,7 +91,7 @@ def main():
     support = []
     for destination, spec in manifest.get('validation_support', {}).items():
         source = spec['source']
-        if (not destination.startswith('backend/internal/isolatedfixture/') or
+        if (not allowed_support_path(destination) or
                 not source.startswith('.github/upgrade/fixtures/') or
                 '..' in Path(destination).parts or '..' in Path(source).parts):
             raise SystemExit('invalid isolated support path')

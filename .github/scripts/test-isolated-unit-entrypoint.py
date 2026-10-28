@@ -110,9 +110,11 @@ class RuntimeFixtures(unittest.TestCase):
                 self.assert_blocks_execution(lambda: m.verify_sources(root, manifest, sha))
 
     def test_test_command_has_no_coverage_reducing_filters(self):
-        self.assertEqual(m.COMMAND, [m.GO, 'test', '-json', '-p', '1', '-race', '-count=1', '-tags=unit', '-mod=readonly', '-timeout=20m', './...'])
-        self.assertNotIn('-run', m.COMMAND)
-        self.assertNotIn('-skip', m.COMMAND)
+        self.assertEqual(m.TEST_FLAGS, ['-test.v=test2json', '-test.timeout=20m', '-test.count=1'])
+        command = m.binary_command({'package': 'example.invalid/test', 'binary': 'binaries/fake.test'})
+        self.assertEqual(command[:3], [m.GO, 'tool', 'test2json'])
+        self.assertNotIn('-run', command)
+        self.assertNotIn('-skip', command)
 
 
 if __name__ == '__main__':

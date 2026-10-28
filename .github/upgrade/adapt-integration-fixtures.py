@@ -1,8 +1,11 @@
-"""Replace Docker orchestration only; retain integration assertions verbatim.
+"""Replace fixture orchestration only; retain business assertions verbatim.
 
 Inputs are pinned by SHA256 in manifest.json. Prompt-audit database tests are
-explicitly integration-tagged rather than implicitly skipped without a DSN.
+explicitly integration-tagged rather than implicitly skipped without operator endpoints.
 """
+
+from pathlib import Path
+import re
 
 IMPORT = '\n\t"github.com/Wei-Shaw/sub2api/internal/isolatedfixture"'
 
@@ -15,6 +18,30 @@ def once(text, old, new):
 
 def add_import(text):
     return once(text, 'import (', 'import (' + IMPORT)
+
+
+def move_shared_helper(text, name):
+    # Byte-identical support extraction is statically checked against both pins.
+    support = Path(__file__).with_name('fixtures') / 'isolated_shared_fixture_test.go'
+    pattern = r'(?ms)^func ' + name + r'\(.*?^}\n'
+    helper = re.search(pattern, text)
+    if helper is None or helper.group(0) not in support.read_text():
+        raise ValueError('shared prompt-audit helper no longer matches reviewed bytes')
+    return once(text, helper.group(0), '')
+
+
+def redis_setup(text, client, address):
+    # Only lifecycle/setup changes; the assertions below remain byte-identical.
+    block = '\t' + address + ' := strings.TrimSpace(os.Getenv(promptAuditRedisTestEnv))\n\tif ' + address + ' == "" {\n\t\tt.Skip(promptAuditRedisTestEnv + " is not set")\n\t}\n'
+    expected = 2 if client == 'client' else 1
+    if text.count(block) != expected:
+        raise ValueError('unexpected Redis operator-endpoint setup count')
+    text = text.replace(block, '')
+    old = '\t' + client + ' := redis.NewClient(&redis.Options{Addr: ' + address + '})\n\tt.Cleanup(func() { require.NoError(t, ' + client + '.Close()) })'
+    new = '\t' + client + ', stopRedis, err := isolatedfixture.StartRedis(context.Background())\n\trequire.NoError(t, err, "isolated prompt-audit Redis fixture must be available")\n\tt.Cleanup(func() { require.NoError(t, stopRedis(), "isolated prompt-audit Redis cleanup") })'
+    if text.count(old) != expected:
+        raise ValueError('unexpected Redis client construction count')
+    return text.replace(old, new)
 
 
 def adapt(path, text):
@@ -93,10 +120,25 @@ func runIsolatedIntegration(m *testing.M) int {
 	return rdb
 }}
 '''
+    if path in {
+        'backend/internal/securityaudit/prompt_config_integration_test.go',
+        'backend/internal/securityaudit/prompt_payload_store_integration_test.go',
+    }:
+        if text.startswith('//go:build'):
+            raise ValueError('prompt-audit Redis classification requires review')
+        text = '//go:build integration\n\n' + add_import(text)
+        text = once(text, '\t"os"\n', '')
+        if path.endswith('prompt_config_integration_test.go'):
+            text = once(text, 'const promptAuditRedisTestEnv = "PROMPT_AUDIT_TEST_REDIS_ADDR"\n', '')
+            text = move_shared_helper(text, 'promptAuditUpdateRequest')
+            return redis_setup(text, 'redisClient', 'redisAddress')
+        text = once(text, '\t"strings"\n', '')
+        return redis_setup(text, 'client', 'address')
     if path == 'backend/internal/securityaudit/prompt_repository_integration_test.go':
         if text.startswith('//go:build'):
             raise ValueError('prompt-audit file already has a build tag; review classification')
         text = '//go:build integration\n\n' + add_import(text)
+        text = move_shared_helper(text, 'integrationResult')
         text = once(text, 'const promptAuditPostgresTestEnv = "PROMPT_AUDIT_TEST_POSTGRES_DSN"\n', '')
         return once(text, '''	dsn := strings.TrimSpace(os.Getenv(promptAuditPostgresTestEnv))
 	if dsn == "" {

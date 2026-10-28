@@ -29,7 +29,7 @@ application correctness; actual CI receipts and results are still required.
   networking may fetch pinned dependencies; it must never execute repository
   tests or repository-supplied build scripts.
 
-## Four explicit adaptations
+## Six explicit fixture adaptations
 
 1. `repository/integration_harness_test.go`: replace container creation,
    discovery and Docker availability skips with fixed local PostgreSQL and a
@@ -49,6 +49,29 @@ application correctness; actual CI receipts and results are still required.
    mandatory in the integration lane; no assertion/test is deleted. The receipt
    lists all six moved test names, not a silent unit pass.
 
+5. `securityaudit/prompt_config_integration_test.go`: move its one DB/Redis test
+   into the integration lane, replace the operator Redis endpoint and implicit
+   skip with a fresh private Unix-socket Redis fixture, retain CAS, encryption,
+   invalidation and TTL assertions.
+6. `securityaudit/prompt_payload_store_integration_test.go`: move its two Redis
+   tests into the integration lane, use a fresh Redis process for each, retain
+   payload TTL/namespace/delete and runtime metrics assertions. Missing fixtures
+   fail; `PROMPT_AUDIT_TEST_REDIS_ADDR` is never read.
+
+The manifest now names **nine** reclassified tests: six PostgreSQL tests plus
+three Redis-dependent tests. This is explicit coverage transfer, not deletion or
+an empty unit-suite pass. Redis setup/cleanup code changes; the remainder of each
+test body and all business assertions are compared byte-for-byte by static tests.
+The deliberate unavailable `127.0.0.1:1` client in the config degradation assertion
+is retained inside the same network-none namespace.
+
+`promptAuditUpdateRequest` and `integrationResult` are also used by untagged unit
+tests. Their exact unchanged upstream bodies are moved into the hash-pinned,
+untagged `securityaudit/isolated_shared_fixture_test.go` support file and removed
+from tagged originals. This avoids undefined symbols in the unit lane without
+reclassifying or weakening those unit tests. Preparation and host verification
+allow this one exact securityaudit support path, not the entire package.
+
 No test uses Docker/testcontainers after these lifecycle adaptations. Redis
 opens **no TCP port** (`--port 0`); it uses `Network: "unix"` and a per-instance
 socket under its private temporary directory. Persistence is disabled. Tests
@@ -59,7 +82,7 @@ not shared across the two rate-limit helper invocations or across packages.
 ## Source and fixture receipts
 
 `manifest.json` pins every affected upstream file for both reviewed fixed
-revisions. The adapter retains test function bodies verbatim. The local helper
+revisions. The adapter retains business assertions verbatim; only reviewed fixture lifecycle setup is replaced. The local helper
 is stored under `.github/upgrade/fixtures` and copied only into the external
 validation workspace, with its own SHA256. It is not added to shipped server
 source. The preparation receipt records source hashes, adapter hashes,

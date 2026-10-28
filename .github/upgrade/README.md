@@ -174,7 +174,7 @@ A separately reviewed PostgreSQL/Redis fixture lane now uses the same verified
 network-none boundary. Fixed synthetic loopback databases are newly initialized
 inside the test container; Redis uses per-test local processes/private Unix
 sockets. No Docker daemon/socket, host service or operator DSN is exposed to
-tests. The six prompt-audit database tests are explicitly integration-tagged,
+tests. The six prompt-audit PostgreSQL tests and three Redis-dependent tests are explicitly integration-tagged,
 not silently skipped. See [fixture contract](INTEGRATION_ISOLATION.md). Both
 lanes fail on missing isolation/fixture evidence; neither is declared passing
 until its exact CI artifacts establish execution and outcomes.

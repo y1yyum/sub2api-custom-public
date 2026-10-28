@@ -37,7 +37,21 @@ COPY validation-receipt.json /src/validation-receipt.json
 COPY source-manifest.json /opt/isolation/source-manifest.json
 COPY isolated-unit-entrypoint.py /opt/isolation/isolated-unit-entrypoint.py
 COPY integration-bootstrap.py /opt/isolation/integration-bootstrap.py
+COPY compile-isolated-tests.py /opt/isolation/compile-isolated-tests.py
+ARG SOURCE_MANIFEST_SHA256
+RUN mkdir -p /opt/isolation/compiled && chown 65532:65532 /opt/isolation/compiled
 WORKDIR /src/backend
 USER 65532:65532
+# Compilation only: go list and go test -c never execute a test binary, init or TestMain.
+# Missing dependencies fail offline; no retry with networking and no runtime compilation fallback.
+RUN --network=none /usr/bin/env -i \
+    PATH=/usr/local/go/bin:/usr/bin:/bin HOME=/tmp/home TMPDIR=/tmp \
+    GOCACHE=/tmp/build-cache GOTMPDIR=/tmp/build-tmp GOMODCACHE=/opt/gomodcache \
+    GOPATH=/tmp/gopath GOPROXY=off GOSUMDB=off GOTOOLCHAIN=local \
+    GOMAXPROCS=2 GOGC=30 GOMEMLIMIT=3GiB CI=true \
+    /usr/bin/python3 -I /opt/isolation/compile-isolated-tests.py \
+    --suite integration --source-root /src --manifest /opt/isolation/source-manifest.json \
+    --manifest-sha256 "$SOURCE_MANIFEST_SHA256" --output /opt/isolation/compiled \
+    && rm -rf /tmp/build-cache /tmp/build-tmp /tmp/home /tmp/gopath
 # No inherited entrypoint, command, environment, ports, healthcheck or VOLUME.
 # The host provides the reviewed fixed env -i / Python invocation explicitly.
