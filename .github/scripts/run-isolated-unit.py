@@ -65,6 +65,8 @@ def assert_container(data, image_id, command):
 SERVICE_PACKAGE = 'github.com/Wei-Shaw/sub2api/internal/service'
 FIXED_SERVICE_TESTS = (
     'TestGroupUsageDateUsesConfiguredTimezoneBoundary',
+    'TestGroupUsageParseDateUsesConfiguredTimezone',
+    'TestGroupUsageYesterdayStartHandlesDST',
     'TestSanitizeOpenAIResponsesToolParameterTypes_RewriteCountIndependentOfHits',
 )
 
@@ -76,7 +78,7 @@ def audit_service_coverage(receipt, runs, suite):
     try:
         audit = receipt['service_partition_audit']
         names = audit['discovered_tests_examples_fuzz']
-        fixed = list(FIXED_SERVICE_TESTS if suite == 'unit' else FIXED_SERVICE_TESTS[1:])
+        fixed = list(FIXED_SERVICE_TESTS if suite == 'unit' else FIXED_SERVICE_TESTS[-1:])
         if (not names or len(names) != len(set(names)) or
                 any(not isinstance(n, str) or not n.isidentifier() or
                     not n.startswith(('Test', 'Example', 'Fuzz')) for n in names)):
@@ -87,7 +89,7 @@ def audit_service_coverage(receipt, runs, suite):
         if runs != expected:
             errors.append('actual top-level runs do not cover registry exactly once')
         if (receipt['fixed_service_tests'] != fixed or not set(fixed) <= set(names) or
-                (suite == 'integration' and FIXED_SERVICE_TESTS[0] in names)):
+                (suite == 'integration' and set(FIXED_SERVICE_TESTS[:-1]).intersection(names))):
             errors.append('fixed test names differ from reviewed per-suite partition')
         binary_hash = audit['binary_sha256']
         if (audit['package'] != SERVICE_PACKAGE or audit['discovery_exit_code'] != 0 or

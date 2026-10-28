@@ -168,6 +168,7 @@ jobs:
           python3 .github/upgrade/test-isolated-fixtures.py
           python3 .github/upgrade/test-race-fixtures.py
           python3 .github/upgrade/test-service-race-fixtures.py
+          python3 .github/upgrade/test-gin-mode-fixtures.py
       - name: Prepare dependencies then run verified offline integration container
         run: python3 .github/scripts/run-isolated-unit.py --suite integration "$RUNNER_TEMP/isolated-integration"
       - name: Preserve actual isolation, fixture and test evidence

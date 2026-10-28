@@ -13,6 +13,9 @@ import json
 import os
 from pathlib import Path, PurePosixPath
 import re
+import resource
+import shutil
+import time
 import stat
 import socket
 import struct
@@ -298,9 +301,11 @@ def binary_command(record):
 SERVICE_PACKAGE = 'github.com/Wei-Shaw/sub2api/internal/service'
 FIXED_SERVICE_TESTS = (
     'TestGroupUsageDateUsesConfiguredTimezoneBoundary',
+    'TestGroupUsageParseDateUsesConfiguredTimezone',
+    'TestGroupUsageYesterdayStartHandlesDST',
     'TestSanitizeOpenAIResponsesToolParameterTypes_RewriteCountIndependentOfHits',
 )
-FIXED_SERVICE_TESTS_BY_SUITE = {'unit': FIXED_SERVICE_TESTS, 'integration': (FIXED_SERVICE_TESTS[1],)}
+FIXED_SERVICE_TESTS_BY_SUITE = {'unit': FIXED_SERVICE_TESTS, 'integration': (FIXED_SERVICE_TESTS[-1],)}
 SYNTHETIC_SERVICE_ENV = {'GEMINI_CLI_OAUTH_CLIENT_ID': 'custom-test-client'}
 
 
@@ -369,7 +374,7 @@ def service_partitions(stdout, suite):
     names, benchmarks = parse_test_registry(stdout)
     require(all(name in names for name in fixed), 'fixed service test missing or renamed')
     if suite == 'integration':
-        require(FIXED_SERVICE_TESTS[0] not in names, 'unit-only timezone test unexpectedly present in integration')
+        require(not set(FIXED_SERVICE_TESTS[:-1]).intersection(names), 'unit-only timezone test unexpectedly present in integration')
     names = sorted(names)
     main = [name for name in names if name not in fixed]
     require(main, 'main service test partition unexpectedly empty')
@@ -383,6 +388,47 @@ def service_partitions(stdout, suite):
     require(sorted(covered) == names and len(covered) == len(set(covered)), 'partitions not exhaustive and disjoint')
     return {'discovered_tests_examples_fuzz': names, 'benchmarks_not_run_by_default': sorted(benchmarks),
             'partitions': partitions, 'coverage': 'exhaustive_disjoint_top_level; all matching subtests and fuzz seeds retained'}
+
+
+def child_resource_snapshot(cgroup=Path('/sys/fs/cgroup')):
+    """Read-only cgroup-v2 evidence; missing counters are unknown, never zero."""
+    memory = {}
+    for name in ('memory.events', 'memory.events.local', 'memory.current', 'memory.peak', 'memory.max'):
+        try:
+            raw = (cgroup / name).read_text().strip()
+            if name.startswith('memory.events'):
+                memory[name] = {key: int(value) for key, value in (line.split() for line in raw.splitlines())}
+            else:
+                memory[name] = int(raw) if raw.isdecimal() else raw
+        except (OSError, ValueError):
+            memory[name] = None
+    usage = resource.getrusage(resource.RUSAGE_CHILDREN)
+    return {'monotonic_seconds': time.monotonic(), 'cgroup_v2': memory,
+            'reaped_children_cumulative': {key: getattr(usage, key) for key in
+                ('ru_utime', 'ru_stime', 'ru_maxrss', 'ru_minflt', 'ru_majflt', 'ru_inblock', 'ru_oublock', 'ru_nvcsw', 'ru_nivcsw')}}
+
+
+def cleanup_test_caches(paths=(Path('/tmp/gocache'), Path('/tmp/gotmp'))):
+    """Reset only the two owned disposable caches, with no symlink traversal."""
+    require(tuple(paths) == (Path('/tmp/gocache'), Path('/tmp/gotmp')), 'unexpected cache cleanup paths')
+    require(shutil.rmtree.avoids_symlink_attacks, 'safe fd-based cache cleanup unavailable')
+    result = []
+    # Validate both roots before removing either. Never follow a substituted link.
+    for root in paths:
+        info = root.lstat()
+        require(stat.S_ISDIR(info.st_mode) and info.st_uid == os.getuid(), 'cache root is not an owned directory')
+    for root in paths:
+        size = {'entries': 0, 'apparent_bytes': 0, 'symlinks': 0}
+        for directory, dirs, files in os.walk(root, followlinks=False):
+            for name in dirs + files:
+                info = Path(directory, name).lstat()
+                size['entries'] += 1
+                size['apparent_bytes'] += info.st_size
+                size['symlinks'] += int(stat.S_ISLNK(info.st_mode))
+        shutil.rmtree(root)
+        root.mkdir(mode=0o700)
+        result.append({'path': str(root), 'before_cleanup': size, 'cleanup': 'removed_and_recreated_0700'})
+    return result
 
 
 def execute_suite(source, doc, env, expected_digest, suite, execute, fixture=None):
@@ -402,13 +448,44 @@ def execute_suite(source, doc, env, expected_digest, suite, execute, fixture=Non
                'test_exit_code': None, 'runtime_observations': doc.get('runtime_observations', {}),
                'fixture_receipt': fixture, 'package_results': []}
     print(json.dumps({'record_type': 'isolation_receipt', **receipt}, sort_keys=True), flush=True)
+    receipt['child_process_resources'] = []
+
+    def observed_execute(label, command, runner, **kwargs):
+        before = child_resource_snapshot()
+        print(json.dumps({'record_type': 'child_resource_start', 'label': label, 'before': before}, sort_keys=True), flush=True)
+        completed = None
+        try:
+            completed = runner(command, **kwargs)
+            return completed
+        finally:
+            after = child_resource_snapshot()
+            observation = {'label': label, 'before': before, 'after': after,
+                           'usage_scope': 'RUSAGE_CHILDREN cumulative reaped children; maxrss is cumulative high-water, not a delta',
+                           'raw_exit_code': getattr(completed, 'returncode', None),
+                           'exit_status_scope': 'metadata binary for registry; go tool test2json for tests, underlying binary signal unknown'}
+            observation['reaped_children_usage_delta'] = {
+                key: after['reaped_children_cumulative'][key] - value
+                for key, value in before['reaped_children_cumulative'].items() if key != 'ru_maxrss'}
+            observation['cgroup_memory_events_delta'] = {
+                key: after['cgroup_v2']['memory.events'][key] - value
+                for key, value in (before['cgroup_v2']['memory.events'] or {}).items()
+                if key in (after['cgroup_v2']['memory.events'] or {})}
+            observation['cache_cleanup'] = 'failed'
+            try:
+                observation['caches'] = cleanup_test_caches()
+                observation['cache_cleanup'] = 'completed'
+            finally:
+                observation['after_cache_cleanup'] = child_resource_snapshot()
+                receipt['child_process_resources'].append(observation)
+                print(json.dumps({'record_type': 'child_resource_end', **observation}, sort_keys=True), flush=True)
+
     audit = None
     if service:
         record = service[0]
         discovery_command = [str(COMPILED_ROOT / record['binary']), '-test.list=.', '-test.timeout=20m']
         # The listing invokes package init/TestMain only within the already
         # verified network-none runtime. It is not a test execution or retry.
-        listed = execute(discovery_command, cwd=source / record['directory'],
+        listed = observed_execute('service_registry_all', discovery_command, execute, cwd=source / record['directory'],
                          env=package_environment(record, env), capture_output=True, text=True,
                          check=False, timeout=1200)
         print(json.dumps({'record_type': 'service_registry_listing', 'package': SERVICE_PACKAGE,
@@ -423,7 +500,7 @@ def execute_suite(source, doc, env, expected_digest, suite, execute, fixture=Non
         # This fixed second metadata process is not a failure-triggered retry.
         main_listing_command = [str(COMPILED_ROOT / record['binary']),
                                 '-test.list=' + audit['partitions'][0]['regex'], '-test.timeout=20m']
-        selected = execute(main_listing_command, cwd=source / record['directory'],
+        selected = observed_execute('service_registry_main', main_listing_command, execute, cwd=source / record['directory'],
                            env=package_environment(record, env), capture_output=True, text=True,
                            check=False, timeout=1200)
         verification = {'command': main_listing_command, 'exit_code': selected.returncode,
@@ -461,7 +538,7 @@ def execute_suite(source, doc, env, expected_digest, suite, execute, fixture=Non
     # The complete immutable schedule exists before the first test starts. Every
     # scheduled process runs once even when any previous process fails.
     for record, partition_name, command in plans:
-        completed = execute(command, cwd=source / record['directory'], env=package_environment(record, env), check=False,
+        completed = observed_execute(record['package'] + ':' + partition_name, command, execute, cwd=source / record['directory'], env=package_environment(record, env), check=False,
                             stdout=sys.stdout, stderr=subprocess.STDOUT)
         code = completed.returncode if completed.returncode >= 0 else 128 - completed.returncode
         failed = failed or code != 0

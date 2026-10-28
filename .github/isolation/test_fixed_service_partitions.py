@@ -21,7 +21,7 @@ class FixedPartitionTests(unittest.TestCase):
                           *m.FIXED_SERVICE_TESTS_BY_SUITE[suite]]) + '\n'
 
     def test_unit_and_integration_coverage_is_exact_exhaustive_and_disjoint(self):
-        for suite, count in [('unit', 3), ('integration', 2)]:
+        for suite, count in [('unit', 5), ('integration', 2)]:
             with self.subTest(suite=suite):
                 audit = m.service_partitions(self.listing(suite), suite)
                 self.assertEqual(len(audit['partitions']), count)
@@ -44,6 +44,17 @@ class FixedPartitionTests(unittest.TestCase):
                 m.service_partitions(bad, 'unit')
         with self.assertRaises(m.IsolationError):
             m.service_partitions(self.listing('unit'), 'integration')
+
+    def test_all_three_timezone_mutators_are_required_unit_only(self):
+        expected = {'TestGroupUsageDateUsesConfiguredTimezoneBoundary',
+                    'TestGroupUsageParseDateUsesConfiguredTimezone',
+                    'TestGroupUsageYesterdayStartHandlesDST'}
+        self.assertEqual(set(m.FIXED_SERVICE_TESTS[:-1]), expected)
+        for name in expected:
+            with self.assertRaises(m.IsolationError):
+                m.service_partitions(self.listing().replace(name + '\n', ''), 'unit')
+            with self.assertRaises(m.IsolationError):
+                m.service_partitions(self.listing('integration') + name + '\n', 'integration')
 
     def test_complement_exhaustive_small_alphabet_including_prefix_exclusions(self):
         for excluded in [('a',), ('a', 'ab'), ('ab', 'ac'), ('abc', 'bba')]:
@@ -95,20 +106,25 @@ class FixedPartitionTests(unittest.TestCase):
         execute = Mock(side_effect=[listed, selected, *[SimpleNamespace(returncode=code) for code in process_codes]])
         doc = {'source_commit': 'b' * 40, 'source_receipt_sha256': 'c' * 64, 'files': {}}
         env = m.test_environment()
-        with patch.object(m, 'verify_compiled', return_value=(compiled, 'd' * 64)), contextlib.redirect_stdout(io.StringIO()):
+        with patch.object(m, 'cleanup_test_caches', return_value=[]), patch.object(m, 'verify_compiled', return_value=(compiled, 'd' * 64)), contextlib.redirect_stdout(io.StringIO()):
             receipt = m.execute_suite(Path('/src'), doc, env, 'e' * 64, 'unit', execute)
         return receipt, execute, env
 
     def test_schedule_identical_before_success_or_failure_and_no_retries(self):
-        green, green_calls, _ = self.run_fixture([0, 0, 0])
-        red, red_calls, _ = self.run_fixture([1, 0, 1])
+        green, green_calls, _ = self.run_fixture([0, 0, 0, 0, 0])
+        red, red_calls, _ = self.run_fixture([1, 0, 1, 0, 0])
         self.assertEqual(green['test_commands'], red['test_commands'])
-        self.assertEqual(green_calls.call_count, 5)
-        self.assertEqual(red_calls.call_count, 5)
+        self.assertEqual(green_calls.call_count, 7)
+        self.assertEqual(red_calls.call_count, 7)
         self.assertEqual(green['test_exit_code'], 0)
+        self.assertEqual(len(green['child_process_resources']), 7)
+        for observation in green['child_process_resources']:
+            self.assertIn('memory.events', observation['before']['cgroup_v2'])
+            self.assertIn('memory.peak', observation['after']['cgroup_v2'])
+            self.assertNotIn('ru_maxrss', observation['reaped_children_usage_delta'])
         self.assertEqual(green['service_partition_audit']['go_main_regex_verification']['status'], 'passed')
         self.assertEqual(red['test_exit_code'], 1)
-        self.assertEqual([p['exit_code'] for p in red['package_results']], [1, 0, 1])
+        self.assertEqual([p['exit_code'] for p in red['package_results']], [1, 0, 1, 0, 0])
         self.assertEqual([p['partition'] for p in red['package_results']], ['main', *m.FIXED_SERVICE_TESTS])
         for call in red_calls.call_args_list:
             self.assertEqual(call.kwargs['cwd'], Path('/src/backend/internal/service'))
@@ -119,7 +135,7 @@ class FixedPartitionTests(unittest.TestCase):
             self.assertEqual(sum(arg.startswith('-test.run=') for arg in call.args[0]), 1)
 
     def test_synthetic_public_client_id_is_service_child_only_before_listing_init(self):
-        receipt, calls, env = self.run_fixture([0, 0, 0])
+        receipt, calls, env = self.run_fixture([0, 0, 0, 0, 0])
         self.assertNotIn('GEMINI_CLI_OAUTH_CLIENT_ID', env)
         self.assertEqual(receipt['synthetic_service_child_environment'], {'GEMINI_CLI_OAUTH_CLIENT_ID': 'custom-test-client'})
         for call in calls.call_args_list:
@@ -142,7 +158,7 @@ class FixedPartitionTests(unittest.TestCase):
             execute = Mock(side_effect=[SimpleNamespace(returncode=0, stdout=self.listing(), stderr=''),
                                        SimpleNamespace(returncode=code, stdout=output, stderr='fixture diagnostic')])
             captured = io.StringIO()
-            with self.subTest(code=code, output=output[-30:]), patch.object(m, 'verify_compiled', return_value=({'package_count': 1, 'packages': [record]}, 'd' * 64)), contextlib.redirect_stdout(captured), self.assertRaises(m.IsolationError):
+            with self.subTest(code=code, output=output[-30:]), patch.object(m, 'verify_compiled', return_value=({'package_count': 1, 'packages': [record]}, 'd' * 64)), patch.object(m, 'cleanup_test_caches', return_value=[]), contextlib.redirect_stdout(captured), self.assertRaises(m.IsolationError):
                 m.execute_suite(Path('/src'), doc, m.test_environment(), 'e' * 64, 'unit', execute)
             self.assertEqual(execute.call_count, 2)
             self.assertIn('"record_type": "go_main_regex_verification"', captured.getvalue())
@@ -155,7 +171,7 @@ class FixedPartitionTests(unittest.TestCase):
                   'binary': 'binaries/service.test', 'binary_sha256': 'a' * 64}
         execute = Mock(return_value=SimpleNamespace(returncode=0, stdout='TestMissingFixed\n', stderr=''))
         doc = {'source_commit': 'b' * 40, 'source_receipt_sha256': 'c' * 64, 'files': {}}
-        with patch.object(m, 'verify_compiled', return_value=({'package_count': 1, 'packages': [record]}, 'd' * 64)), contextlib.redirect_stdout(io.StringIO()), self.assertRaises(m.IsolationError):
+        with patch.object(m, 'cleanup_test_caches', return_value=[]), patch.object(m, 'verify_compiled', return_value=({'package_count': 1, 'packages': [record]}, 'd' * 64)), contextlib.redirect_stdout(io.StringIO()), self.assertRaises(m.IsolationError):
             m.execute_suite(Path('/src'), doc, m.test_environment(), 'e' * 64, 'unit', execute)
         self.assertEqual(execute.call_count, 1)
         self.assertIn('-test.list=.', execute.call_args.args[0])

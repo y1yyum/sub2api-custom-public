@@ -56,7 +56,7 @@ class HostPreflight(unittest.TestCase):
 
 class StreamEvidence(unittest.TestCase):
     def records(self, suite='unit'):
-        fixed = list(host.FIXED_SERVICE_TESTS if suite == 'unit' else host.FIXED_SERVICE_TESTS[1:])
+        fixed = list(host.FIXED_SERVICE_TESTS if suite == 'unit' else host.FIXED_SERVICE_TESTS[-1:])
         main = ['TestMainCase', 'ExampleCatalog', 'FuzzSeed']
         names = sorted(main + fixed)
         partitions = [{'name': 'main', 'tests': main, 'regex': '^('+'|'.join(main)+')$'}]

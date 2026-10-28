@@ -140,12 +140,12 @@ class CompiledContracts(unittest.TestCase):
         records = [{'package': m.SERVICE_PACKAGE, 'directory': 'backend/a', 'binary': 'binaries/a.test', 'binary_sha256': 'a' * 64},
                    {'package': 'example/b', 'directory': 'backend/b', 'binary': 'binaries/b.test', 'binary_sha256': 'b' * 64},
                    {'package': 'example/c', 'directory': 'backend/c', 'binary': None}]
-        listing = 'TestNormal\n' + m.FIXED_SERVICE_TESTS[1] + '\n'
+        listing = 'TestNormal\n' + m.FIXED_SERVICE_TESTS[-1] + '\n'
         execute = Mock(side_effect=[SimpleNamespace(returncode=0, stdout=listing, stderr=''),
                                    SimpleNamespace(returncode=0, stdout='TestNormal\n', stderr=''),
                                    SimpleNamespace(returncode=1), SimpleNamespace(returncode=0), SimpleNamespace(returncode=0)])
         doc = {'source_commit': 'a' * 40, 'source_receipt_sha256': 'b' * 64, 'files': {}}
-        with patch.object(m, 'verify_compiled', return_value=({'package_count': 3, 'packages': records}, 'c' * 64)), contextlib.redirect_stdout(io.StringIO()):
+        with patch.object(m, 'cleanup_test_caches', return_value=[]), patch.object(m, 'verify_compiled', return_value=({'package_count': 3, 'packages': records}, 'c' * 64)), contextlib.redirect_stdout(io.StringIO()):
             result = m.execute_suite(Path('/src'), doc, m.test_environment(), 'd' * 64, 'integration', execute)
         self.assertEqual(result['test_exit_code'], 1)
         self.assertEqual(execute.call_count, 5)
