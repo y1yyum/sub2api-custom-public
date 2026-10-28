@@ -48,12 +48,18 @@ class IsolatedFixtureStaticTests(unittest.TestCase):
     def test_support_is_pinned_and_does_not_accept_operator_endpoints(self):
         for destination, spec in MANIFEST['validation_support'].items():
             self.assertIn(destination, {'backend/internal/isolatedfixture/fixture.go',
-                                        'backend/internal/securityaudit/isolated_shared_fixture_test.go'})
+                                        'backend/internal/securityaudit/isolated_shared_fixture_test.go',
+                                       'backend/internal/repository/isolated_scoped_admin_unit_test.go',
+                                       'backend/internal/service/isolated_scoped_admin_unit_test.go'})
             data = (ROOT / spec['source']).read_bytes()
             self.assertEqual(hashlib.sha256(data).hexdigest(), spec['sha256'])
             text = data.decode()
             if destination.endswith('isolated_shared_fixture_test.go'):
                 self.assertNotIn('//go:build', text)
+                continue
+            if destination.endswith('isolated_scoped_admin_unit_test.go'):
+                self.assertTrue(text.startswith('//go:build unit\n'))
+                self.assertNotIn('SCOPED_ADMIN_TEST_DSN', text)
                 continue
             self.assertIn('Network: "unix"', text)
             self.assertIn('"--port", "0"', text)
@@ -64,7 +70,8 @@ class IsolatedFixtureStaticTests(unittest.TestCase):
             self.assertIn('127.0.0.1:55432', text)
 
     def test_prompt_reclassification_is_explicit(self):
-        records = MANIFEST['test_reclassifications']
+        records = [r for r in MANIFEST['test_reclassifications']
+                   if r['path'].startswith('backend/internal/securityaudit/')]
         self.assertEqual(len(records), 3)
         self.assertEqual([r['count'] for r in records], [6, 1, 2])
         self.assertEqual(sum(r['count'] for r in records), 9)
