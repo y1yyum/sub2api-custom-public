@@ -33,6 +33,13 @@ def test_input(path):
                      'frontend/.eslintignore', 'backend/.golangci.yml'})
 
 
+
+def allowed_support_path(path):
+    return ('..' not in Path(path).parts and
+            (path.startswith('backend/internal/isolatedfixture/') or
+             path == 'backend/internal/securityaudit/isolated_shared_fixture_test.go'))
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('destination', type=Path)
@@ -44,14 +51,9 @@ def main():
         parser.error('destination already exists; choose a fresh directory')
     manifest = json.loads((ROOT / '.github/upgrade/manifest.json').read_text())
     revisions = {manifest['test_revision'], *manifest['test_overrides'].values()}
-    for rev in revisions:
-        if (not re.fullmatch('[0-9a-f]{40}', rev) or
-                rev not in {manifest['content_base'], manifest['target']}):
-            raise SystemExit('only the fixed content baseline and stable target are allowed')
-        if subprocess.run(['git', '-C', str(ROOT), 'cat-file', '-e', rev+'^{commit}'],
-                          stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL).returncode:
-            subprocess.run(['git', '-C', str(ROOT), 'fetch', '--no-tags', '--depth=1',
-                            'https://github.com/Wei-Shaw/sub2api.git', rev], check=True)
+    if not revisions <= {manifest['content_base'], manifest['target']}:
+        raise SystemExit('test input revisions must be the fixed baseline or target')
+    runpy.run_path(str(ROOT / '.github/scripts/fetch-upgrade-fixture-inputs.py'))['fetch_inputs'](ROOT, manifest)
     dest.mkdir(parents=True)
     owned = set(git('ls-files', '-z').decode().split('\0')) - {''}
     for package in manifest.get('absent_production_packages', {}):
@@ -81,6 +83,23 @@ def main():
         output.parent.mkdir(parents=True, exist_ok=True)
         output.write_bytes(git('show', rev+':'+path))
         restored.append({'path': path, 'revision': rev})
+    support = []
+    for destination, spec in manifest.get('validation_support', {}).items():
+        source = spec['source']
+        if (not allowed_support_path(destination) or
+                not source.startswith('.github/upgrade/fixtures/') or
+                '..' in Path(destination).parts or '..' in Path(source).parts):
+            raise SystemExit('invalid isolated support path')
+        if destination in owned or (dest / destination).exists():
+            raise SystemExit('support would overwrite existing source: '+destination)
+        raw = (ROOT / source).read_bytes()
+        digest = hashlib.sha256(raw).hexdigest()
+        if digest != spec['sha256']:
+            raise SystemExit('unreviewed isolated support bytes: '+source)
+        output = dest / destination
+        output.parent.mkdir(parents=True, exist_ok=True)
+        output.write_bytes(raw)
+        support.append({'source': source, 'destination': destination, 'sha256': digest})
     adaptations = []
     adapter = ROOT / '.github/upgrade/adapt-tests.py'
     adapt = runpy.run_path(str(adapter))['adapt']
@@ -101,6 +120,8 @@ def main():
                'source_sha256': source_hashes,
                'excluded_absent_packages': manifest.get('absent_production_packages', {}),
                'restored': restored, 'adaptations': adaptations,
+               'validation_support': support,
+               'test_reclassifications': manifest.get('test_reclassifications', []),
                'adapter_sha256': {p.name: hashlib.sha256(p.read_bytes()).hexdigest()
                                   for p in sorted(adapter.parent.glob('adapt-*.py'))}}
     (dest / 'validation-receipt.json').write_text(json.dumps(receipt, indent=2)+'\n')

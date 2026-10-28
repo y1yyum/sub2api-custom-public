@@ -70,6 +70,21 @@ def adapt(path, text):
         if text.count(anchor) != 2:
             raise ValueError('expected two admin-settings contract fixtures')
         return text.replace(anchor, '"unified_model_channel_status_enabled": false,\n\t\t\t\t\t' + anchor)
+    if path in {'backend/internal/repository/integration_harness_test.go', 'backend/internal/server/routes/auth_rate_limit_integration_test.go', 'backend/internal/securityaudit/prompt_repository_integration_test.go', 'backend/internal/securityaudit/prompt_config_integration_test.go', 'backend/internal/securityaudit/prompt_payload_store_integration_test.go', 'backend/internal/middleware/rate_limiter_integration_test.go'}:
+        fixture = Path(__file__).with_name('adapt-integration-fixtures.py')
+        return runpy.run_path(str(fixture))['adapt'](path, text)
+    if path in ('backend/internal/handler/admin/grok_import_probe_test.go', 'backend/internal/handler/admin/grok_oauth_handler_test.go', 'backend/ent/schema/auth_identity_schema_test.go'):
+        fixture = Path(__file__).with_name('adapt-race-fixtures.py')
+        return runpy.run_path(str(fixture))['adapt'](path, text)
+    if path == 'backend/internal/service/channel_monitor_quota_mode_test.go':
+        fixture = Path(__file__).with_name('adapt-validation-fixtures.py')
+        return runpy.run_path(str(fixture))['adapt'](path, text)
+    if path in ('backend/internal/service/channel_monitor_checker_body_test.go', 'backend/internal/service/grok_free_quota_gate_test.go', 'backend/internal/service/usage_cleanup_service_test.go', 'backend/internal/service/auth_service_email_bind_test.go'):
+        fixture = Path(__file__).with_name('adapt-service-race-fixtures.py')
+        return runpy.run_path(str(fixture))['adapt'](path, text)
+    if path in ('backend/internal/handler/payment_handler_resume_test.go', 'backend/internal/service/account_test_service_gemini_test.go', 'backend/internal/service/gateway_forward_as_chat_completions_test.go', 'backend/internal/service/gateway_forward_as_responses_test.go', 'backend/internal/service/openai_compat_model_test.go', 'backend/internal/service/openai_fast_service_tier_test.go', 'backend/internal/service/account_test_service_openai_test.go'):
+        fixture = Path(__file__).with_name('adapt-gin-mode-fixtures.py')
+        return runpy.run_path(str(fixture))['adapt'](path, text)
     if path.startswith('frontend/'):
         frontend = Path(__file__).with_name('adapt-frontend-tests.py')
         return runpy.run_path(str(frontend))['adapt'](path, text)
