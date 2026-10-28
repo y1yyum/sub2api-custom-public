@@ -142,14 +142,15 @@ class CompiledContracts(unittest.TestCase):
                    {'package': 'example/c', 'directory': 'backend/c', 'binary': None}]
         listing = 'TestNormal\n' + m.FIXED_SERVICE_TESTS[1] + '\n'
         execute = Mock(side_effect=[SimpleNamespace(returncode=0, stdout=listing, stderr=''),
+                                   SimpleNamespace(returncode=0, stdout='TestNormal\n', stderr=''),
                                    SimpleNamespace(returncode=1), SimpleNamespace(returncode=0), SimpleNamespace(returncode=0)])
         doc = {'source_commit': 'a' * 40, 'source_receipt_sha256': 'b' * 64, 'files': {}}
         with patch.object(m, 'verify_compiled', return_value=({'package_count': 3, 'packages': records}, 'c' * 64)), contextlib.redirect_stdout(io.StringIO()):
             result = m.execute_suite(Path('/src'), doc, m.test_environment(), 'd' * 64, 'integration', execute)
         self.assertEqual(result['test_exit_code'], 1)
-        self.assertEqual(execute.call_count, 4)
-        self.assertEqual([call.kwargs['cwd'] for call in execute.call_args_list], [Path('/src/backend/a')] * 3 + [Path('/src/backend/b')])
-        for call in execute.call_args_list[1:]:
+        self.assertEqual(execute.call_count, 5)
+        self.assertEqual([call.kwargs['cwd'] for call in execute.call_args_list], [Path('/src/backend/a')] * 4 + [Path('/src/backend/b')])
+        for call in execute.call_args_list[2:]:
             self.assertEqual(call.args[0][:3], [m.GO, 'tool', 'test2json'])
             self.assertIn('-test.v=test2json', call.args[0])
             self.assertIn('-test.count=1', call.args[0])

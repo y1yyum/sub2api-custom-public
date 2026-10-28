@@ -313,7 +313,13 @@ def package_environment(record, env):
     return child
 
 
-def exact_trie_regex(names):
+def fixed_exclusion_regex(names):
+    """RE2-compatible finite-name complement; size depends only on exclusions.
+
+    The domain is the validated single-line top-level identifier registry.
+    At each prefix accept an early end unless excluded, any differing next
+    character plus its suffix, or recurse on a matching excluded prefix.
+    """
     require(names and len(names) == len(set(names)), 'empty or duplicate partition names')
     tree = {}
     for name in names:
@@ -324,11 +330,14 @@ def exact_trie_regex(names):
         node[''] = None
 
     def encode(node):
-        alternatives = [''] if '' in node else []
-        for char in sorted(key for key in node if key):
+        children = sorted(key for key in node if key)
+        if not children:
+            # This exact excluded name is forbidden, but every longer name is not.
+            return '.+'
+        alternatives = [''] if '' not in node else []
+        alternatives.append('[^' + ''.join(re.escape(char) for char in children) + '].*')
+        for char in children:
             alternatives.append(re.escape(char) + encode(node[char]))
-        if len(alternatives) == 1:
-            return alternatives[0]
         return '(' + '|'.join(alternatives) + ')'
 
     expression = '^' + encode(tree) + '$'
@@ -336,9 +345,7 @@ def exact_trie_regex(names):
     return expression
 
 
-def service_partitions(stdout, suite):
-    require(suite in FIXED_SERVICE_TESTS_BY_SUITE, 'unknown partition suite')
-    fixed = FIXED_SERVICE_TESTS_BY_SUITE[suite]
+def parse_test_registry(stdout):
     names, benchmarks, seen = [], [], set()
     for line in stdout.splitlines():
         if not line:
@@ -353,13 +360,20 @@ def service_partitions(stdout, suite):
         else:
             require(line.startswith(('Test', 'Example', 'Fuzz')), 'unknown test registry name')
             names.append(line)
+    return sorted(names), sorted(benchmarks)
+
+
+def service_partitions(stdout, suite):
+    require(suite in FIXED_SERVICE_TESTS_BY_SUITE, 'unknown partition suite')
+    fixed = FIXED_SERVICE_TESTS_BY_SUITE[suite]
+    names, benchmarks = parse_test_registry(stdout)
     require(all(name in names for name in fixed), 'fixed service test missing or renamed')
     if suite == 'integration':
         require(FIXED_SERVICE_TESTS[0] not in names, 'unit-only timezone test unexpectedly present in integration')
     names = sorted(names)
     main = [name for name in names if name not in fixed]
     require(main, 'main service test partition unexpectedly empty')
-    partitions = [{'name': 'main', 'tests': main, 'regex': exact_trie_regex(main)}]
+    partitions = [{'name': 'main', 'tests': main, 'regex': fixed_exclusion_regex(fixed)}]
     partitions.extend({'name': name, 'tests': [name], 'regex': '^' + re.escape(name) + '$'} for name in fixed)
     covered = []
     for partition in partitions:
@@ -405,6 +419,25 @@ def execute_suite(source, doc, env, expected_digest, suite, execute, fixture=Non
         audit.update({'package': SERVICE_PACKAGE, 'binary_sha256': record['binary_sha256'],
                       'discovery_command': discovery_command, 'discovery_exit_code': listed.returncode,
                       'discovery_stderr': listed.stderr, 'strategy': 'fixed_before_any_test_outcome_no_retries'})
+        # Independently exercise Go's own regexp engine before any tests run.
+        # This fixed second metadata process is not a failure-triggered retry.
+        main_listing_command = [str(COMPILED_ROOT / record['binary']),
+                                '-test.list=' + audit['partitions'][0]['regex'], '-test.timeout=20m']
+        selected = execute(main_listing_command, cwd=source / record['directory'],
+                           env=package_environment(record, env), capture_output=True, text=True,
+                           check=False, timeout=1200)
+        verification = {'command': main_listing_command, 'exit_code': selected.returncode,
+                        'stdout': selected.stdout, 'stderr': selected.stderr, 'status': 'failed'}
+        audit['go_main_regex_verification'] = verification
+        try:
+            require(selected.returncode == 0, 'Go main regex inventory process failed')
+            selected_names, selected_benchmarks = parse_test_registry(selected.stdout)
+            verification.update({'tests_examples_fuzz': selected_names, 'benchmarks': selected_benchmarks})
+            require(selected_names == sorted(audit['partitions'][0]['tests']), 'Go main regex registry mismatch')
+            require(selected_benchmarks == audit['benchmarks_not_run_by_default'], 'Go main regex benchmark registry mismatch')
+            verification['status'] = 'passed'
+        finally:
+            print(json.dumps({'record_type': 'go_main_regex_verification', **verification}, sort_keys=True), flush=True)
         receipt['service_partition_audit'] = audit
         print(json.dumps({'record_type': 'service_partition_audit', **audit}, sort_keys=True), flush=True)
     plans = []

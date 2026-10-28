@@ -2,6 +2,8 @@
 import contextlib
 import importlib.util
 import io
+import itertools
+import hashlib
 from pathlib import Path
 import re
 from types import SimpleNamespace
@@ -27,8 +29,9 @@ class FixedPartitionTests(unittest.TestCase):
                 names = audit['discovered_tests_examples_fuzz']
                 for name in names:
                     self.assertEqual(sum(bool(re.fullmatch(p['regex'], name)) for p in audit['partitions']), 1)
-                for name in ['TestOrdinaryExtra', 'BenchmarkNotRun', 'Unlisted']:
-                    self.assertFalse(any(re.fullmatch(p['regex'], name) for p in audit['partitions']))
+                # Main regex is the complement of only the fixed names; the
+                # host separately rejects unexpected actual registry/run events.
+                self.assertTrue(re.fullmatch(audit['partitions'][0]['regex'], 'TestOrdinaryExtra'))
                 self.assertIn('Example', audit['partitions'][0]['tests'])
                 self.assertIn('FuzzSeeds', audit['partitions'][0]['tests'])
 
@@ -42,22 +45,54 @@ class FixedPartitionTests(unittest.TestCase):
         with self.assertRaises(m.IsolationError):
             m.service_partitions(self.listing('unit'), 'integration')
 
-    def test_trie_stays_bounded_without_process_chunking(self):
-        names = ['TestSharedPrefixCase' + str(i).zfill(5) for i in range(10000)]
-        expression = m.exact_trie_regex(names)
-        self.assertLess(len(expression.encode()), 65536)
-        for name in names:
-            self.assertIsNotNone(re.fullmatch(expression, name))
-        self.assertIsNone(re.fullmatch(expression, 'TestSharedPrefixCase10000'))
+    def test_complement_exhaustive_small_alphabet_including_prefix_exclusions(self):
+        for excluded in [('a',), ('a', 'ab'), ('ab', 'ac'), ('abc', 'bba')]:
+            expression = m.fixed_exclusion_regex(excluded)
+            for length in range(6):
+                for chars in itertools.product('abc_', repeat=length):
+                    name = ''.join(chars)
+                    self.assertEqual(bool(re.fullmatch(expression, name)), name not in excluded, (excluded, name))
+            self.assertNotIn('(?', expression)  # No unsupported RE2 lookarounds.
+
+    def test_fixed_name_neighbors_prefixes_suffixes_and_character_changes(self):
+        for fixed in m.FIXED_SERVICE_TESTS_BY_SUITE.values():
+            expression = m.fixed_exclusion_regex(fixed)
+            for name in fixed:
+                neighbors = {name[:i] for i in range(len(name) + 1)}
+                neighbors.update({name + 'Extra', 'TestPrefix' + name, name + '_', name + '0'})
+                for i in range(len(name)):
+                    neighbors.add(name[:i] + name[i + 1:])
+                    for char in 'aZ_0':
+                        neighbors.add(name[:i] + char + name[i + 1:])
+                for other in neighbors:
+                    self.assertEqual(bool(re.fullmatch(expression, other)), other not in fixed, other)
+
+    def test_8300_diverse_names_keep_fixed_small_regex_without_process_chunking(self):
+        names = ['Test' + hashlib.sha256(str(i).encode()).hexdigest() for i in range(8300)]
+        for suite, fixed in m.FIXED_SERVICE_TESTS_BY_SUITE.items():
+            audit = m.service_partitions('\n'.join(names + list(fixed)), suite)
+            expression = audit['partitions'][0]['regex']
+            self.assertLess(len(expression.encode()), 4096)
+            self.assertEqual(expression, m.fixed_exclusion_regex(fixed))
+            self.assertEqual(len(audit['partitions']), 1 + len(fixed))
+            self.assertEqual(set(audit['partitions'][0]['tests']), set(names))
+            for name in names:
+                self.assertIsNotNone(re.fullmatch(expression, name))
+            for name in fixed:
+                self.assertIsNone(re.fullmatch(expression, name))
         with self.assertRaises(m.IsolationError):
-            m.exact_trie_regex(['Test' + 'x' * 600])
+            m.fixed_exclusion_regex(['Test' + 'x' * 600])
+        with self.assertRaises(m.IsolationError):
+            m.fixed_exclusion_regex(['TestA', 'TestA'])
 
     def run_fixture(self, process_codes):
         record = {'package': m.SERVICE_PACKAGE, 'directory': 'backend/internal/service',
                   'binary': 'binaries/service.test', 'binary_sha256': 'a' * 64}
         compiled = {'package_count': 1, 'packages': [record]}
         listed = SimpleNamespace(returncode=0, stdout=self.listing(), stderr='initialization diagnostic')
-        execute = Mock(side_effect=[listed, *[SimpleNamespace(returncode=code) for code in process_codes]])
+        main_listing = '\n'.join(n for n in self.listing().splitlines() if n not in m.FIXED_SERVICE_TESTS)
+        selected = SimpleNamespace(returncode=0, stdout=main_listing, stderr='regex diagnostic')
+        execute = Mock(side_effect=[listed, selected, *[SimpleNamespace(returncode=code) for code in process_codes]])
         doc = {'source_commit': 'b' * 40, 'source_receipt_sha256': 'c' * 64, 'files': {}}
         env = m.test_environment()
         with patch.object(m, 'verify_compiled', return_value=(compiled, 'd' * 64)), contextlib.redirect_stdout(io.StringIO()):
@@ -68,16 +103,17 @@ class FixedPartitionTests(unittest.TestCase):
         green, green_calls, _ = self.run_fixture([0, 0, 0])
         red, red_calls, _ = self.run_fixture([1, 0, 1])
         self.assertEqual(green['test_commands'], red['test_commands'])
-        self.assertEqual(green_calls.call_count, 4)
-        self.assertEqual(red_calls.call_count, 4)
+        self.assertEqual(green_calls.call_count, 5)
+        self.assertEqual(red_calls.call_count, 5)
         self.assertEqual(green['test_exit_code'], 0)
+        self.assertEqual(green['service_partition_audit']['go_main_regex_verification']['status'], 'passed')
         self.assertEqual(red['test_exit_code'], 1)
         self.assertEqual([p['exit_code'] for p in red['package_results']], [1, 0, 1])
         self.assertEqual([p['partition'] for p in red['package_results']], ['main', *m.FIXED_SERVICE_TESTS])
         for call in red_calls.call_args_list:
             self.assertEqual(call.kwargs['cwd'], Path('/src/backend/internal/service'))
             self.assertIn('/opt/isolation/compiled/binaries/service.test', call.args[0])
-        for call in red_calls.call_args_list[1:]:
+        for call in red_calls.call_args_list[2:]:
             self.assertIn('-test.timeout=20m', call.args[0])
             self.assertIn('-test.count=1', call.args[0])
             self.assertEqual(sum(arg.startswith('-test.run=') for arg in call.args[0]), 1)
@@ -93,6 +129,26 @@ class FixedPartitionTests(unittest.TestCase):
         self.assertEqual(m.package_environment({'package': 'example/other'}, env), env)
         with self.assertRaises(m.IsolationError):
             m.check_environment({'GEMINI_CLI_OAUTH_CLIENT_ID': 'custom-test-client'})
+
+    def test_go_regex_inventory_mismatch_stops_before_tests(self):
+        record = {'package': m.SERVICE_PACKAGE, 'directory': 'backend/internal/service',
+                  'binary': 'binaries/service.test', 'binary_sha256': 'a' * 64}
+        doc = {'source_commit': 'b' * 40, 'source_receipt_sha256': 'c' * 64, 'files': {}}
+        main = '\n'.join(n for n in self.listing().splitlines() if n not in m.FIXED_SERVICE_TESTS)
+        variants = [(0, main.replace('ExampleFeature', '')), (0, main + '\nTestExtra'),
+                    (0, main + '\nExample'), (0, main.replace('BenchmarkNotRun', '')),
+                    (0, main + '\nBenchmarkExtra'), (0, main + '\nunknown output'), (2, main)]
+        for code, output in variants:
+            execute = Mock(side_effect=[SimpleNamespace(returncode=0, stdout=self.listing(), stderr=''),
+                                       SimpleNamespace(returncode=code, stdout=output, stderr='fixture diagnostic')])
+            captured = io.StringIO()
+            with self.subTest(code=code, output=output[-30:]), patch.object(m, 'verify_compiled', return_value=({'package_count': 1, 'packages': [record]}, 'd' * 64)), contextlib.redirect_stdout(captured), self.assertRaises(m.IsolationError):
+                m.execute_suite(Path('/src'), doc, m.test_environment(), 'e' * 64, 'unit', execute)
+            self.assertEqual(execute.call_count, 2)
+            self.assertIn('"record_type": "go_main_regex_verification"', captured.getvalue())
+            self.assertIn('"status": "failed"', captured.getvalue())
+            for call in execute.call_args_list:
+                self.assertTrue(any(arg.startswith('-test.list=') for arg in call.args[0]))
 
     def test_inventory_error_prevents_all_partition_execution(self):
         record = {'package': m.SERVICE_PACKAGE, 'directory': 'backend/internal/service',

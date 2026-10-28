@@ -51,14 +51,9 @@ def main():
         parser.error('destination already exists; choose a fresh directory')
     manifest = json.loads((ROOT / '.github/upgrade/manifest.json').read_text())
     revisions = {manifest['test_revision'], *manifest['test_overrides'].values()}
-    for rev in revisions:
-        if (not re.fullmatch('[0-9a-f]{40}', rev) or
-                rev not in {manifest['content_base'], manifest['target']}):
-            raise SystemExit('only the fixed content baseline and stable target are allowed')
-        if subprocess.run(['git', '-C', str(ROOT), 'cat-file', '-e', rev+'^{commit}'],
-                          stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL).returncode:
-            subprocess.run(['git', '-C', str(ROOT), 'fetch', '--no-tags', '--depth=1',
-                            'https://github.com/Wei-Shaw/sub2api.git', rev], check=True)
+    if not revisions <= {manifest['content_base'], manifest['target']}:
+        raise SystemExit('test input revisions must be the fixed baseline or target')
+    runpy.run_path(str(ROOT / '.github/scripts/fetch-upgrade-fixture-inputs.py'))['fetch_inputs'](ROOT, manifest)
     dest.mkdir(parents=True)
     owned = set(git('ls-files', '-z').decode().split('\0')) - {''}
     for package in manifest.get('absent_production_packages', {}):

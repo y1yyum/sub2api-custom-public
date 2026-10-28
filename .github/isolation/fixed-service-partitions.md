@@ -21,14 +21,21 @@ names, duplicate names, unexpected registry stdout, listing failure, or an
 overlong regex fail closed. Tests, examples and fuzz seed functions are included;
 benchmarks are recorded but not executed, matching the original default command.
 
-A prefix-trie regex covers precisely every remaining top-level name. Each
+A compact prefix-trie complement excludes only the fixed one/two names, using
+RE2-compatible alternation and negated character classes (no lookaround). Its
+size depends on those fixed names, not the thousands of discovered tests. Proper
+prefixes, suffixes and near-neighbor names remain eligible; only exact fixed
+names are excluded. The existing argument-size bound is unchanged. Each
 partition's anchored regex is audited against the full registry: their union
 must be exhaustive and pairwise disjoint. Main is never split into ad-hoc chunks.
 All matching subtests and fuzz seeds retain default execution. All processes use
 the same binary hash, environment, package cwd, `-test.count=1`, and 20-minute
 per-process timeout. All scheduled processes run once; failures never trigger
 retries or change the schedule. Receipts include the registry, regexes, commands,
-per-partition exits, and binary hash.
+per-partition exits, and binary hash. The host also requires actual top-level
+`run` events to equal the discovered tests/examples/fuzz registry exactly once;
+missing or unexpected runs and missing/duplicate terminal partitions fail closed.
+Explicit test skips are reported, not removed from the coverage obligation.
 
 Only service children (including the listing process) receive the explicitly
 synthetic public `GEMINI_CLI_OAUTH_CLIENT_ID=custom-test-client` before package

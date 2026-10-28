@@ -123,6 +123,8 @@ jobs:
         with:
           ref: ${{ inputs.ref || github.sha }}
           persist-credentials: false
+      - name: Fetch reviewed fixture inputs before all static isolation checks
+        run: python3 .github/scripts/fetch-upgrade-fixture-inputs.py
       - name: Test isolation validators without executing Go tests
         run: |
           python3 -m unittest discover -s .github/isolation -p 'test_*.py' -v
@@ -157,9 +159,8 @@ jobs:
         with:
           ref: ${{ inputs.ref || github.sha }}
           persist-credentials: false
-      - name: Fetch the two pinned public fixture revisions for static hash checks
-        run: |
-          git fetch --no-tags --depth=1 https://github.com/Wei-Shaw/sub2api.git 01842576b3d5c1e2545b5a99ad555d36e28ed306 ac1b8f1271be0d674fa6f074403c1410f30a3a81
+      - name: Fetch reviewed fixture inputs before all static isolation checks
+        run: python3 .github/scripts/fetch-upgrade-fixture-inputs.py
       - name: Check isolation and fixture adapters without executing Go or databases
         run: |
           python3 -m unittest discover -s .github/isolation -p 'test_*.py' -v
