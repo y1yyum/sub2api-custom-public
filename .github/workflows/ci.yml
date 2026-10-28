@@ -103,3 +103,76 @@ jobs:
         env:
           IMAGE: sub2api-custom-public:ci
         run: bash .ci-tools/.github/scripts/test-smoke.sh
+
+  upgrade-preservation:
+    name: Custom upgrade safeguards
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          ref: ${{ inputs.ref || github.sha }}
+      - run: python3 .github/scripts/test-upgrade-preservation.py
+
+  backend-regression:
+    name: Backend regression (${{ matrix.tags }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      matrix:
+        tags: [unit, integration]
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          ref: ${{ inputs.ref || github.sha }}
+      - uses: actions/setup-go@924ae3a1cded613372ab5595356fb5720e22ba16 # v6
+        with:
+          go-version-file: backend/go.mod
+          cache-dependency-path: backend/go.sum
+      - name: Restore pinned test dependency closure onto this checkout
+        run: python3 .github/scripts/prepare-upgrade-validation.py "$RUNNER_TEMP/upgrade-validation"
+      - name: Test (race detector enabled)
+        working-directory: ${{ runner.temp }}/upgrade-validation/backend
+        env:
+          GOMAXPROCS: '2'
+          GOGC: '30'
+        run: go test -p 1 -race -count=1 -tags=${{ matrix.tags }} -timeout=20m ./...
+
+  frontend-regression:
+    name: Frontend regression (Node ${{ matrix.node }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        node: [20, 24]
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          ref: ${{ inputs.ref || github.sha }}
+      - uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # v6
+        with:
+          version: 9.15.9
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version: ${{ matrix.node }}
+          cache: pnpm
+          cache-dependency-path: frontend/pnpm-lock.yaml
+      - name: Restore pinned test dependency closure onto this checkout
+        run: python3 .github/scripts/prepare-upgrade-validation.py "$RUNNER_TEMP/upgrade-validation"
+      - name: Install locked dependencies
+        working-directory: ${{ runner.temp }}/upgrade-validation/frontend
+        run: pnpm install --frozen-lockfile
+      - name: Lint
+        working-directory: ${{ runner.temp }}/upgrade-validation/frontend
+        run: pnpm run lint:check
+      - name: Typecheck
+        working-directory: ${{ runner.temp }}/upgrade-validation/frontend
+        run: pnpm run typecheck
+      - name: Vitest
+        working-directory: ${{ runner.temp }}/upgrade-validation/frontend
+        run: pnpm run test:run
+      - name: Production build
+        working-directory: ${{ runner.temp }}/upgrade-validation/frontend
+        run: pnpm run build
