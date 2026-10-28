@@ -465,6 +465,138 @@
     "backend/internal/service/gemini_oauth_service_test.go": {
       "01842576b3d5c1e2545b5a99ad555d36e28ed306": "012362900b675dcbd6b221ce3f5495b3bbc7d6476a85f05bc3924ebab17231fe",
       "ac1b8f1271be0d674fa6f074403c1410f30a3a81": "012362900b675dcbd6b221ce3f5495b3bbc7d6476a85f05bc3924ebab17231fe"
+    },
+    "backend/internal/repository/integration_harness_test.go": {
+      "01842576b3d5c1e2545b5a99ad555d36e28ed306": "fd04a2bdf4282d1e3d7814a3d500d3a0402ce571dadb321d46204809430d240d",
+      "ac1b8f1271be0d674fa6f074403c1410f30a3a81": "fd04a2bdf4282d1e3d7814a3d500d3a0402ce571dadb321d46204809430d240d"
+    },
+    "backend/internal/middleware/rate_limiter_integration_test.go": {
+      "01842576b3d5c1e2545b5a99ad555d36e28ed306": "4853a56a5b965018a9f95b31b67f8188c4f3f3fb9368c7ef7ab48f6ffef3d0f5",
+      "ac1b8f1271be0d674fa6f074403c1410f30a3a81": "4853a56a5b965018a9f95b31b67f8188c4f3f3fb9368c7ef7ab48f6ffef3d0f5"
+    },
+    "backend/internal/server/routes/auth_rate_limit_integration_test.go": {
+      "01842576b3d5c1e2545b5a99ad555d36e28ed306": "48987185a023b74aff6d813ef8d4e5b56cc3131206be0fdfa9e4861c5ddfa067",
+      "ac1b8f1271be0d674fa6f074403c1410f30a3a81": "48987185a023b74aff6d813ef8d4e5b56cc3131206be0fdfa9e4861c5ddfa067"
+    },
+    "backend/internal/securityaudit/prompt_repository_integration_test.go": {
+      "01842576b3d5c1e2545b5a99ad555d36e28ed306": "ae7e4b7d460f4a05bb1197a27d252f8e1ef7229c7f6d3125ea12c50d77347901",
+      "ac1b8f1271be0d674fa6f074403c1410f30a3a81": "ae7e4b7d460f4a05bb1197a27d252f8e1ef7229c7f6d3125ea12c50d77347901"
+    },
+    "backend/internal/handler/admin/grok_import_probe_test.go": {
+      "01842576b3d5c1e2545b5a99ad555d36e28ed306": "be51abc3d3f8ad633feaa39bcbf139aadce54509776f8e3205f724215782d070",
+      "ac1b8f1271be0d674fa6f074403c1410f30a3a81": "be51abc3d3f8ad633feaa39bcbf139aadce54509776f8e3205f724215782d070"
+    },
+    "backend/internal/handler/admin/grok_oauth_handler_test.go": {
+      "01842576b3d5c1e2545b5a99ad555d36e28ed306": "a5a3c187be2a8cdf53fb5182e0d6b2c1db0d525676050a10e2044323a0b6a0b5",
+      "ac1b8f1271be0d674fa6f074403c1410f30a3a81": "a5a3c187be2a8cdf53fb5182e0d6b2c1db0d525676050a10e2044323a0b6a0b5"
+    },
+    "backend/ent/schema/auth_identity_schema_test.go": {
+      "01842576b3d5c1e2545b5a99ad555d36e28ed306": "1b9f45f9c8e8e5ca6e30f517285110dcf1dc3cc178e999649374ea3feda41668",
+      "ac1b8f1271be0d674fa6f074403c1410f30a3a81": "1b9f45f9c8e8e5ca6e30f517285110dcf1dc3cc178e999649374ea3feda41668"
+    },
+    "backend/internal/securityaudit/prompt_config_integration_test.go": {
+      "01842576b3d5c1e2545b5a99ad555d36e28ed306": "8b1505e432877ab03cc231e1255087834e5ce5f5e852da6119a085fd8a5a2edb",
+      "ac1b8f1271be0d674fa6f074403c1410f30a3a81": "8b1505e432877ab03cc231e1255087834e5ce5f5e852da6119a085fd8a5a2edb"
+    },
+    "backend/internal/securityaudit/prompt_payload_store_integration_test.go": {
+      "01842576b3d5c1e2545b5a99ad555d36e28ed306": "d721151b9142200bd2ce1f2c25d1f209afa268b3a2ff38a7cd1195acddb965e0",
+      "ac1b8f1271be0d674fa6f074403c1410f30a3a81": "d721151b9142200bd2ce1f2c25d1f209afa268b3a2ff38a7cd1195acddb965e0"
+    },
+    "backend/internal/service/channel_monitor_quota_mode_test.go": {
+      "01842576b3d5c1e2545b5a99ad555d36e28ed306": "5d50055257266a2cd7a1ca66a86fea77c31280acf36544c0d73cbb6e9b490789",
+      "ac1b8f1271be0d674fa6f074403c1410f30a3a81": "5d50055257266a2cd7a1ca66a86fea77c31280acf36544c0d73cbb6e9b490789"
+    },
+    "backend/internal/service/channel_monitor_checker_body_test.go": {
+      "01842576b3d5c1e2545b5a99ad555d36e28ed306": "18e2e482eabe6a8849d3ac3cd063de5beb951fdec438fe8f5cc9cd2d0c0b6991",
+      "ac1b8f1271be0d674fa6f074403c1410f30a3a81": "18e2e482eabe6a8849d3ac3cd063de5beb951fdec438fe8f5cc9cd2d0c0b6991"
+    },
+    "backend/internal/service/grok_free_quota_gate_test.go": {
+      "01842576b3d5c1e2545b5a99ad555d36e28ed306": "173d7762f3f4ee6572411e9d528a1ea104c04d47d886c080ffa78b6147beac72",
+      "ac1b8f1271be0d674fa6f074403c1410f30a3a81": "173d7762f3f4ee6572411e9d528a1ea104c04d47d886c080ffa78b6147beac72"
+    },
+    "backend/internal/service/usage_cleanup_service_test.go": {
+      "01842576b3d5c1e2545b5a99ad555d36e28ed306": "ae69e0ce0d245f4fa008c5294f4da90c296a53ef9a95f8cfd3dc0fe7e1911389",
+      "ac1b8f1271be0d674fa6f074403c1410f30a3a81": "ae69e0ce0d245f4fa008c5294f4da90c296a53ef9a95f8cfd3dc0fe7e1911389"
+    },
+    "backend/internal/service/auth_service_email_bind_test.go": {
+      "01842576b3d5c1e2545b5a99ad555d36e28ed306": "b41e7515f120b1ad3998130e98bb6cb650c428022e9fcbd758a6a92254341816",
+      "ac1b8f1271be0d674fa6f074403c1410f30a3a81": "b41e7515f120b1ad3998130e98bb6cb650c428022e9fcbd758a6a92254341816"
+    },
+    "backend/internal/handler/payment_handler_resume_test.go": {
+      "01842576b3d5c1e2545b5a99ad555d36e28ed306": "129aaa23c50245110b7f3ecbdb6cee297031142f34bef5aa065d08e1e3b3de9e",
+      "ac1b8f1271be0d674fa6f074403c1410f30a3a81": "129aaa23c50245110b7f3ecbdb6cee297031142f34bef5aa065d08e1e3b3de9e"
+    },
+    "backend/internal/service/account_test_service_gemini_test.go": {
+      "01842576b3d5c1e2545b5a99ad555d36e28ed306": "9889839c92152c0800d1e8d3b1bcc664ae531ef52d1d1a5fd4fde48272054f13",
+      "ac1b8f1271be0d674fa6f074403c1410f30a3a81": "9889839c92152c0800d1e8d3b1bcc664ae531ef52d1d1a5fd4fde48272054f13"
+    },
+    "backend/internal/service/gateway_forward_as_chat_completions_test.go": {
+      "01842576b3d5c1e2545b5a99ad555d36e28ed306": "ad1790cfd4b1b7d922066351db7da2668f5eff4303b65e085f894da587edc414",
+      "ac1b8f1271be0d674fa6f074403c1410f30a3a81": "ad1790cfd4b1b7d922066351db7da2668f5eff4303b65e085f894da587edc414"
+    },
+    "backend/internal/service/gateway_forward_as_responses_test.go": {
+      "01842576b3d5c1e2545b5a99ad555d36e28ed306": "8f43c014054a9dd632025cd2fc0d3e7be527f99d1e76af37c374b03490b2c618",
+      "ac1b8f1271be0d674fa6f074403c1410f30a3a81": "8f43c014054a9dd632025cd2fc0d3e7be527f99d1e76af37c374b03490b2c618"
+    },
+    "backend/internal/service/openai_compat_model_test.go": {
+      "01842576b3d5c1e2545b5a99ad555d36e28ed306": "9cdc751f22afd64d2e674213cc9cccc1929d627665999789b89425450696e30c",
+      "ac1b8f1271be0d674fa6f074403c1410f30a3a81": "9cdc751f22afd64d2e674213cc9cccc1929d627665999789b89425450696e30c"
+    },
+    "backend/internal/service/openai_fast_service_tier_test.go": {
+      "01842576b3d5c1e2545b5a99ad555d36e28ed306": "86697acdbd34eaa80db2b3b9a9fca0e89e9751c266ac53b6e89d105cd478e80c",
+      "ac1b8f1271be0d674fa6f074403c1410f30a3a81": "86697acdbd34eaa80db2b3b9a9fca0e89e9751c266ac53b6e89d105cd478e80c"
+    },
+    "backend/internal/service/account_test_service_openai_test.go": {
+      "01842576b3d5c1e2545b5a99ad555d36e28ed306": "e998a1ab588833ca9412d171d3fb37fdc3091829e8f23be7bb62024d14594c32",
+      "ac1b8f1271be0d674fa6f074403c1410f30a3a81": "e998a1ab588833ca9412d171d3fb37fdc3091829e8f23be7bb62024d14594c32"
     }
+  },
+  "validation_support": {
+    "backend/internal/isolatedfixture/fixture.go": {
+      "source": ".github/upgrade/fixtures/isolated_fixture.go",
+      "sha256": "b77b52e64497b8e93c9e37dbe0eb3108917bd45077afb4075006652d1433de50"
+    },
+    "backend/internal/securityaudit/isolated_shared_fixture_test.go": {
+      "source": ".github/upgrade/fixtures/isolated_shared_fixture_test.go",
+      "sha256": "6151bfb7035debf7d1b3f5c03e5f047553dde5d78786625f8e6702855b84b391"
+    }
+  },
+  "test_reclassifications": [
+    {
+      "path": "backend/internal/securityaudit/prompt_repository_integration_test.go",
+      "from": "untagged; skipped without operator DSN",
+      "to": "integration; fixed isolated fixture required; missing fixture fails",
+      "test_functions": [
+        "TestPromptAuditMigrationSchemaAndLeakageGate",
+        "TestPromptAuditDatabasePersistsFullPromptOnEventsOnly",
+        "TestPromptAuditRepositoryAdmissionClaimFencingAndEventTransaction",
+        "TestPromptAuditRepositoryForeignKeysFiltersAndStableIdentitySnapshots",
+        "TestPromptAuditRepositoryHighWaterAndSafeDeletion",
+        "TestPromptAuditServiceConfirmationKeepsPostPreviewEventsAndConcurrentDeletesAreSafe"
+      ],
+      "count": 6
+    },
+    {
+      "path": "backend/internal/securityaudit/prompt_config_integration_test.go",
+      "from": "untagged; skipped without operator Redis endpoint",
+      "to": "integration; fresh isolated Redis required; missing fixture fails",
+      "test_functions": [
+        "TestPromptAuditConfigCASSecretRoundTripInvalidationAndTTL"
+      ],
+      "count": 1
+    },
+    {
+      "path": "backend/internal/securityaudit/prompt_payload_store_integration_test.go",
+      "from": "untagged; skipped without operator Redis endpoint",
+      "to": "integration; fresh isolated Redis required; missing fixture fails",
+      "test_functions": [
+        "TestRedisPayloadStoreRoundTripTTLNamespaceAndDelete",
+        "TestPromptRuntimeAggregatesConfigWorkersQueueRedisEndpointsAndGuardMetrics"
+      ],
+      "count": 2
+    }
+  ],
+  "public_test_inputs": {
+    "frontend/src/constants/platformCatalog.builtin.json": "4b623716857f74de963940450e3bc8e0542f4dcdefefac94cac46da243d3bbc2"
   }
 }
