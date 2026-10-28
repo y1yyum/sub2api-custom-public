@@ -181,11 +181,12 @@ until its exact CI artifacts establish execution and outcomes.
 
 ## Stage-correct validation after harness backport
 
-This baseline stage retains the pinned .16 test revision and unchanged baseline
-production bytes. The verified isolation infrastructure is shared, but target .18
-CI receipts do not validate this stage: fresh exact-source unit, integration and
-other CI checks are required. The next core stage retains its ten explicit .16
-payment/Stripe test overrides until the payment stage moves those tests to .18.
+This core stage uses the pinned .18 test revision with ten explicit .16
+payment/Stripe overrides, matching the not-yet-upgraded payment production code.
+The verified isolation infrastructure is shared, but neither baseline nor final
+payment-stage CI receipts validate this stage: fresh exact-source unit,
+integration and other CI checks are required. The following payment stage moves
+those ten test inputs to .18 together with the coherent payment implementation.
 PR4/5 retain the historical isolation development/evidence; once this harness is
 forward-integrated, they are not extra production merge steps. All remain Draft
 until the user decides otherwise; no merge or deployment is performed.
