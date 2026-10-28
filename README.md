@@ -59,7 +59,9 @@ docker compose -f deploy/docker-compose.local.yml ps
 
 应用启动时会执行向前数据库迁移。不要删除数据目录来解决迁移问题；出现异常时保留日志和备份，并按对应版本的发布说明处理。
 
-使用预构建镜像时，把 `SUB2API_IMAGE` 改为新版本，再执行 `pull` 和 `up -d --no-build`；回滚时改回上一个版本的镜像，但数据库迁移只能向前，回滚前须恢复升级前的备份。
+使用预构建镜像时，把 `SUB2API_IMAGE` 改为新版本，再执行 `pull` 和 `up -d --no-build`。回滚前必须单独确认旧镜像、数据库和配置兼容；不要无条件恢复数据库备份。
+
+**支付退款不能只换旧镜像或回灌旧数据库。** v0.2.18 同步后的 pending 退款会保留余额/订阅扣减，旧 worker 可能再次扣减；数据库恢复也不能撤销外部已发生的支付或退款。先停止相关处理和新旧 worker 混跑，保留审计并逐单对账，再决定前向修复或协调恢复。见[支付放行与回滚手册](docs/upgrades/stable-0.2.18-payment.md)及[图片分组禁用状态保留](docs/upgrades/stable-0.2.18-image-groups.md)。
 
 更新器会查询 [公开仓库 Releases](https://github.com/y1yyum/sub2api-custom-public/releases)，但 Release 只提供容器镜像，不提供可在线替换的二进制包，因此管理后台的在线更新不可用，请按上面的镜像流程升级。
 
