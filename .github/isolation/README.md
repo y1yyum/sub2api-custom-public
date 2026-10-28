@@ -48,13 +48,23 @@ The output directory must be new and outside the checkout. No Docker socket is
 mounted into the test container. The host Docker CLI performs creation/inspection
 and copies receipts after the test; test code cannot control the daemon.
 
-## Integration remains blocked
+## Isolated integration follow-up
 
-The existing integration fixtures invoke Docker/Testcontainers and access mapped
-PostgreSQL/Redis endpoints. They cannot run unchanged in this boundary. Their CI
-job continues to fail explicitly before execution; no skipped-green replacement.
-A separate reviewed local PostgreSQL/Redis fixture implementation is needed.
-Existing inherited skips are reported in test JSON, not erased or counted as
-passed. This work does not merge, publish an application image, deploy or migrate
-a live database. Actual unit success must be established by the new CI run; design
-and Python validator tests alone do not prove application correctness.
+The separate integration follow-up removes test access to Docker entirely. It
+uses the same host/runtime preflights with an official PostgreSQL 18.1 / Redis
+8.4 dependency image, fresh loopback databases and per-test private Redis Unix
+sockets. The prior unrestricted integration command is not an execution path.
+See [integration runtime](INTEGRATION_RUNTIME.md) and
+[fixture adaptations](../upgrade/INTEGRATION_ISOLATION.md).
+
+```sh
+python3 .github/scripts/run-isolated-unit.py --suite integration /tmp/sub2api-isolated-integration-new
+```
+
+Both lanes remain fail-closed on isolation/fixture failure. Source assertions are
+not skipped to obtain green. Prompt-audit's six database tests are explicitly
+classified as integration instead of silently skipping the unit lane without a
+DSN. Inherited upstream skips are individually recorded in artifacts; they are
+not passing coverage. Actual CI execution/receipts are required before claiming
+either application suite passes. No merge, release, deployment or live database
+operation is authorized by this test harness.

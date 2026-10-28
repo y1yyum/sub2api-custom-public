@@ -6,6 +6,7 @@ No subprocess (including `go version`) runs before all pure preflight checks pas
 """
 import argparse
 import hashlib
+import importlib.util
 import fcntl
 import ipaddress
 import json
@@ -173,6 +174,12 @@ def verify_sources(root, manifest_path, expected_digest):
     for name, expected in tracked.items():
         if name.startswith('backend/'):
             require(files.get(name) == expected, 'tracked backend source receipt mismatch')
+    for item in receipt.get('validation_support', []):
+        destination, source = item.get('destination', ''), item.get('source', '')
+        require(destination.startswith('backend/internal/isolatedfixture/') and
+                source.startswith('.github/upgrade/fixtures/') and
+                files.get(destination) == item.get('sha256') == tracked.get(source),
+                'validation-only support receipt mismatch')
     require(re.search(r'^go 1\.27\.3$', (root / 'backend/go.mod').read_text(), re.M), 'source Go version mismatch')
     return doc
 
@@ -207,26 +214,45 @@ def preflight(source, manifest, expected_digest):
     return doc
 
 
-def run(source, manifest, expected_digest, *, inspect=preflight, execute=subprocess.run):
-    doc = inspect(source, manifest, expected_digest)
-    env = test_environment()
-    version = execute([GO, 'version'], env=env, capture_output=True, text=True, check=False)
-    require(version.returncode == 0 and re.fullmatch(r'go version go1\.27\.3 linux/(amd64|arm64)\n', version.stdout), 'pinned executable Go version mismatch')
+def execute_suite(source, doc, env, expected_digest, suite, execute, fixture=None):
     for name in ('home', 'gopath', 'gocache', 'gotmp'):
         Path('/tmp', name).mkdir(mode=0o700, exist_ok=True)
-    receipt = {'isolation_preflight': 'passed', 'source_commit': doc['source_commit'],
-               'manifest_sha256': expected_digest, 'source_receipt_sha256': doc['source_receipt_sha256'],
-               'files': doc['files'], 'environment_keys': sorted(env), 'test_command': COMMAND,
-               'test_exit_code': None, 'runtime_observations': doc.get('runtime_observations', {})}
-    # Stream evidence through Docker's stdout transport. A stopped container's
-    # tmpfs is gone, so artifact collection must never rely on docker cp /tmp.
+    command = [arg if arg != '-tags=unit' else '-tags='+suite for arg in COMMAND]
+    receipt = {'isolation_preflight': 'passed', 'suite': suite,
+               'source_commit': doc['source_commit'], 'manifest_sha256': expected_digest,
+               'source_receipt_sha256': doc['source_receipt_sha256'], 'files': doc['files'],
+               'environment_keys': sorted(env), 'test_command': command,
+               'test_exit_code': None, 'runtime_observations': doc.get('runtime_observations', {}),
+               'fixture_receipt': fixture}
     print(json.dumps({'record_type': 'isolation_receipt', **receipt}, sort_keys=True), flush=True)
-    completed = execute(COMMAND, cwd=source / 'backend', env=env, check=False,
+    completed = execute(command, cwd=source / 'backend', env=env, check=False,
                         stdout=sys.stdout, stderr=subprocess.STDOUT)
-    receipt['test_exit_code'] = completed.returncode
-    print(json.dumps({'record_type': 'isolation_receipt', **receipt}, sort_keys=True), flush=True)
-    return completed.returncode if completed.returncode >= 0 else 128 - completed.returncode
+    receipt['raw_test_exit_code'] = completed.returncode
+    receipt['test_exit_code'] = completed.returncode if completed.returncode >= 0 else 128 - completed.returncode
+    return receipt
 
+
+def run(source, manifest, expected_digest, *, suite='unit', inspect=preflight, execute=subprocess.run):
+    require(suite in {'unit', 'integration'}, 'unknown test suite')
+    if suite == 'integration':
+        spec = importlib.util.spec_from_file_location('integration_fixtures',
+                    Path(__file__).with_name('integration-bootstrap.py'))
+        fixtures = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(fixtures)
+        # This helper performs the complete shared pure preflight before even
+        # version probes or fixture initialization. All binaries remain offline.
+        def tests(doc, env, fixture):
+            return execute_suite(source, doc, env, expected_digest, suite, execute, fixture)
+        receipt, fixture = fixtures.run_with_postgres(source, manifest, expected_digest, tests)
+        receipt['fixture_receipt'] = fixture  # Terminal evidence includes cleanup.
+    else:
+        doc = inspect(source, manifest, expected_digest)
+        env = test_environment()
+        version = execute([GO, 'version'], env=env, capture_output=True, text=True, check=False)
+        require(version.returncode == 0 and re.fullmatch(r'go version go1\.27\.3 linux/(amd64|arm64)\n', version.stdout), 'pinned executable Go version mismatch')
+        receipt = execute_suite(source, doc, env, expected_digest, suite, execute)
+    print(json.dumps({'record_type': 'isolation_receipt', **receipt}, sort_keys=True), flush=True)
+    return receipt['test_exit_code']
 
 
 def main():
@@ -234,9 +260,10 @@ def main():
     parser.add_argument('--source-root', type=Path, default=Path('/src'))
     parser.add_argument('--manifest', type=Path, default=Path('/opt/isolation/source-manifest.json'))
     parser.add_argument('--manifest-sha256', required=True)
+    parser.add_argument('--suite', choices=['unit', 'integration'], default='unit')
     args = parser.parse_args()
     try:
-        return run(args.source_root, args.manifest, args.manifest_sha256)
+        return run(args.source_root, args.manifest, args.manifest_sha256, suite=args.suite)
     except (IsolationError, OSError, ValueError, TypeError) as exc:
         # Never print offending environment values, file contents or credentials.
         print(json.dumps({'isolation_preflight': 'failed', 'error_type': type(exc).__name__, 'check_failure': str(exc) if isinstance(exc, IsolationError) else 'system preflight failure'}), file=sys.stderr)

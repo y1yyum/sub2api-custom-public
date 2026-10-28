@@ -454,6 +454,44 @@
     "backend/internal/service/gemini_oauth_service_test.go": {
       "01842576b3d5c1e2545b5a99ad555d36e28ed306": "012362900b675dcbd6b221ce3f5495b3bbc7d6476a85f05bc3924ebab17231fe",
       "ac1b8f1271be0d674fa6f074403c1410f30a3a81": "012362900b675dcbd6b221ce3f5495b3bbc7d6476a85f05bc3924ebab17231fe"
+    },
+    "backend/internal/repository/integration_harness_test.go": {
+      "01842576b3d5c1e2545b5a99ad555d36e28ed306": "fd04a2bdf4282d1e3d7814a3d500d3a0402ce571dadb321d46204809430d240d",
+      "ac1b8f1271be0d674fa6f074403c1410f30a3a81": "fd04a2bdf4282d1e3d7814a3d500d3a0402ce571dadb321d46204809430d240d"
+    },
+    "backend/internal/middleware/rate_limiter_integration_test.go": {
+      "01842576b3d5c1e2545b5a99ad555d36e28ed306": "4853a56a5b965018a9f95b31b67f8188c4f3f3fb9368c7ef7ab48f6ffef3d0f5",
+      "ac1b8f1271be0d674fa6f074403c1410f30a3a81": "4853a56a5b965018a9f95b31b67f8188c4f3f3fb9368c7ef7ab48f6ffef3d0f5"
+    },
+    "backend/internal/server/routes/auth_rate_limit_integration_test.go": {
+      "01842576b3d5c1e2545b5a99ad555d36e28ed306": "48987185a023b74aff6d813ef8d4e5b56cc3131206be0fdfa9e4861c5ddfa067",
+      "ac1b8f1271be0d674fa6f074403c1410f30a3a81": "48987185a023b74aff6d813ef8d4e5b56cc3131206be0fdfa9e4861c5ddfa067"
+    },
+    "backend/internal/securityaudit/prompt_repository_integration_test.go": {
+      "01842576b3d5c1e2545b5a99ad555d36e28ed306": "ae7e4b7d460f4a05bb1197a27d252f8e1ef7229c7f6d3125ea12c50d77347901",
+      "ac1b8f1271be0d674fa6f074403c1410f30a3a81": "ae7e4b7d460f4a05bb1197a27d252f8e1ef7229c7f6d3125ea12c50d77347901"
     }
-  }
+  },
+  "validation_support": {
+    "backend/internal/isolatedfixture/fixture.go": {
+      "source": ".github/upgrade/fixtures/isolated_fixture.go",
+      "sha256": "b77b52e64497b8e93c9e37dbe0eb3108917bd45077afb4075006652d1433de50"
+    }
+  },
+  "test_reclassifications": [
+    {
+      "path": "backend/internal/securityaudit/prompt_repository_integration_test.go",
+      "from": "untagged; skipped without operator DSN",
+      "to": "integration; fixed isolated fixture required; missing fixture fails",
+      "test_functions": [
+        "TestPromptAuditMigrationSchemaAndLeakageGate",
+        "TestPromptAuditDatabasePersistsFullPromptOnEventsOnly",
+        "TestPromptAuditRepositoryAdmissionClaimFencingAndEventTransaction",
+        "TestPromptAuditRepositoryForeignKeysFiltersAndStableIdentitySnapshots",
+        "TestPromptAuditRepositoryHighWaterAndSafeDeletion",
+        "TestPromptAuditServiceConfirmationKeepsPostPreviewEventsAndConcurrentDeletesAreSafe"
+      ],
+      "count": 6
+    }
+  ]
 }

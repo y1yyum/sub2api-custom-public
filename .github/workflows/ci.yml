@@ -145,15 +145,37 @@ jobs:
             ${{ runner.temp }}/isolated-unit/context/validation-receipt.json
           if-no-files-found: error
 
-  backend-integration-quarantine:
-    name: Backend integration (quarantined)
+  backend-integration-isolated:
+    name: Backend integration (network isolated)
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    timeout-minutes: 60
     steps:
-      - name: Fail closed until database and Redis isolation is verified
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          ref: ${{ inputs.ref || github.sha }}
+          persist-credentials: false
+      - name: Check isolation and fixture adapters without executing Go or databases
         run: |
-          echo "::error::Integration fixture isolation remains unverified. No integration tests started; this is not a skipped success."
-          exit 1
+          python3 -m unittest discover -s .github/isolation -p 'test_*.py' -v
+          python3 .github/scripts/test-isolated-unit-entrypoint.py
+          python3 .github/upgrade/test-isolated-fixtures.py
+      - name: Prepare dependencies then run verified offline integration container
+        run: python3 .github/scripts/run-isolated-unit.py --suite integration "$RUNNER_TEMP/isolated-integration"
+      - name: Preserve actual isolation, fixture and test evidence
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
+        with:
+          name: isolated-integration-evidence
+          path: |
+            ${{ runner.temp }}/isolated-integration/host-receipt.json
+            ${{ runner.temp }}/isolated-integration/isolation-receipt.json
+            ${{ runner.temp }}/isolated-integration/integration-tests.jsonl
+            ${{ runner.temp }}/isolated-integration/runtime-output.jsonl
+            ${{ runner.temp }}/isolated-integration/modules.json
+            ${{ runner.temp }}/isolated-integration/os-packages.txt
+            ${{ runner.temp }}/isolated-integration/context/source-manifest.json
+            ${{ runner.temp }}/isolated-integration/context/validation-receipt.json
+          if-no-files-found: error
 
   frontend-regression:
     name: Frontend regression (Node ${{ matrix.node }})

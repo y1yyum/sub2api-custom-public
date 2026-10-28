@@ -81,6 +81,23 @@ def main():
         output.parent.mkdir(parents=True, exist_ok=True)
         output.write_bytes(git('show', rev+':'+path))
         restored.append({'path': path, 'revision': rev})
+    support = []
+    for destination, spec in manifest.get('validation_support', {}).items():
+        source = spec['source']
+        if (not destination.startswith('backend/internal/isolatedfixture/') or
+                not source.startswith('.github/upgrade/fixtures/') or
+                '..' in Path(destination).parts or '..' in Path(source).parts):
+            raise SystemExit('invalid isolated support path')
+        if destination in owned or (dest / destination).exists():
+            raise SystemExit('support would overwrite existing source: '+destination)
+        raw = (ROOT / source).read_bytes()
+        digest = hashlib.sha256(raw).hexdigest()
+        if digest != spec['sha256']:
+            raise SystemExit('unreviewed isolated support bytes: '+source)
+        output = dest / destination
+        output.parent.mkdir(parents=True, exist_ok=True)
+        output.write_bytes(raw)
+        support.append({'source': source, 'destination': destination, 'sha256': digest})
     adaptations = []
     adapter = ROOT / '.github/upgrade/adapt-tests.py'
     adapt = runpy.run_path(str(adapter))['adapt']
@@ -101,6 +118,8 @@ def main():
                'source_sha256': source_hashes,
                'excluded_absent_packages': manifest.get('absent_production_packages', {}),
                'restored': restored, 'adaptations': adaptations,
+               'validation_support': support,
+               'test_reclassifications': manifest.get('test_reclassifications', []),
                'adapter_sha256': {p.name: hashlib.sha256(p.read_bytes()).hexdigest()
                                   for p in sorted(adapter.parent.glob('adapt-*.py'))}}
     (dest / 'validation-receipt.json').write_text(json.dumps(receipt, indent=2)+'\n')

@@ -70,6 +70,9 @@ def adapt(path, text):
         if text.count(anchor) != 2:
             raise ValueError('expected two admin-settings contract fixtures')
         return text.replace(anchor, '"unified_model_channel_status_enabled": false,\n\t\t\t\t\t' + anchor)
+    if path in {'backend/internal/repository/integration_harness_test.go', 'backend/internal/server/routes/auth_rate_limit_integration_test.go', 'backend/internal/securityaudit/prompt_repository_integration_test.go', 'backend/internal/middleware/rate_limiter_integration_test.go'}:
+        fixture = Path(__file__).with_name('adapt-integration-fixtures.py')
+        return runpy.run_path(str(fixture))['adapt'](path, text)
     if path.startswith('frontend/'):
         frontend = Path(__file__).with_name('adapt-frontend-tests.py')
         return runpy.run_path(str(frontend))['adapt'](path, text)

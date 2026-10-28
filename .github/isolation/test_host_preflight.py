@@ -58,7 +58,7 @@ class StreamEvidence(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             work = Path(directory)
             first = {'record_type': 'isolation_receipt', 'isolation_preflight': 'passed',
-                     'source_commit': 'a'*40, 'manifest_sha256': 'b'*64, 'test_exit_code': None}
+                     'suite':'unit', 'source_commit': 'a'*40, 'manifest_sha256': 'b'*64, 'test_exit_code': None}
             last = dict(first, test_exit_code=0)
             records = [first, {'Action':'pass','Package':'example','Test':'TestOne'},
                        {'Action':'skip','Package':'example','Test':'TestInheritedSkip'}, last]
@@ -70,7 +70,7 @@ class StreamEvidence(unittest.TestCase):
 
     def test_missing_tampered_empty_or_duplicate_receipts_fail_closed(self):
         first = {'record_type':'isolation_receipt','isolation_preflight':'passed',
-                 'source_commit':'a'*40,'manifest_sha256':'b'*64,'test_exit_code':None}
+                 'suite':'unit','source_commit':'a'*40,'manifest_sha256':'b'*64,'test_exit_code':None}
         last = dict(first, test_exit_code=0)
         passed = {'Action':'pass','Package':'example','Test':'TestOne'}
         for records in ([first, passed], [first,last], [first,passed,last,last],
