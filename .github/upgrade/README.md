@@ -25,7 +25,8 @@ python3 .github/scripts/prepare-upgrade-validation.py /tmp/sub2api-validation-un
 cd /tmp/sub2api-validation-unique/backend
 go mod verify
 GOMAXPROCS=2 GOGC=30 go test -p 1 -race -count=1 -tags=unit -timeout=20m ./...
-GOMAXPROCS=2 GOGC=30 go test -p 1 -race -count=1 -tags=integration -timeout=20m ./...
+docker info
+CI=true GOMAXPROCS=2 GOGC=30 go test -p 1 -race -count=1 -tags=integration -timeout=20m ./...
 cd ../frontend
 pnpm install --frozen-lockfile
 pnpm run lint:check
@@ -102,3 +103,14 @@ reconciliation, Redis compatibility, portal/browser scenarios and both CPU
 architectures. A passing CI cannot replace those checks. Keep custom VERSION
 0.3.1 until a separate release/version approval. Do not merge or publish images
 from this draft integration series.
+
+## Known inherited test limits
+
+The upstream repository integration harness can skip a local Docker-less run;
+use the explicit `docker info` preflight and `CI=true` above. CI requires Docker
+rather than accepting a skipped suite. Upstream also already marks
+`ConcurrencyCacheSuite.TestGetAccountsLoadBatch` as skipped (see the pinned
+`concurrency_cache_integration_test.go` TODO near line 525). This series does
+not add that skip or claim the corresponding behavior has passed. Track that
+coverage gap separately; restored tests and passing jobs are not proof of zero
+skips or complete end-to-end deployment coverage.

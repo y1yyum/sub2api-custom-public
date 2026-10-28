@@ -132,6 +132,9 @@ jobs:
           cache-dependency-path: backend/go.sum
       - name: Restore pinned test dependency closure onto this checkout
         run: python3 .github/scripts/prepare-upgrade-validation.py "$RUNNER_TEMP/upgrade-validation"
+      - name: Require Docker for integration fixtures
+        if: matrix.tags == 'integration'
+        run: docker info
       - name: Test (race detector enabled)
         working-directory: ${{ runner.temp }}/upgrade-validation/backend
         env:
