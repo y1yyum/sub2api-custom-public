@@ -168,7 +168,9 @@ def verify_sources(root, manifest_path, expected_digest):
         require(path.is_file(), 'source special file prohibited')
         actual.add(path.relative_to(root).as_posix())
     require(actual == set(files), 'source file inventory mismatch')
-    require(all(name.startswith('backend/') or name == 'validation-receipt.json' for name in files), 'only backend and receipt source inputs permitted')
+    public_input = 'frontend/src/constants/platformCatalog.builtin.json'
+    require(public_input in files, 'platform catalog test input missing')
+    require(all(name.startswith('backend/') or name in {'validation-receipt.json', public_input} for name in files), 'unreviewed non-backend source input')
     for name, expected in files.items():
         pure = PurePosixPath(name)
         require(not pure.is_absolute() and '..' not in pure.parts and str(pure) == name, 'unsafe manifest path')
@@ -179,10 +181,10 @@ def verify_sources(root, manifest_path, expected_digest):
     receipt = json.loads(receipt_bytes)
     require(receipt.get('tested_commit') == doc['source_commit'] and not receipt.get('working_tree_diff'), 'source receipt commit or cleanliness mismatch')
     tracked = receipt.get('source_sha256')
-    require(isinstance(tracked, dict) and 'backend/go.mod' in tracked, 'tracked backend receipt required')
+    require(isinstance(tracked, dict) and 'backend/go.mod' in tracked and public_input in tracked, 'tracked source receipt required')
     for name, expected in tracked.items():
-        if name.startswith('backend/'):
-            require(files.get(name) == expected, 'tracked backend source receipt mismatch')
+        if name.startswith('backend/') or name == public_input:
+            require(files.get(name) == expected, 'tracked source receipt mismatch')
     for item in receipt.get('validation_support', []):
         destination, source = item.get('destination', ''), item.get('source', '')
         require((destination.startswith('backend/internal/isolatedfixture/') or
@@ -293,33 +295,146 @@ def binary_command(record):
             str(COMPILED_ROOT / record['binary']), *TEST_FLAGS]
 
 
+SERVICE_PACKAGE = 'github.com/Wei-Shaw/sub2api/internal/service'
+FIXED_SERVICE_TESTS = (
+    'TestGroupUsageDateUsesConfiguredTimezoneBoundary',
+    'TestSanitizeOpenAIResponsesToolParameterTypes_RewriteCountIndependentOfHits',
+)
+FIXED_SERVICE_TESTS_BY_SUITE = {'unit': FIXED_SERVICE_TESTS, 'integration': (FIXED_SERVICE_TESTS[1],)}
+SYNTHETIC_SERVICE_ENV = {'GEMINI_CLI_OAUTH_CLIENT_ID': 'custom-test-client'}
+
+
+def package_environment(record, env):
+    child = dict(env)
+    if record['package'] == SERVICE_PACKAGE:
+        # Public synthetic fixture set before package init snapshots OAuth ClientID.
+        # Never inherit a client ID or credential from the host environment.
+        child.update(SYNTHETIC_SERVICE_ENV)
+    return child
+
+
+def exact_trie_regex(names):
+    require(names and len(names) == len(set(names)), 'empty or duplicate partition names')
+    tree = {}
+    for name in names:
+        require(name.isidentifier() and len(name) <= 512, 'invalid discovered top-level name')
+        node = tree
+        for char in name:
+            node = node.setdefault(char, {})
+        node[''] = None
+
+    def encode(node):
+        alternatives = [''] if '' in node else []
+        for char in sorted(key for key in node if key):
+            alternatives.append(re.escape(char) + encode(node[char]))
+        if len(alternatives) == 1:
+            return alternatives[0]
+        return '(' + '|'.join(alternatives) + ')'
+
+    expression = '^' + encode(tree) + '$'
+    require(len(expression.encode()) <= 65536, 'partition regex exceeds audited argument bound')
+    return expression
+
+
+def service_partitions(stdout, suite):
+    require(suite in FIXED_SERVICE_TESTS_BY_SUITE, 'unknown partition suite')
+    fixed = FIXED_SERVICE_TESTS_BY_SUITE[suite]
+    names, benchmarks, seen = [], [], set()
+    for line in stdout.splitlines():
+        if not line:
+            continue
+        # Registry listing is intentionally strict. Unexpected stdout is a red
+        # inventory error, never silently discarded as if coverage were known.
+        require(line.isidentifier() and len(line) <= 512, 'unexpected test registry output')
+        require(line not in seen, 'duplicate discovered top-level test name')
+        seen.add(line)
+        if line.startswith('Benchmark'):
+            benchmarks.append(line)
+        else:
+            require(line.startswith(('Test', 'Example', 'Fuzz')), 'unknown test registry name')
+            names.append(line)
+    require(all(name in names for name in fixed), 'fixed service test missing or renamed')
+    if suite == 'integration':
+        require(FIXED_SERVICE_TESTS[0] not in names, 'unit-only timezone test unexpectedly present in integration')
+    names = sorted(names)
+    main = [name for name in names if name not in fixed]
+    require(main, 'main service test partition unexpectedly empty')
+    partitions = [{'name': 'main', 'tests': main, 'regex': exact_trie_regex(main)}]
+    partitions.extend({'name': name, 'tests': [name], 'regex': '^' + re.escape(name) + '$'} for name in fixed)
+    covered = []
+    for partition in partitions:
+        matched = [name for name in names if re.fullmatch(partition['regex'], name)]
+        require(matched == sorted(partition['tests']), 'partition regex coverage mismatch')
+        covered.extend(matched)
+    require(sorted(covered) == names and len(covered) == len(set(covered)), 'partitions not exhaustive and disjoint')
+    return {'discovered_tests_examples_fuzz': names, 'benchmarks_not_run_by_default': sorted(benchmarks),
+            'partitions': partitions, 'coverage': 'exhaustive_disjoint_top_level; all matching subtests and fuzz seeds retained'}
+
+
 def execute_suite(source, doc, env, expected_digest, suite, execute, fixture=None):
-    # Verify every binary and every package before running the first test.
     compiled, compiled_digest = verify_compiled(source, doc, expected_digest, suite)
     for name in ('home', 'gopath', 'gocache', 'gotmp'):
         Path('/tmp', name).mkdir(mode=0o700, exist_ok=True)
+    service = [r for r in compiled['packages'] if r['package'] == SERVICE_PACKAGE and r['binary'] is not None]
+    require(len(service) == 1, 'fixed service partition package missing or duplicate')
     receipt = {'isolation_preflight': 'passed', 'suite': suite,
                'source_commit': doc['source_commit'], 'manifest_sha256': expected_digest,
                'source_receipt_sha256': doc['source_receipt_sha256'], 'files': doc['files'],
-               'environment_keys': sorted(env), 'test_execution': 'all precompiled race binaries, sequential test2json',
+               'environment_keys': sorted(env), 'test_execution': 'precompiled race binaries; fixed upfront per-suite service process partitions',
+               'synthetic_service_child_environment': SYNTHETIC_SERVICE_ENV,
                'compile_receipt_sha256': compiled_digest, 'compiled_package_count': compiled['package_count'],
-               'test_commands': [binary_command(r) for r in compiled['packages'] if r['binary'] is not None],
+               'test_commands': [], 'fixed_service_tests': list(FIXED_SERVICE_TESTS_BY_SUITE[suite]),
                'no_test_file_packages': [r['package'] for r in compiled['packages'] if r['binary'] is None],
                'test_exit_code': None, 'runtime_observations': doc.get('runtime_observations', {}),
                'fixture_receipt': fixture, 'package_results': []}
     print(json.dumps({'record_type': 'isolation_receipt', **receipt}, sort_keys=True), flush=True)
+    audit = None
+    if service:
+        record = service[0]
+        discovery_command = [str(COMPILED_ROOT / record['binary']), '-test.list=.', '-test.timeout=20m']
+        # The listing invokes package init/TestMain only within the already
+        # verified network-none runtime. It is not a test execution or retry.
+        listed = execute(discovery_command, cwd=source / record['directory'],
+                         env=package_environment(record, env), capture_output=True, text=True,
+                         check=False, timeout=1200)
+        print(json.dumps({'record_type': 'service_registry_listing', 'package': SERVICE_PACKAGE,
+                          'binary_sha256': record['binary_sha256'], 'exit_code': listed.returncode,
+                          'stdout': listed.stdout, 'stderr': listed.stderr}, sort_keys=True), flush=True)
+        require(listed.returncode == 0, 'service test inventory process failed')
+        audit = service_partitions(listed.stdout, suite)
+        audit.update({'package': SERVICE_PACKAGE, 'binary_sha256': record['binary_sha256'],
+                      'discovery_command': discovery_command, 'discovery_exit_code': listed.returncode,
+                      'discovery_stderr': listed.stderr, 'strategy': 'fixed_before_any_test_outcome_no_retries'})
+        receipt['service_partition_audit'] = audit
+        print(json.dumps({'record_type': 'service_partition_audit', **audit}, sort_keys=True), flush=True)
+    plans = []
+    for record in compiled['packages']:
+        if record['binary'] is None:
+            continue
+        if record['package'] == SERVICE_PACKAGE:
+            partitions = audit['partitions']
+        else:
+            partitions = [{'name': 'all', 'regex': None}]
+        for partition in partitions:
+            command = binary_command(record)
+            if partition['regex'] is not None:
+                command = [*command, '-test.run=' + partition['regex']]
+            plans.append((record, partition['name'], command))
+    receipt['test_commands'] = [command for _, _, command in plans]
     failed = False
     for record in compiled['packages']:
         if record['binary'] is None:
-            # Compile-only success is recorded, not invented test execution.
             receipt['package_results'].append({'package': record['package'], 'status': 'no_test_files', 'compiled': True})
-            continue
-        completed = execute(binary_command(record), cwd=source / record['directory'], env=env, check=False,
+    # The complete immutable schedule exists before the first test starts. Every
+    # scheduled process runs once even when any previous process fails.
+    for record, partition_name, command in plans:
+        completed = execute(command, cwd=source / record['directory'], env=package_environment(record, env), check=False,
                             stdout=sys.stdout, stderr=subprocess.STDOUT)
         code = completed.returncode if completed.returncode >= 0 else 128 - completed.returncode
         failed = failed or code != 0
-        receipt['package_results'].append({'package': record['package'], 'raw_exit_code': completed.returncode,
-                                           'exit_code': code, 'binary_sha256': record['binary_sha256']})
+        receipt['package_results'].append({'package': record['package'], 'partition': partition_name,
+                                           'raw_exit_code': completed.returncode, 'exit_code': code,
+                                           'binary_sha256': record['binary_sha256']})
     receipt['test_exit_code'] = 1 if failed else 0
     return receipt
 
@@ -356,7 +471,7 @@ def main():
     args = parser.parse_args()
     try:
         return run(args.source_root, args.manifest, args.manifest_sha256, suite=args.suite)
-    except (IsolationError, OSError, ValueError, TypeError) as exc:
+    except (IsolationError, OSError, ValueError, TypeError, subprocess.TimeoutExpired) as exc:
         # Never print offending environment values, file contents or credentials.
         print(json.dumps({'isolation_preflight': 'failed', 'error_type': type(exc).__name__, 'check_failure': str(exc) if isinstance(exc, IsolationError) else 'system preflight failure'}), file=sys.stderr)
         return 125

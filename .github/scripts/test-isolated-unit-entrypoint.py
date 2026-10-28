@@ -78,8 +78,11 @@ class RuntimeFixtures(unittest.TestCase):
         root = Path(directory) / 'src'
         (root / 'backend').mkdir(parents=True)
         (root / 'backend/go.mod').write_text('module example.invalid/test\n\ngo 1.27.3\n')
+        catalog = root / 'frontend/src/constants/platformCatalog.builtin.json'
+        catalog.parent.mkdir(parents=True)
+        catalog.write_text('{}\n')
         receipt = {'tested_commit': 'a' * 40, 'working_tree_diff': '',
-                   'source_sha256': {'backend/go.mod': m.digest((root / 'backend/go.mod').read_bytes()), 'frontend/unshipped.ts': 'b' * 64}}
+                   'source_sha256': {'backend/go.mod': m.digest((root / 'backend/go.mod').read_bytes()), 'frontend/src/constants/platformCatalog.builtin.json': m.digest(catalog.read_bytes()), 'frontend/unshipped.ts': 'b' * 64}}
         (root / 'validation-receipt.json').write_text(json.dumps(receipt))
         doc = {'schema': 1, 'source_commit': 'a' * 40,
                'source_receipt_sha256': m.digest((root / 'validation-receipt.json').read_bytes()),

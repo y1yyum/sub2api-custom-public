@@ -14,6 +14,8 @@ RUN test "$(go version | awk '{print $3}')" = go1.27.3 \
     && dpkg-query -W > /opt/isolation/os-packages.txt
 # Exact source is compiled only in the explicitly offline step below.
 COPY backend /src/backend
+# Exact public catalog fixture only; no broader frontend tree or credentials.
+COPY frontend/src/constants/platformCatalog.builtin.json /src/frontend/src/constants/platformCatalog.builtin.json
 COPY validation-receipt.json /src/validation-receipt.json
 COPY source-manifest.json /opt/isolation/source-manifest.json
 COPY isolated-unit-entrypoint.py /opt/isolation/isolated-unit-entrypoint.py

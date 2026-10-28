@@ -490,6 +490,26 @@
     "backend/internal/securityaudit/prompt_payload_store_integration_test.go": {
       "01842576b3d5c1e2545b5a99ad555d36e28ed306": "d721151b9142200bd2ce1f2c25d1f209afa268b3a2ff38a7cd1195acddb965e0",
       "ac1b8f1271be0d674fa6f074403c1410f30a3a81": "d721151b9142200bd2ce1f2c25d1f209afa268b3a2ff38a7cd1195acddb965e0"
+    },
+    "backend/internal/service/channel_monitor_quota_mode_test.go": {
+      "01842576b3d5c1e2545b5a99ad555d36e28ed306": "5d50055257266a2cd7a1ca66a86fea77c31280acf36544c0d73cbb6e9b490789",
+      "ac1b8f1271be0d674fa6f074403c1410f30a3a81": "5d50055257266a2cd7a1ca66a86fea77c31280acf36544c0d73cbb6e9b490789"
+    },
+    "backend/internal/service/channel_monitor_checker_body_test.go": {
+      "01842576b3d5c1e2545b5a99ad555d36e28ed306": "18e2e482eabe6a8849d3ac3cd063de5beb951fdec438fe8f5cc9cd2d0c0b6991",
+      "ac1b8f1271be0d674fa6f074403c1410f30a3a81": "18e2e482eabe6a8849d3ac3cd063de5beb951fdec438fe8f5cc9cd2d0c0b6991"
+    },
+    "backend/internal/service/grok_free_quota_gate_test.go": {
+      "01842576b3d5c1e2545b5a99ad555d36e28ed306": "173d7762f3f4ee6572411e9d528a1ea104c04d47d886c080ffa78b6147beac72",
+      "ac1b8f1271be0d674fa6f074403c1410f30a3a81": "173d7762f3f4ee6572411e9d528a1ea104c04d47d886c080ffa78b6147beac72"
+    },
+    "backend/internal/service/usage_cleanup_service_test.go": {
+      "01842576b3d5c1e2545b5a99ad555d36e28ed306": "ae69e0ce0d245f4fa008c5294f4da90c296a53ef9a95f8cfd3dc0fe7e1911389",
+      "ac1b8f1271be0d674fa6f074403c1410f30a3a81": "ae69e0ce0d245f4fa008c5294f4da90c296a53ef9a95f8cfd3dc0fe7e1911389"
+    },
+    "backend/internal/service/auth_service_email_bind_test.go": {
+      "01842576b3d5c1e2545b5a99ad555d36e28ed306": "b41e7515f120b1ad3998130e98bb6cb650c428022e9fcbd758a6a92254341816",
+      "ac1b8f1271be0d674fa6f074403c1410f30a3a81": "b41e7515f120b1ad3998130e98bb6cb650c428022e9fcbd758a6a92254341816"
     }
   },
   "validation_support": {
@@ -536,5 +556,8 @@
       ],
       "count": 2
     }
-  ]
+  ],
+  "public_test_inputs": {
+    "frontend/src/constants/platformCatalog.builtin.json": "4b623716857f74de963940450e3bc8e0542f4dcdefefac94cac46da243d3bbc2"
+  }
 }

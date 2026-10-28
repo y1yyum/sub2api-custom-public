@@ -6,9 +6,11 @@ credentials are mounted/passed to the runtime. The output directory is new,
 private and kept for investigation. Failures never fall back to host tests.
 """
 import argparse
+from collections import Counter
 import hashlib
 import json
 import os
+import re
 from pathlib import Path
 import shutil
 import subprocess
@@ -60,9 +62,74 @@ def assert_container(data, image_id, command):
     return checks
 
 
+SERVICE_PACKAGE = 'github.com/Wei-Shaw/sub2api/internal/service'
+FIXED_SERVICE_TESTS = (
+    'TestGroupUsageDateUsesConfiguredTimezoneBoundary',
+    'TestSanitizeOpenAIResponsesToolParameterTypes_RewriteCountIndependentOfHits',
+)
+
+
+def audit_service_coverage(receipt, runs, suite):
+    """Reconcile actual top-level run events, not just intended regex coverage."""
+    result = {'status': 'failed', 'actual_run_counts': dict(sorted(runs.items())), 'errors': []}
+    errors = result['errors']
+    try:
+        audit = receipt['service_partition_audit']
+        names = audit['discovered_tests_examples_fuzz']
+        fixed = list(FIXED_SERVICE_TESTS if suite == 'unit' else FIXED_SERVICE_TESTS[1:])
+        if (not names or len(names) != len(set(names)) or
+                any(not isinstance(n, str) or not n.isidentifier() or
+                    not n.startswith(('Test', 'Example', 'Fuzz')) for n in names)):
+            errors.append('invalid discovered test registry')
+        expected = Counter(names)
+        result['missing_runs'] = sorted((expected - runs).elements())
+        result['extra_or_duplicate_runs'] = sorted((runs - expected).elements())
+        if runs != expected:
+            errors.append('actual top-level runs do not cover registry exactly once')
+        if (receipt['fixed_service_tests'] != fixed or not set(fixed) <= set(names) or
+                (suite == 'integration' and FIXED_SERVICE_TESTS[0] in names)):
+            errors.append('fixed test names differ from reviewed per-suite partition')
+        binary_hash = audit['binary_sha256']
+        if (audit['package'] != SERVICE_PACKAGE or audit['discovery_exit_code'] != 0 or
+                not re.fullmatch('[0-9a-f]{64}', binary_hash)):
+            errors.append('invalid discovery identity or binary hash')
+        partitions = audit['partitions']
+        expected_partitions = ['main', *fixed]
+        if [p['name'] for p in partitions] != expected_partitions:
+            errors.append('unexpected scheduled partitions')
+        covered = []
+        for part in partitions:
+            wanted = sorted(set(names) - set(fixed)) if part['name'] == 'main' else [part['name']]
+            if sorted(part['tests']) != wanted:
+                errors.append('partition membership differs from fixed schedule')
+            matched = [n for n in names if re.fullmatch(part['regex'], n)]
+            if Counter(matched) != Counter(part['tests']):
+                errors.append('partition regex does not match declared membership')
+            covered.extend(part['tests'])
+        if Counter(covered) != expected:
+            errors.append('scheduled partitions are not exhaustive and disjoint')
+        terminal = [r for r in receipt['package_results'] if r['package'] == SERVICE_PACKAGE]
+        result['terminal_partition_counts'] = dict(Counter(r.get('partition') for r in terminal))
+        if Counter(r.get('partition') for r in terminal) != Counter(expected_partitions):
+            errors.append('missing or duplicate terminal partition result')
+        for row in terminal:
+            raw, code = row.get('raw_exit_code'), row.get('exit_code')
+            if (row.get('binary_sha256') != binary_hash or type(raw) is not int or type(code) is not int or
+                    code != (raw if raw >= 0 else 128 - raw)):
+                errors.append('terminal partition binary or exit status mismatch')
+        if receipt.get('test_exit_code') == 0 and any(r.get('exit_code') != 0 for r in terminal):
+            errors.append('green suite contradicts failed service partition')
+    except (KeyError, TypeError, ValueError, AttributeError, re.error) as exc:
+        errors.append('missing or malformed service partition evidence: ' + type(exc).__name__)
+    if not errors:
+        result['status'] = 'passed'
+    return result
+
+
 def collect_stream(work, expected_commit, expected_manifest, suite='unit'):
     """Preserve streamed receipts even after tmpfs/container teardown."""
     receipts, counts, skipped = [], {'pass': 0, 'fail': 0, 'skip': 0}, []
+    service_runs = Counter()
     with (work / 'runtime-output.jsonl').open() as stream, (work / (suite+'-tests.jsonl')).open('w') as tests:
         for line in stream:
             try:
@@ -74,6 +141,9 @@ def collect_stream(work, expected_commit, expected_manifest, suite='unit'):
                 receipts.append(event)
             else:
                 tests.write(line)
+                if (event.get('Package') == SERVICE_PACKAGE and event.get('Action') == 'run' and
+                        isinstance(event.get('Test'), str) and '/' not in event['Test']):
+                    service_runs[event['Test']] += 1
                 if event.get('Test') and event.get('Action') in counts:
                     counts[event['Action']] += 1
                     if event['Action'] == 'skip':
@@ -82,6 +152,7 @@ def collect_stream(work, expected_commit, expected_manifest, suite='unit'):
     receipt['test_event_counts'] = counts
     receipt['skipped_tests'] = skipped
     receipt['streamed_receipt_count'] = len(receipts)
+    receipt['actual_service_coverage'] = audit_service_coverage(receipt, service_runs, suite)
     (work / 'isolation-receipt.json').write_text(json.dumps(receipt, indent=2)+'\n')
     if (not receipts or any(r.get('source_commit') != expected_commit or
                              r.get('manifest_sha256') != expected_manifest or
@@ -93,6 +164,8 @@ def collect_stream(work, expected_commit, expected_manifest, suite='unit'):
             receipt.get('suite') != suite or
             len(receipts) != 2 or receipt.get('test_exit_code') is None):
         raise RuntimeError('incomplete or mismatched runtime isolation evidence')
+    if receipt['actual_service_coverage']['status'] != 'passed':
+        raise RuntimeError('actual service partition coverage failed; see isolation-receipt.json')
     if suite == 'integration' and (receipt.get('fixture_receipt', {}).get('cleanup') not in {'stopped', 'stopped-immediate'} or
                                    not receipt.get('fixture_receipt', {}).get('postgres_ready')):
         raise RuntimeError('integration fixtures were not ready or cleanly stopped')
@@ -135,9 +208,17 @@ def prepare_context(work, suite='unit'):
     actual = {str(p.relative_to(overlay)) for p in (overlay / 'backend').rglob('*') if p.is_file()}
     if actual != backend:
         raise RuntimeError('backend contains unreceipted or missing files')
+    public_inputs = json.loads((ROOT / '.github/upgrade/manifest.json').read_text()).get('public_test_inputs', {})
+    if set(public_inputs) != {'frontend/src/constants/platformCatalog.builtin.json'}:
+        raise RuntimeError('public test input whitelist differs from reviewed scope')
+    for path, expected_sha in public_inputs.items():
+        if (receipt['source_sha256'].get(path) != expected_sha or
+                not (overlay / path).is_file() or (overlay / path).is_symlink() or
+                sha(overlay / path) != expected_sha):
+            raise RuntimeError('unreviewed public test input')
     context.mkdir()
     files = {}
-    for path in sorted(backend | {'validation-receipt.json'}):
+    for path in sorted(backend | {'validation-receipt.json'} | set(public_inputs)):
         source = overlay / path
         if source.is_symlink() or not source.is_file():
             raise RuntimeError('nonregular source rejected: '+path)

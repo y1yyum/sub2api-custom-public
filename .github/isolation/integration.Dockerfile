@@ -9,7 +9,7 @@ FROM ${REDIS_IMAGE} AS redis_binary
 FROM ${PG_IMAGE} AS fixture_dependencies
 USER root
 RUN apt-get update \
-    && apt-get install -y --no-install-recommends python3 gcc g++ git libatomic1 \
+    && apt-get install -y --no-install-recommends ca-certificates python3 gcc g++ git libatomic1 \
     && rm -rf /var/lib/apt/lists/* \
     && test -z "$(getent passwd 65532)" \
     && test -z "$(getent group 65532)" \
@@ -33,6 +33,8 @@ FROM scratch
 COPY --from=fixture_dependencies / /
 # Source is copied only after all network-enabled build steps have finished.
 COPY backend /src/backend
+# Exact public catalog fixture only; no broader frontend tree or credentials.
+COPY frontend/src/constants/platformCatalog.builtin.json /src/frontend/src/constants/platformCatalog.builtin.json
 COPY validation-receipt.json /src/validation-receipt.json
 COPY source-manifest.json /opt/isolation/source-manifest.json
 COPY isolated-unit-entrypoint.py /opt/isolation/isolated-unit-entrypoint.py

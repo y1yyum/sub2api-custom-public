@@ -90,3 +90,16 @@ failure before tests, never an empty passing suite. The existing runtime limits,
 read-only source/root, private tmpfs, nonroot identity and no-mount/no-socket
 boundary remain unchanged. These corrections require a new actual CI run; static
 checks alone do not establish complete backend coverage.
+
+The second compiled unit run completed all 107 packages (56 test binaries),
+including the previously unlinked service/setup packages. Its remaining failures
+exposed unsynchronized restored test stubs and process-global test interference;
+these are not evidence of a deployed service failure. Pinned fixture adapters
+synchronize HTTP capture/counters/cache snapshots and wait for the real quota
+worker completion marker before clearing test state. No assertion, race check,
+allocation threshold or test is removed. The platform catalog synchronization
+fixture now includes exactly its hash-pinned public JSON input, not the frontend
+source tree generally. DNS-independent field-validation cases use a documentation
+IP literal on the existing no-dial validation path; private-IP rejection remains
+tested. Standard CA certificates are installed only for verified dependency
+preparation, with TLS validation retained.

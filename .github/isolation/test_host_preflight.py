@@ -1,5 +1,6 @@
 import copy
 import json
+import re
 import tempfile
 import importlib.util
 from pathlib import Path
@@ -54,14 +55,86 @@ class HostPreflight(unittest.TestCase):
 
 
 class StreamEvidence(unittest.TestCase):
+    def records(self, suite='unit'):
+        fixed = list(host.FIXED_SERVICE_TESTS if suite == 'unit' else host.FIXED_SERVICE_TESTS[1:])
+        main = ['TestMainCase', 'ExampleCatalog', 'FuzzSeed']
+        names = sorted(main + fixed)
+        partitions = [{'name': 'main', 'tests': main, 'regex': '^('+'|'.join(main)+')$'}]
+        partitions += [{'name': n, 'tests': [n], 'regex': '^'+re.escape(n)+'$'} for n in fixed]
+        first = {'record_type': 'isolation_receipt', 'isolation_preflight': 'passed',
+                 'suite': suite, 'source_commit': 'a'*40, 'manifest_sha256': 'b'*64, 'test_exit_code': None}
+        last = dict(first, test_exit_code=0, fixed_service_tests=fixed,
+                    service_partition_audit={'package': host.SERVICE_PACKAGE, 'binary_sha256': 'c'*64,
+                        'discovery_exit_code': 0, 'discovered_tests_examples_fuzz': names, 'partitions': partitions},
+                    package_results=[{'package': host.SERVICE_PACKAGE, 'partition': p['name'],
+                        'binary_sha256': 'c'*64, 'raw_exit_code': 0, 'exit_code': 0} for p in partitions],
+                    fixture_receipt={'cleanup': 'stopped', 'postgres_ready': True})
+        return [first, *[{'Action': 'run', 'Package': host.SERVICE_PACKAGE, 'Test': n} for n in names],
+                {'Action': 'pass', 'Package': 'example', 'Test': 'TestOne'}, last]
+
+    def collect(self, records, suite='unit'):
+        directory = tempfile.TemporaryDirectory()
+        self.addCleanup(directory.cleanup)
+        work = Path(directory.name)
+        (work/'runtime-output.jsonl').write_text(''.join(json.dumps(x)+'\n' for x in records))
+        return work, lambda: host.collect_stream(work, 'a'*40, 'b'*64, suite)
+
+    def test_exact_actual_coverage_both_suites_and_explicit_skips(self):
+        for suite in ('unit', 'integration'):
+            records = self.records(suite)
+            records.insert(-1, {'Action': 'skip', 'Package': host.SERVICE_PACKAGE, 'Test': 'FuzzSeed'})
+            records.insert(-1, {'Action': 'run', 'Package': host.SERVICE_PACKAGE, 'Test': 'FuzzSeed/seed#0'})
+            _, collect = self.collect(records, suite)
+            receipt = collect()
+            self.assertEqual(receipt['actual_service_coverage']['status'], 'passed')
+            self.assertEqual(receipt['test_event_counts'], {'pass': 1, 'fail': 0, 'skip': 1})
+            self.assertEqual(receipt['skipped_tests'][0]['test'], 'FuzzSeed')
+
+    def test_actual_coverage_missing_duplicate_and_unknown_fail_with_persisted_evidence(self):
+        for kind in ('missing', 'duplicate', 'unknown'):
+            records = self.records()
+            if kind == 'missing':
+                records.pop(1)
+            elif kind == 'duplicate':
+                records.insert(1, dict(records[1]))
+            else:
+                records.insert(1, {'Action': 'run', 'Package': host.SERVICE_PACKAGE, 'Test': 'TestUnknown'})
+            work, collect = self.collect(records)
+            with self.subTest(kind=kind), self.assertRaises(RuntimeError):
+                collect()
+            persisted = json.loads((work/'isolation-receipt.json').read_text())
+            self.assertEqual(persisted['actual_service_coverage']['status'], 'failed')
+            self.assertEqual(persisted['test_event_counts']['pass'], 1)
+            self.assertTrue(persisted['actual_service_coverage']['errors'])
+
+    def test_missing_audit_and_bad_terminal_partition_evidence_fail_closed(self):
+        for kind in ('audit', 'missing', 'duplicate', 'hash', 'exit', 'fixed', 'membership'):
+            records = self.records()
+            last = records[-1]
+            if kind == 'audit':
+                del last['service_partition_audit']
+            elif kind == 'missing':
+                last['package_results'].pop()
+            elif kind == 'duplicate':
+                last['package_results'].append(dict(last['package_results'][0]))
+            elif kind == 'hash':
+                last['package_results'][0]['binary_sha256'] = 'd'*64
+            elif kind == 'exit':
+                del last['package_results'][0]['exit_code']
+            elif kind == 'fixed':
+                last['fixed_service_tests'] = []
+            else:
+                last['service_partition_audit']['partitions'][0]['tests'].pop()
+            work, collect = self.collect(records)
+            with self.subTest(kind=kind), self.assertRaises(RuntimeError):
+                collect()
+            self.assertEqual(json.loads((work/'isolation-receipt.json').read_text())['actual_service_coverage']['status'], 'failed')
+
     def test_preserves_stopped_container_receipts_and_reports_skips(self):
         with tempfile.TemporaryDirectory() as directory:
             work = Path(directory)
-            first = {'record_type': 'isolation_receipt', 'isolation_preflight': 'passed',
-                     'suite':'unit', 'source_commit': 'a'*40, 'manifest_sha256': 'b'*64, 'test_exit_code': None}
-            last = dict(first, test_exit_code=0)
-            records = [first, {'Action':'pass','Package':'example','Test':'TestOne'},
-                       {'Action':'skip','Package':'example','Test':'TestInheritedSkip'}, last]
+            records = self.records()
+            records.insert(-1, {'Action':'skip','Package':'example','Test':'TestInheritedSkip'})
             (work/'runtime-output.jsonl').write_text(''.join(json.dumps(x)+'\n' for x in records))
             receipt = host.collect_stream(work, 'a'*40, 'b'*64)
             self.assertEqual(receipt['test_event_counts'], {'pass':1,'fail':0,'skip':1})

@@ -23,6 +23,9 @@ class CompiledContracts(unittest.TestCase):
         (root / 'backend/go.mod').write_text('module example.invalid/app\n\ngo 1.27.3\n')
         (root / 'backend/main_test.go').write_text('package app\n')
         (root / 'backend/plain/main.go').write_text('package plain\n')
+        catalog = root / 'frontend/src/constants/platformCatalog.builtin.json'
+        catalog.parent.mkdir(parents=True)
+        catalog.write_text('{}\n')
         hashes = {p.relative_to(root).as_posix(): m.file_digest(p) for p in root.rglob('*') if p.is_file()}
         receipt = {'tested_commit': 'a' * 40, 'working_tree_diff': '', 'source_sha256': hashes}
         if support:
@@ -134,22 +137,24 @@ class CompiledContracts(unittest.TestCase):
                     m.verify_compiled(root, doc, sha, 'unit', output)
 
     def test_every_binary_runs_even_after_failure_in_correct_directory(self):
-        records = [{'package': 'example/a', 'directory': 'backend/a', 'binary': 'binaries/a.test', 'binary_sha256': 'a' * 64},
+        records = [{'package': m.SERVICE_PACKAGE, 'directory': 'backend/a', 'binary': 'binaries/a.test', 'binary_sha256': 'a' * 64},
                    {'package': 'example/b', 'directory': 'backend/b', 'binary': 'binaries/b.test', 'binary_sha256': 'b' * 64},
                    {'package': 'example/c', 'directory': 'backend/c', 'binary': None}]
-        execute = Mock(side_effect=[SimpleNamespace(returncode=1), SimpleNamespace(returncode=0)])
+        listing = 'TestNormal\n' + m.FIXED_SERVICE_TESTS[1] + '\n'
+        execute = Mock(side_effect=[SimpleNamespace(returncode=0, stdout=listing, stderr=''),
+                                   SimpleNamespace(returncode=1), SimpleNamespace(returncode=0), SimpleNamespace(returncode=0)])
         doc = {'source_commit': 'a' * 40, 'source_receipt_sha256': 'b' * 64, 'files': {}}
         with patch.object(m, 'verify_compiled', return_value=({'package_count': 3, 'packages': records}, 'c' * 64)), contextlib.redirect_stdout(io.StringIO()):
-            result = m.execute_suite(Path('/src'), doc, m.test_environment(), 'd' * 64, 'unit', execute)
+            result = m.execute_suite(Path('/src'), doc, m.test_environment(), 'd' * 64, 'integration', execute)
         self.assertEqual(result['test_exit_code'], 1)
-        self.assertEqual(execute.call_count, 2)
-        self.assertEqual([call.kwargs['cwd'] for call in execute.call_args_list], [Path('/src/backend/a'), Path('/src/backend/b')])
-        for call in execute.call_args_list:
+        self.assertEqual(execute.call_count, 4)
+        self.assertEqual([call.kwargs['cwd'] for call in execute.call_args_list], [Path('/src/backend/a')] * 3 + [Path('/src/backend/b')])
+        for call in execute.call_args_list[1:]:
             self.assertEqual(call.args[0][:3], [m.GO, 'tool', 'test2json'])
             self.assertIn('-test.v=test2json', call.args[0])
             self.assertIn('-test.count=1', call.args[0])
             self.assertIn('-test.timeout=20m', call.args[0])
-        self.assertEqual(result['package_results'][-1]['status'], 'no_test_files')
+        self.assertEqual(result['package_results'][0]['status'], 'no_test_files')
 
     def test_securityaudit_support_exact_path_and_hash_only(self):
         for allowed in (True, False):
