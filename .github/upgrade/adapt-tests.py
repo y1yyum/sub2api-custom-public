@@ -55,6 +55,16 @@ def adapt(path, text):
 	}
 }''')
         return text
+    if path == 'backend/internal/service/gemini_oauth_service_test.go':
+        start = text.index('func TestGeminiOAuthService_GenerateAuthURL_RedirectURIStrategy(')
+        end = text.index('\nfunc TestValidateTierID(', start)
+        section = text[start:end]
+        setup = '\tt.Setenv(geminicli.GeminiCLIOAuthClientSecretEnv, "test-built-in-secret")'
+        if section.count(setup) != 1 or section.count('geminicli.GeminiCLIOAuthClientID') != 3:
+            raise ValueError('unexpected Gemini service authorization URL fixture')
+        section = section.replace(setup, setup + '\n\tt.Setenv(geminicli.GeminiCLIOAuthClientIDEnv, "custom-test-client")')
+        section = re.sub(r'\bgeminicli\.GeminiCLIOAuthClientID\b', '"custom-test-client"', section)
+        return text[:start] + section + text[end:]
     if path == 'backend/internal/server/api_contract_test.go':
         anchor = '"openai_fast_policy_settings": {'
         if text.count(anchor) != 2:

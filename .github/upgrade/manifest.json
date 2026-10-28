@@ -450,6 +450,10 @@
     "frontend/src/views/user/__tests__/ChannelStatusView.mode.spec.ts": {
       "01842576b3d5c1e2545b5a99ad555d36e28ed306": "d6bf0b8ab310d8d4d029f1ba89015100936003ccced0191c95f53f22ce1fe775",
       "ac1b8f1271be0d674fa6f074403c1410f30a3a81": "d6bf0b8ab310d8d4d029f1ba89015100936003ccced0191c95f53f22ce1fe775"
+    },
+    "backend/internal/service/gemini_oauth_service_test.go": {
+      "01842576b3d5c1e2545b5a99ad555d36e28ed306": "012362900b675dcbd6b221ce3f5495b3bbc7d6476a85f05bc3924ebab17231fe",
+      "ac1b8f1271be0d674fa6f074403c1410f30a3a81": "012362900b675dcbd6b221ce3f5495b3bbc7d6476a85f05bc3924ebab17231fe"
     }
   }
 }

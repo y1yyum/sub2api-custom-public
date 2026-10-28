@@ -1,5 +1,12 @@
 # Stable v0.2.18 staged integration
 
+> **Backend regression execution is quarantined (2026-10-28).** The unit and
+> integration matrix jobs deliberately fail at their first step, before setup
+> or test execution. This is a blocking failure, not a skip and not a test pass.
+> Existing build/vet/vulnerability checks, frontend jobs and static preservation
+> checks remain active. Do not manually run the backend commands below while
+> this quarantine is in effect.
+
 This series transplants content, not Git ancestry. The public custom repository
 is a snapshot. Production source always comes from the PR checkout.
 
@@ -52,7 +59,8 @@ tests: an overridden path missing at the target is not restored from baseline.
 Reviewed custom-contract adaptations live in `adapt-tests.py`. The manifest
 pins SHA256 of each eligible .16/.18 input; unexpected bytes fail preparation.
 The receipt records original/adapted hashes and the adapter's own hash. OAuth
-URL/scope tests use synthetic runtime credentials instead of built-in values;
+URL/scope tests (including the Gemini service authorization-URL matrix) use
+synthetic runtime credentials instead of built-in values;
 missing credentials are asserted to fail closed. Admin-settings JSON fixtures
 explicitly include the custom unified-status boolean. The frontend adapter
 retains branding link checks, expands admin redirects across backend modes, and
@@ -114,3 +122,36 @@ rather than accepting a skipped suite. Upstream also already marks
 not add that skip or claim the corresponding behavior has passed. Track that
 coverage gap separately; restored tests and passing jobs are not proof of zero
 skips or complete end-to-end deployment coverage.
+
+## Temporary fail-closed backend execution quarantine
+
+A local full-unit-suite operation was rejected by execution safety review for a
+potential external Google Cloud request. The rejected action was an output poll
+of an existing suite; neither the exact originating test nor actual data
+transmission has been established. Endpoint-looking strings can occur in local
+proxy fixtures, so this is not a claim that credentials were leaked. Until the
+transport path is proven safe, both backend-regression matrix jobs exit nonzero
+before checkout/setup/tests. No test selection, assertion or build tag is
+removed to produce a misleading green result.
+
+Removal conditions (all required):
+
+1. Identify the implicated test/request or otherwise establish the complete
+   relevant transport path; distinguish a logical URL from the actual socket
+   destination. Use source/fixture evidence without exposing credentials.
+2. Demonstrate that the relevant unit tests use synthetic credentials and
+   controlled localhost/mock transports, or obtain specific user authorization
+   for any intentionally external request and its data. Do not silently convert
+   a unit test to a live service test.
+3. Review any missing mock/dependency correction while retaining assertions;
+   lock adapted fixture inputs and record the changes. Do not suppress failures.
+4. Obtain explicit approval for a narrowly scoped validation using the reviewed
+   evidence. A denial must not be retried indirectly or via another executor.
+5. After the approved isolation check, remove this guard in an independently
+   reviewed change, then rerun the actual applicable unit/integration/race
+   suites and report their exact results. Until then this PR is not ready.
+
+The guard is an unconditional first step of both matrix jobs; it has no
+continue-on-error, success fallback or conditional bypass. This temporary
+quarantine does not broaden authority to contact external providers, publish a
+release, migrate a live database or merge a PR.
