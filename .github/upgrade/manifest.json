@@ -538,6 +538,14 @@
     "backend/internal/service/account_test_service_openai_test.go": {
       "01842576b3d5c1e2545b5a99ad555d36e28ed306": "e998a1ab588833ca9412d171d3fb37fdc3091829e8f23be7bb62024d14594c32",
       "ac1b8f1271be0d674fa6f074403c1410f30a3a81": "e998a1ab588833ca9412d171d3fb37fdc3091829e8f23be7bb62024d14594c32"
+    },
+    "backend/internal/service/openai_ws_http_bridge_test.go": {
+      "01842576b3d5c1e2545b5a99ad555d36e28ed306": "b3390a8dd320b5dacc7fd2706f45e5b1567f8e2e30ff1c5ab98ed1a10588ed59",
+      "ac1b8f1271be0d674fa6f074403c1410f30a3a81": "845a155883e8aaf13cd203eb2734c01f5497299ed295f744b51c78847cf0ab55"
+    },
+    "backend/internal/service/content_moderation_cyber_test.go": {
+      "01842576b3d5c1e2545b5a99ad555d36e28ed306": "28d118cf4a60441e0906c34d0bd233db14c90b5708fd53ecbcf1d06d163fef0f",
+      "ac1b8f1271be0d674fa6f074403c1410f30a3a81": "28d118cf4a60441e0906c34d0bd233db14c90b5708fd53ecbcf1d06d163fef0f"
     }
   },
   "validation_support": {
