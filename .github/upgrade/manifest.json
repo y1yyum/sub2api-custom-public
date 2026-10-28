@@ -2,8 +2,19 @@
   "content_base": "01842576b3d5c1e2545b5a99ad555d36e28ed306",
   "target": "ac1b8f1271be0d674fa6f074403c1410f30a3a81",
   "custom_base": "357a6f0f5bd6cadc96d1caec19aeb8da52eeb55b",
-  "test_revision": "01842576b3d5c1e2545b5a99ad555d36e28ed306",
-  "test_overrides": {},
+  "test_revision": "ac1b8f1271be0d674fa6f074403c1410f30a3a81",
+  "test_overrides": {
+    "backend/internal/handler/payment_webhook_handler_test.go": "01842576b3d5c1e2545b5a99ad555d36e28ed306",
+    "backend/internal/payment/provider/alipay_test.go": "01842576b3d5c1e2545b5a99ad555d36e28ed306",
+    "backend/internal/payment/provider/easypay_confirm_test.go": "01842576b3d5c1e2545b5a99ad555d36e28ed306",
+    "backend/internal/payment/provider/easypay_query_test.go": "01842576b3d5c1e2545b5a99ad555d36e28ed306",
+    "backend/internal/service/payment_notification_confirm_test.go": "01842576b3d5c1e2545b5a99ad555d36e28ed306",
+    "backend/internal/service/payment_order_type_test.go": "01842576b3d5c1e2545b5a99ad555d36e28ed306",
+    "backend/internal/service/payment_refund_pending_hold_test.go": "01842576b3d5c1e2545b5a99ad555d36e28ed306",
+    "backend/internal/service/payment_refund_test.go": "01842576b3d5c1e2545b5a99ad555d36e28ed306",
+    "backend/internal/service/payment_resume_service_test.go": "01842576b3d5c1e2545b5a99ad555d36e28ed306",
+    "frontend/src/views/user/__tests__/StripePaymentView.spec.ts": "01842576b3d5c1e2545b5a99ad555d36e28ed306"
+  },
   "preserved_paths": [
     ".github/scripts/test-smoke.sh",
     ".github/workflows/ci.yml",
