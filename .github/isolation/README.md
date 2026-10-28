@@ -48,13 +48,58 @@ The output directory must be new and outside the checkout. No Docker socket is
 mounted into the test container. The host Docker CLI performs creation/inspection
 and copies receipts after the test; test code cannot control the daemon.
 
-## Integration remains blocked
+## Isolated integration follow-up
 
-The existing integration fixtures invoke Docker/Testcontainers and access mapped
-PostgreSQL/Redis endpoints. They cannot run unchanged in this boundary. Their CI
-job continues to fail explicitly before execution; no skipped-green replacement.
-A separate reviewed local PostgreSQL/Redis fixture implementation is needed.
-Existing inherited skips are reported in test JSON, not erased or counted as
-passed. This work does not merge, publish an application image, deploy or migrate
-a live database. Actual unit success must be established by the new CI run; design
-and Python validator tests alone do not prove application correctness.
+The separate integration follow-up removes test access to Docker entirely. It
+uses the same host/runtime preflights with an official PostgreSQL 18.1 / Redis
+8.4 dependency image, fresh loopback databases and per-test private Redis Unix
+sockets. The prior unrestricted integration command is not an execution path.
+See [integration runtime](INTEGRATION_RUNTIME.md) and
+[fixture adaptations](../upgrade/INTEGRATION_ISOLATION.md).
+
+```sh
+python3 .github/scripts/run-isolated-unit.py --suite integration /tmp/sub2api-isolated-integration-new
+```
+
+Both lanes remain fail-closed on isolation/fixture failure. Source assertions are
+not skipped to obtain green. Prompt-audit's six PostgreSQL tests and three Redis-dependent tests are explicitly
+classified as integration instead of silently skipping the unit lane without a
+DSN. Inherited upstream skips are individually recorded in artifacts; they are
+not passing coverage. Actual CI execution/receipts are required before claiming
+either application suite passes. No merge, release, deployment or live database
+operation is authorized by this test harness.
+
+## Offline compile-only images (storage correction)
+
+The first isolated run proved the runtime boundary, but a cold race build filled
+its 4 GiB private tmpfs: two packages never linked. Increasing writable host
+access or disabling race/readonly checks is not the fix. Dependencies are still
+prepared separately; the exact receipted source is then compiled with
+`go test -c` in an explicit Docker build `RUN --network=none` step. This step
+never executes a test binary, package init, or TestMain. Package/test-file and
+binary-hash inventory is preserved in `compile-receipt.json`. Runtime verifies
+that inventory and runs every binary, in its original package working directory,
+through `test2json`, with the same tags, race instrumentation, count and timeout.
+There is no fallback to networked or runtime suite compilation. Tests that
+explicitly exercise code generation (the Ent schema fixture) retain that behavior
+inside the verified offline runtime and use private temporary scratch.
+
+`image-build.log` and `build-capacity.json` preserve compile failures and actual
+Docker-storage free space / runner memory observations. Build failure is a hard
+failure before tests, never an empty passing suite. The existing runtime limits,
+read-only source/root, private tmpfs, nonroot identity and no-mount/no-socket
+boundary remain unchanged. These corrections require a new actual CI run; static
+checks alone do not establish complete backend coverage.
+
+The second compiled unit run completed all 107 packages (56 test binaries),
+including the previously unlinked service/setup packages. Its remaining failures
+exposed unsynchronized restored test stubs and process-global test interference;
+these are not evidence of a deployed service failure. Pinned fixture adapters
+synchronize HTTP capture/counters/cache snapshots and wait for the real quota
+worker completion marker before clearing test state. No assertion, race check,
+allocation threshold or test is removed. The platform catalog synchronization
+fixture now includes exactly its hash-pinned public JSON input, not the frontend
+source tree generally. DNS-independent field-validation cases use a documentation
+IP literal on the existing no-dial validation path; private-IP rejection remains
+tested. Standard CA certificates are installed only for verified dependency
+preparation, with TLS validation retained.

@@ -78,8 +78,11 @@ class RuntimeFixtures(unittest.TestCase):
         root = Path(directory) / 'src'
         (root / 'backend').mkdir(parents=True)
         (root / 'backend/go.mod').write_text('module example.invalid/test\n\ngo 1.27.3\n')
+        catalog = root / 'frontend/src/constants/platformCatalog.builtin.json'
+        catalog.parent.mkdir(parents=True)
+        catalog.write_text('{}\n')
         receipt = {'tested_commit': 'a' * 40, 'working_tree_diff': '',
-                   'source_sha256': {'backend/go.mod': m.digest((root / 'backend/go.mod').read_bytes()), 'frontend/unshipped.ts': 'b' * 64}}
+                   'source_sha256': {'backend/go.mod': m.digest((root / 'backend/go.mod').read_bytes()), 'frontend/src/constants/platformCatalog.builtin.json': m.digest(catalog.read_bytes()), 'frontend/unshipped.ts': 'b' * 64}}
         (root / 'validation-receipt.json').write_text(json.dumps(receipt))
         doc = {'schema': 1, 'source_commit': 'a' * 40,
                'source_receipt_sha256': m.digest((root / 'validation-receipt.json').read_bytes()),
@@ -110,9 +113,11 @@ class RuntimeFixtures(unittest.TestCase):
                 self.assert_blocks_execution(lambda: m.verify_sources(root, manifest, sha))
 
     def test_test_command_has_no_coverage_reducing_filters(self):
-        self.assertEqual(m.COMMAND, [m.GO, 'test', '-json', '-p', '1', '-race', '-count=1', '-tags=unit', '-mod=readonly', '-timeout=20m', './...'])
-        self.assertNotIn('-run', m.COMMAND)
-        self.assertNotIn('-skip', m.COMMAND)
+        self.assertEqual(m.TEST_FLAGS, ['-test.v=test2json', '-test.timeout=20m', '-test.count=1'])
+        command = m.binary_command({'package': 'example.invalid/test', 'binary': 'binaries/fake.test'})
+        self.assertEqual(command[:3], [m.GO, 'tool', 'test2json'])
+        self.assertNotIn('-run', command)
+        self.assertNotIn('-skip', command)
 
 
 if __name__ == '__main__':
