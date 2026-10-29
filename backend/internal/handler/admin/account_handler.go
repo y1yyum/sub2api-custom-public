@@ -28,6 +28,7 @@ import (
 	"github.com/Wei-Shaw/sub2api/internal/pkg/response"
 	"github.com/Wei-Shaw/sub2api/internal/pkg/timezone"
 	"github.com/Wei-Shaw/sub2api/internal/pkg/typesafe"
+	"github.com/Wei-Shaw/sub2api/internal/pkg/usagestats"
 	"github.com/Wei-Shaw/sub2api/internal/pkg/xai"
 	"github.com/Wei-Shaw/sub2api/internal/service"
 
@@ -769,32 +770,9 @@ func (h *AccountHandler) List(c *gin.Context) {
 		}
 	}
 
-	// 始终获取窗口费用（PostgreSQL 聚合查询）
+	// Per-account start times are captured once; one bounded query replaces N queries.
 	if len(windowCostAccountIDs) > 0 {
-		windowCosts = make(map[int64]float64)
-		var mu sync.Mutex
-		g, gctx := errgroup.WithContext(c.Request.Context())
-		g.SetLimit(10) // 限制并发数
-
-		for i := range accounts {
-			acc := &accounts[i]
-			if !acc.IsAnthropicOAuthOrSetupToken() || acc.GetWindowCostLimit() <= 0 {
-				continue
-			}
-			accCopy := acc // 闭包捕获
-			g.Go(func() error {
-				// 使用统一的窗口开始时间计算逻辑（考虑窗口过期情况）
-				startTime := accCopy.GetCurrentWindowStartTime()
-				stats, err := h.accountUsageService.GetAccountWindowStats(gctx, accCopy.ID, startTime)
-				if err == nil && stats != nil {
-					mu.Lock()
-					windowCosts[accCopy.ID] = stats.StandardCost // 使用标准费用
-					mu.Unlock()
-				}
-				return nil // 不返回错误，允许部分失败
-			})
-		}
-		_ = g.Wait()
+		windowCosts = loadAccountWindowCosts(c.Request.Context(), h.accountUsageService, accountWindowStarts(accounts))
 	}
 
 	// Build response with concurrency info
@@ -3390,4 +3368,42 @@ func sanitizeExtraBaseRPM(extra map[string]any) {
 		v = 10000
 	}
 	extra["base_rpm"] = v
+}
+
+// accountWindowStarts keeps each eligible account's own effective window. Do not
+// replace these starts with a shared minimum: that over-counts newer windows.
+func accountWindowStarts(accounts []service.Account) map[int64]time.Time {
+	starts := make(map[int64]time.Time)
+	for i := range accounts {
+		account := &accounts[i]
+		if !account.IsAnthropicOAuthOrSetupToken() || account.GetWindowCostLimit() <= 0 {
+			continue
+		}
+		if _, exists := starts[account.ID]; !exists {
+			starts[account.ID] = account.GetCurrentWindowStartTime()
+		}
+	}
+	return starts
+}
+
+type accountWindowStatsByStartReader interface {
+	GetAccountWindowStatsBatchByStart(context.Context, map[int64]time.Time) (map[int64]*usagestats.AccountStats, error)
+}
+
+func loadAccountWindowCosts(ctx context.Context, reader accountWindowStatsByStartReader, starts map[int64]time.Time) map[int64]float64 {
+	costs := make(map[int64]float64)
+	if len(starts) == 0 {
+		return costs
+	}
+	stats, err := reader.GetAccountWindowStatsBatchByStart(ctx, starts)
+	if err != nil {
+		// Account list decorations remain best effort; no retry/fan-out on failure.
+		return costs
+	}
+	for id, stat := range stats {
+		if _, requested := starts[id]; requested && stat != nil {
+			costs[id] = stat.StandardCost
+		}
+	}
+	return costs
 }
