@@ -31,8 +31,8 @@ import (
 	"github.com/Wei-Shaw/sub2api/internal/pkg/geminicli"
 	"github.com/Wei-Shaw/sub2api/internal/pkg/openai"
 	"github.com/Wei-Shaw/sub2api/internal/pkg/openai_compat"
+	"github.com/Wei-Shaw/sub2api/internal/pkg/probehttp"
 	"github.com/Wei-Shaw/sub2api/internal/pkg/xai"
-	"github.com/Wei-Shaw/sub2api/internal/util/urlvalidator"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"github.com/tidwall/gjson"
@@ -274,7 +274,7 @@ func NewAccountTestService(
 		claudeTokenProvider:       claudeTokenProvider,
 		grokTokenProvider:         grokTokenProvider,
 		antigravityGatewayService: antigravityGatewayService,
-		httpUpstream:              httpUpstream,
+		httpUpstream:              newAccountProbeHTTPUpstream(httpUpstream, cfg),
 		cfg:                       cfg,
 		tlsFPProfileService:       tlsFPProfileService,
 	}
@@ -284,18 +284,7 @@ func (s *AccountTestService) validateUpstreamBaseURL(raw string) (string, error)
 	if s.cfg == nil {
 		return "", errors.New("config is not available")
 	}
-	if !s.cfg.Security.URLAllowlist.Enabled {
-		return urlvalidator.ValidateURLFormat(raw, s.cfg.Security.URLAllowlist.AllowInsecureHTTP)
-	}
-	normalized, err := urlvalidator.ValidateHTTPSURL(raw, urlvalidator.ValidationOptions{
-		AllowedHosts:     s.cfg.Security.URLAllowlist.UpstreamHosts,
-		RequireAllowlist: true,
-		AllowPrivate:     s.cfg.Security.URLAllowlist.AllowPrivateHosts,
-	})
-	if err != nil {
-		return "", err
-	}
-	return normalized, nil
+	return probehttp.ValidateURL(raw, accountProbeOptions(s.cfg))
 }
 
 // generateSessionString generates a Claude Code style session string.
@@ -1867,7 +1856,7 @@ func (s *AccountTestService) testGrokRealtime(c *gin.Context, ctx context.Contex
 		dialer = newDefaultOpenAIWSClientDialer()
 	}
 
-	dialCtx, cancel := context.WithTimeout(ctx, grokRealtimeProbeTimeout)
+	dialCtx, cancel := context.WithTimeout(WithHTTPUpstreamAccountProbe(ctx, s.cfg), grokRealtimeProbeTimeout)
 	defer cancel()
 
 	conn, status, _, dialErr := dialer.Dial(dialCtx, wsURL, headers, s.grokTestProxyURL(account))

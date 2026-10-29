@@ -469,7 +469,13 @@ func (h *GatewayHandler) GeminiV1BetaModels(c *gin.Context) {
 	}
 	if sessionHash == "" && cachedContentBinding == nil {
 		// Fallback: 使用通用的会话哈希生成逻辑（适用于其他客户端）
-		parsedReq, _ := service.ParseGatewayRequest(service.NewRequestBodyRef(body), domain.PlatformGemini)
+		parsedReq, parseErr := service.ParseGatewayRequest(service.NewRequestBodyRef(body), domain.PlatformGemini)
+		if errors.Is(parseErr, service.ErrDuplicateModelField) {
+			googleError(c, http.StatusBadRequest, parseErr.Error())
+			return
+		}
+		// Gemini routes by URL, not body.model. Other optional session-hash
+		// parse errors retain the existing nil-hash fallback.
 		if parsedReq != nil {
 			parsedReq.SessionContext = &service.SessionContext{
 				ClientIP:  ip.GetClientIP(c),

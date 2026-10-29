@@ -16,6 +16,18 @@ def replace_once(text, pattern, replacement):
 
 
 def adapt(path, text):
+    if path in {'backend/internal/handler/openai_gateway_ws_model_allowlist_test.go',
+                'backend/internal/server/routes/gateway_model_allowlist_test.go'}:
+        fixture = Path(__file__).with_name('adapt-model-uniqueness.py')
+        return runpy.run_path(str(fixture))['adapt'](path, text)
+    if path == 'backend/internal/service/upstream_billing_probe_test.go':
+        # Cadence/concurrency fixtures intentionally use loopback URLs with a
+        # fake HTTPUpstream. Retain every assertion; opt in via the same explicit
+        # per-config private-service setting available to operators.
+        anchor = '\taccountTestService := &AccountTestService{accountRepo: repo, httpUpstream: upstream, cfg: cfg}'
+        if text.count(anchor) != 1:
+            raise ValueError('billing probe fixture helper changed')
+        return text.replace(anchor, '\tcfg.Security.AccountProbe.AllowPrivateHosts = true\n' + anchor)
     if path == 'backend/internal/pkg/antigravity/oauth_test.go':
         start = text.index('func TestConstants_')
         before, section = text[:start], text[start:]
