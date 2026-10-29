@@ -5,6 +5,7 @@ package service
 import (
 	"bytes"
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
@@ -293,4 +294,94 @@ type customCancelCloseBody struct {
 func (b *customCancelCloseBody) Close() error {
 	b.once.Do(func() { close(b.closed) })
 	return b.ReadCloser.Close()
+}
+
+// Exercise the common Responses loop, not the API-key passthrough loop.
+func TestCommonCanceledBareErrorDrainsAuthoritativeUsage(t *testing.T) {
+	for _, ending := range []string{"response.failed", "cyber_failed", "eof"} {
+		t.Run(ending, func(t *testing.T) {
+			ctx, cancel := context.WithCancel(context.Background())
+			cancel()
+			c, recorder := newOpenAIPartialUsageContext(t, nil)
+			c.Request = c.Request.WithContext(ctx)
+			payload := partialOpenAIResponsesSSE(false) + "\n" +
+				"data: {\"type\":\"error\",\"error\":{\"code\":\"upstream_error\",\"message\":\"temporary error\"}}\n\n"
+			if ending == "eof" {
+				payload += "data: {\"type\":\"response.in_progress\",\"response\":{\"usage\":{\"input_tokens\":29,\"output_tokens\":7}}}\n\n"
+			} else {
+				code := "upstream_error"
+				if ending == "cyber_failed" {
+					code = "cyber_policy"
+				}
+				payload += "data: {\"type\":\"response.failed\",\"response\":{\"id\":\"resp_final\",\"error\":{\"code\":\"" + code + "\",\"message\":\"failed\"},\"usage\":{\"input_tokens\":29,\"output_tokens\":7}}}\n\n"
+			}
+			for _, line := range strings.Split(payload, "\n") {
+				if data, ok := extractOpenAISSEDataLine(line); ok {
+					require.True(t, json.Valid([]byte(data)), "fixture must exercise valid upstream events")
+				}
+			}
+			closed := make(chan struct{})
+			response := &http.Response{Header: http.Header{}, Body: &customCancelCloseBody{ReadCloser: io.NopCloser(strings.NewReader(payload)), closed: closed}}
+			svc := newOpenAIPartialUsageService(nil)
+			result, err := svc.handleStreamingResponse(context.Background(), response, c, newOpenAIPartialUsageAccount(false), time.Now(), "gpt", "gpt")
+			require.Error(t, err)
+			require.NotNil(t, result)
+			require.True(t, result.clientDisconnect)
+			require.Equal(t, 29, result.usage.InputTokens)
+			require.Equal(t, 7, result.usage.OutputTokens)
+			var replay *UpstreamFailoverError
+			require.False(t, errors.As(err, &replay))
+			_, compact := asOpenAICompactFallbackSignal(err)
+			require.False(t, compact)
+			require.Empty(t, recorder.Body.String())
+			select {
+			case <-closed:
+			default:
+				t.Fatal("common drain did not close body")
+			}
+			if ending == "cyber_failed" {
+				mark := GetOpsCyberPolicy(c)
+				require.NotNil(t, mark)
+				require.Equal(t, "cyber_policy", mark.Code)
+				require.Equal(t, 29, mark.UpstreamInTok)
+				require.Equal(t, 7, mark.UpstreamOutTok)
+			}
+		})
+	}
+}
+
+func TestCommonCanceledBareErrorWaitsForBoundedDrain(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+	c, recorder := newOpenAIPartialUsageContext(t, nil)
+	c.Request = c.Request.WithContext(ctx)
+	reader, writer := io.Pipe()
+	defer reader.Close()
+	defer writer.Close()
+	go func() {
+		_, _ = io.WriteString(writer, "data: {\"type\":\"error\",\"error\":{\"code\":\"upstream_error\",\"message\":\"temporary error\"}}\n\n")
+	}()
+	svc := newOpenAIPartialUsageService(nil)
+	svc.cfg.Gateway.StreamDataIntervalTimeout = 1
+	type outcome struct {
+		result *openaiStreamingResult
+		err    error
+	}
+	done := make(chan outcome, 1)
+	go func() {
+		result, err := svc.handleStreamingResponse(context.Background(), &http.Response{Header: http.Header{}, Body: reader}, c, newOpenAIPartialUsageAccount(false), time.Now(), "gpt", "gpt")
+		done <- outcome{result, err}
+	}()
+	select {
+	case got := <-done:
+		require.ErrorContains(t, got.err, "timeout", "bare error must not finalize the common drain")
+		require.True(t, got.result.clientDisconnect)
+		var replay *UpstreamFailoverError
+		require.False(t, errors.As(got.err, &replay))
+	case <-time.After(3 * time.Second):
+		t.Fatal("common bare error drain exceeded its finite budget")
+	}
+	require.Empty(t, recorder.Body.String())
+	_, err := writer.Write([]byte("late"))
+	require.Error(t, err, "reader must close after bounded drain")
 }
