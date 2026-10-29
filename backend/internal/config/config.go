@@ -732,12 +732,18 @@ type ForwardedClientIPSettings struct {
 	Headers          []string
 }
 
+type AccountProbeSecurityConfig struct {
+	// Explicitly permit RFC1918/ULA and loopback model services for probes only.
+	AllowPrivateHosts bool `mapstructure:"allow_private_hosts"`
+}
+
 type SecurityConfig struct {
-	URLAllowlist    URLAllowlistConfig   `mapstructure:"url_allowlist"`
-	ResponseHeaders ResponseHeaderConfig `mapstructure:"response_headers"`
-	CSP             CSPConfig            `mapstructure:"csp"`
-	ProxyFallback   ProxyFallbackConfig  `mapstructure:"proxy_fallback"`
-	ProxyProbe      ProxyProbeConfig     `mapstructure:"proxy_probe"`
+	AccountProbe    AccountProbeSecurityConfig `mapstructure:"account_probe"`
+	URLAllowlist    URLAllowlistConfig         `mapstructure:"url_allowlist"`
+	ResponseHeaders ResponseHeaderConfig       `mapstructure:"response_headers"`
+	CSP             CSPConfig                  `mapstructure:"csp"`
+	ProxyFallback   ProxyFallbackConfig        `mapstructure:"proxy_fallback"`
+	ProxyProbe      ProxyProbeConfig           `mapstructure:"proxy_probe"`
 	// TrustForwardedIPForAPIKeyACL enables legacy raw forwarded-header takeover.
 	// When disabled, server.trusted_proxies is authoritative for all client-IP consumers.
 	TrustForwardedIPForAPIKeyACL  bool                                       `mapstructure:"trust_forwarded_ip_for_api_key_acl"`
@@ -2114,6 +2120,7 @@ func setDefaults() {
 	})
 	viper.SetDefault("security.url_allowlist.crs_hosts", []string{})
 	viper.SetDefault("security.url_allowlist.allow_private_hosts", true)
+	viper.SetDefault("security.account_probe.allow_private_hosts", false)
 	viper.SetDefault("security.url_allowlist.allow_insecure_http", true)
 	viper.SetDefault("security.response_headers.enabled", true)
 	viper.SetDefault("security.response_headers.additional_allowed", []string{})

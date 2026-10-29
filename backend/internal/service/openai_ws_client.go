@@ -12,6 +12,8 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/Wei-Shaw/sub2api/internal/pkg/probehttp"
+	"github.com/Wei-Shaw/sub2api/internal/pkg/proxyurl"
 	openaiwsv2 "github.com/Wei-Shaw/sub2api/internal/service/openai_ws_v2"
 	coderws "github.com/coder/websocket"
 	"github.com/coder/websocket/wsjson"
@@ -132,7 +134,13 @@ func (d *coderOpenAIWSClientDialer) Dial(
 			return true
 		},
 	}
-	if proxy := strings.TrimSpace(proxyURL); proxy != "" {
+	if policy, marked := HTTPUpstreamAccountProbeOptions(ctx); marked {
+		_, parsedProxy, err := proxyurl.Parse(proxyURL)
+		if err != nil {
+			return nil, 0, nil, err
+		}
+		opts.HTTPClient = probehttp.NewClient(policy, parsedProxy, nil)
+	} else if proxy := strings.TrimSpace(proxyURL); proxy != "" {
 		proxyClient, err := d.proxyHTTPClient(proxy)
 		if err != nil {
 			return nil, 0, nil, err

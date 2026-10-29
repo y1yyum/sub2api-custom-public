@@ -16,6 +16,14 @@ def replace_once(text, pattern, replacement):
 
 
 def adapt(path, text):
+    if path == 'backend/internal/service/upstream_billing_probe_test.go':
+        # Cadence/concurrency fixtures intentionally use loopback URLs with a
+        # fake HTTPUpstream. Retain every assertion; opt in via the same explicit
+        # per-config private-service setting available to operators.
+        anchor = '\taccountTestService := &AccountTestService{accountRepo: repo, httpUpstream: upstream, cfg: cfg}'
+        if text.count(anchor) != 1:
+            raise ValueError('billing probe fixture helper changed')
+        return text.replace(anchor, '\tcfg.Security.AccountProbe.AllowPrivateHosts = true\n' + anchor)
     if path == 'backend/internal/pkg/antigravity/oauth_test.go':
         start = text.index('func TestConstants_')
         before, section = text[:start], text[start:]
