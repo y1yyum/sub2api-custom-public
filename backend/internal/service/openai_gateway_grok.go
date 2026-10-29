@@ -213,6 +213,8 @@ func (s *OpenAIGatewayService) forwardGrokResponses(
 	searchCount := 0
 	imageCount := 0
 	var imageOutputSizes []string
+	var streamErr error
+	clientDisconnect := false
 	if reqStream {
 		maxLineSize := defaultMaxLineSize
 		if s.cfg != nil && s.cfg.Gateway.MaxLineSize > 0 {
@@ -223,8 +225,15 @@ func (s *OpenAIGatewayService) forwardGrokResponses(
 			resp.Body = newGrokResponsesClientToolStreamBody(resp.Body, clientToolMapping, maxLineSize)
 		}
 		streamResult, err := s.handleStreamingResponse(ctx, resp, c, account, startTime, originalModel, upstreamModel)
+		clientDisconnect = streamResult != nil && streamResult.clientDisconnect
+		if c != nil && c.Request != nil && c.Request.Context().Err() != nil {
+			clientDisconnect = true
+		}
 		if err != nil {
-			return nil, err
+			if !clientDisconnect || streamResult == nil {
+				return nil, err
+			}
+			streamErr = fmt.Errorf("stream ended after client disconnect: %v", err)
 		}
 		usage = streamResult.usage
 		firstTokenMs = streamResult.firstTokenMs
@@ -263,6 +272,7 @@ func (s *OpenAIGatewayService) forwardGrokResponses(
 		ResponseHeaders:               resp.Header.Clone(),
 		Duration:                      time.Since(startTime),
 		FirstTokenMs:                  firstTokenMs,
+		ClientDisconnect:              clientDisconnect,
 	}
 	// Propagate search/image counters from the shared Responses handler — without
 	// this, stream/JSON counting runs but search_price_per_1k / image bills never apply.
@@ -273,7 +283,7 @@ func (s *OpenAIGatewayService) forwardGrokResponses(
 		result.ImageCount = imageCount
 		result.ImageOutputSizes = imageOutputSizes
 	}
-	return result, nil
+	return result, streamErr
 }
 
 func isGrokInvalidEncryptedContentResponse(statusCode int, body []byte) bool {
