@@ -36,3 +36,26 @@ completion/copy seams. This is static transformation validation only. It does
 not establish successful Go compilation or race-free execution. Those claims
 require a reviewed, externally disconnected isolated CI run. No Go, Docker,
 backend test, or external request was executed while preparing these adapters.
+
+## Content-moderation global log capture (2026-10-29)
+
+Actual isolated PR9 regression integration run `40913443906` exposed a
+`bytes.Buffer` write/read race: a `ContentModerationService` background worker's
+slog handler writes while `TestContentModerationAutoBanSkipsAdminAccount` reads
+`slogOutput.String()`. This is captured in the artifact's test JSON, including
+`content_moderation_test.go:1561`; individual named-test PASS events do not make
+the race-detected package failure a pass.
+
+The `.19` source hash now pins this additional adapted file. Only this test's
+capture type changes to a test-local mutex-protected buffer. Both Write and
+String hold the same mutex; String returns a string snapshot without exposing
+mutable backing bytes. Logging, logger restoration, worker behavior and every
+existing assertion remain unchanged. There is no production Close/API change,
+worker shutdown alteration, sleep, skip, serialization of the suite, or race
+suppression. No existing same-package synchronized buffer helper was found.
+
+The static check removes the appended helper and reverses the single capture
+type replacement, then compares the **entire original file byte-for-byte**.
+It also checks assertion/test/parallel/skip/sleep counts and the two lock scopes.
+This source proof is not race-runtime validation: a new reviewed isolated CI run
+must establish the runtime result. No host backend/Go/Docker execution occurred.
