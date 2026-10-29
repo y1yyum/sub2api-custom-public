@@ -1,8 +1,8 @@
 {
   "content_base": "01842576b3d5c1e2545b5a99ad555d36e28ed306",
-  "target": "ac1b8f1271be0d674fa6f074403c1410f30a3a81",
+  "target": "dece26153621959ccd7635814f4b2d08304e681a",
   "custom_base": "357a6f0f5bd6cadc96d1caec19aeb8da52eeb55b",
-  "test_revision": "ac1b8f1271be0d674fa6f074403c1410f30a3a81",
+  "test_revision": "dece26153621959ccd7635814f4b2d08304e681a",
   "test_overrides": {},
   "preserved_paths": [
     ".github/scripts/test-smoke.sh",
@@ -420,7 +420,13 @@
     "Dockerfile": "4de76915b6f9a13a7b8b3397805d660c3ce2c424f68505df4b63f186ba7844ba",
     "NOTICE.md": "a4eb3b38abf78fb14037c1ee720c48e395af0d68ee7e0f7dd9cbc00e20d8587a",
     "COPYING": "fb981668c18a279e285fc4d83fba1e836cc84dd4daa73c9697d3cfd2d8aca6e0",
-    "LICENSE": "a5681bf9b05db14d86776930017c647ad9e6e56ff6bbcfdf21e5848288dfaf1b"
+    "LICENSE": "a5681bf9b05db14d86776930017c647ad9e6e56ff6bbcfdf21e5848288dfaf1b",
+    "backend/internal/repository/payment_refund_retry_integration_test.go": "38cba0ada5ba95ff84d1f63192e5e7df6133bd2aebbc3c94a3c47e7e1d933533",
+    "backend/internal/service/payment_affiliate_claim_query_test.go": "e2d610a774ce230ff824c13a51131365894e4ad1f3990e1e5dfa538d1f9cf8e6",
+    "backend/internal/service/payment_fulfillment.go": "23e70817623fcf5566e4d0f4751dbaac8ca81a5a5125538178d5c5988a7d1b64",
+    "backend/migrations/247_payment_audit_refund_retry.sql": "9bfdd661b18f4ab4454c55e5c9ea7567e9c5979bf625f0c3568fc1beaf2c90ba",
+    "docs/upgrades/stable-0.2.18-refund-retry.md": "d519addcdd2406ed4295fb1ec8a1fc0579c01720dbd090948e121b9c075d85d9",
+    "scripts/verify-refund-retry.sql": "8bff52220101ebd83c77386aff3662c4c46ba7c221c705b7a27572711b1cc370"
   },
   "absent_production_packages": {
     "backend/cmd/cleanup-ingress-reject-logs": "Custom public snapshot intentionally omits this maintenance CLI; no shipped implementation to test.",
@@ -429,123 +435,186 @@
   "test_adaptations": {
     "backend/internal/pkg/antigravity/oauth_test.go": {
       "01842576b3d5c1e2545b5a99ad555d36e28ed306": "641cbe61f7c166e775d54de8734b06beb5a85e1edb06d35751245e0deb3f3585",
-      "ac1b8f1271be0d674fa6f074403c1410f30a3a81": "f7d213b8caab92fc512037222165cc433627fa0d75781b16a8e8c21cb54065c5"
+      "ac1b8f1271be0d674fa6f074403c1410f30a3a81": "f7d213b8caab92fc512037222165cc433627fa0d75781b16a8e8c21cb54065c5",
+      "dece26153621959ccd7635814f4b2d08304e681a": "f7d213b8caab92fc512037222165cc433627fa0d75781b16a8e8c21cb54065c5"
     },
     "backend/internal/pkg/geminicli/oauth_test.go": {
       "01842576b3d5c1e2545b5a99ad555d36e28ed306": "1302f350aca7de471fc8fdf1cc8e5da9712511c78ac91e40a12af7cbc5515a74",
-      "ac1b8f1271be0d674fa6f074403c1410f30a3a81": "1302f350aca7de471fc8fdf1cc8e5da9712511c78ac91e40a12af7cbc5515a74"
+      "ac1b8f1271be0d674fa6f074403c1410f30a3a81": "1302f350aca7de471fc8fdf1cc8e5da9712511c78ac91e40a12af7cbc5515a74",
+      "dece26153621959ccd7635814f4b2d08304e681a": "1302f350aca7de471fc8fdf1cc8e5da9712511c78ac91e40a12af7cbc5515a74"
     },
     "backend/internal/server/api_contract_test.go": {
       "01842576b3d5c1e2545b5a99ad555d36e28ed306": "2fb267d8be5fee1098cb37cb91426febd77e5e11982b2d4936620aacff33c5e9",
-      "ac1b8f1271be0d674fa6f074403c1410f30a3a81": "2fb267d8be5fee1098cb37cb91426febd77e5e11982b2d4936620aacff33c5e9"
+      "ac1b8f1271be0d674fa6f074403c1410f30a3a81": "2fb267d8be5fee1098cb37cb91426febd77e5e11982b2d4936620aacff33c5e9",
+      "dece26153621959ccd7635814f4b2d08304e681a": "2bbbb35943e96d606c3c545bdeb227bd4ca246a750df8a10ad40429492dcac45"
     },
     "frontend/src/views/admin/__tests__/SettingsView.spec.ts": {
       "01842576b3d5c1e2545b5a99ad555d36e28ed306": "f0d52c3eaf1fd0c3e01fa2f6c52c35469a10014d93a16656d29ece7ff8edd4ab",
-      "ac1b8f1271be0d674fa6f074403c1410f30a3a81": "f0d52c3eaf1fd0c3e01fa2f6c52c35469a10014d93a16656d29ece7ff8edd4ab"
+      "ac1b8f1271be0d674fa6f074403c1410f30a3a81": "f0d52c3eaf1fd0c3e01fa2f6c52c35469a10014d93a16656d29ece7ff8edd4ab",
+      "dece26153621959ccd7635814f4b2d08304e681a": "f0d52c3eaf1fd0c3e01fa2f6c52c35469a10014d93a16656d29ece7ff8edd4ab"
     },
     "frontend/src/router/__tests__/feature-access.spec.ts": {
       "01842576b3d5c1e2545b5a99ad555d36e28ed306": "03629ede1c284bbfe705ae0ea96062c48d14dc0deb75e6edd6e861e05b4a1578",
-      "ac1b8f1271be0d674fa6f074403c1410f30a3a81": "03629ede1c284bbfe705ae0ea96062c48d14dc0deb75e6edd6e861e05b4a1578"
+      "ac1b8f1271be0d674fa6f074403c1410f30a3a81": "03629ede1c284bbfe705ae0ea96062c48d14dc0deb75e6edd6e861e05b4a1578",
+      "dece26153621959ccd7635814f4b2d08304e681a": "03629ede1c284bbfe705ae0ea96062c48d14dc0deb75e6edd6e861e05b4a1578"
     },
     "frontend/src/views/user/__tests__/ChannelStatusView.mode.spec.ts": {
       "01842576b3d5c1e2545b5a99ad555d36e28ed306": "d6bf0b8ab310d8d4d029f1ba89015100936003ccced0191c95f53f22ce1fe775",
-      "ac1b8f1271be0d674fa6f074403c1410f30a3a81": "d6bf0b8ab310d8d4d029f1ba89015100936003ccced0191c95f53f22ce1fe775"
+      "ac1b8f1271be0d674fa6f074403c1410f30a3a81": "d6bf0b8ab310d8d4d029f1ba89015100936003ccced0191c95f53f22ce1fe775",
+      "dece26153621959ccd7635814f4b2d08304e681a": "d6bf0b8ab310d8d4d029f1ba89015100936003ccced0191c95f53f22ce1fe775"
     },
     "backend/internal/service/gemini_oauth_service_test.go": {
       "01842576b3d5c1e2545b5a99ad555d36e28ed306": "012362900b675dcbd6b221ce3f5495b3bbc7d6476a85f05bc3924ebab17231fe",
-      "ac1b8f1271be0d674fa6f074403c1410f30a3a81": "012362900b675dcbd6b221ce3f5495b3bbc7d6476a85f05bc3924ebab17231fe"
+      "ac1b8f1271be0d674fa6f074403c1410f30a3a81": "012362900b675dcbd6b221ce3f5495b3bbc7d6476a85f05bc3924ebab17231fe",
+      "dece26153621959ccd7635814f4b2d08304e681a": "012362900b675dcbd6b221ce3f5495b3bbc7d6476a85f05bc3924ebab17231fe"
     },
     "backend/internal/repository/integration_harness_test.go": {
       "01842576b3d5c1e2545b5a99ad555d36e28ed306": "fd04a2bdf4282d1e3d7814a3d500d3a0402ce571dadb321d46204809430d240d",
-      "ac1b8f1271be0d674fa6f074403c1410f30a3a81": "fd04a2bdf4282d1e3d7814a3d500d3a0402ce571dadb321d46204809430d240d"
+      "ac1b8f1271be0d674fa6f074403c1410f30a3a81": "fd04a2bdf4282d1e3d7814a3d500d3a0402ce571dadb321d46204809430d240d",
+      "dece26153621959ccd7635814f4b2d08304e681a": "fd04a2bdf4282d1e3d7814a3d500d3a0402ce571dadb321d46204809430d240d"
     },
     "backend/internal/middleware/rate_limiter_integration_test.go": {
       "01842576b3d5c1e2545b5a99ad555d36e28ed306": "4853a56a5b965018a9f95b31b67f8188c4f3f3fb9368c7ef7ab48f6ffef3d0f5",
-      "ac1b8f1271be0d674fa6f074403c1410f30a3a81": "4853a56a5b965018a9f95b31b67f8188c4f3f3fb9368c7ef7ab48f6ffef3d0f5"
+      "ac1b8f1271be0d674fa6f074403c1410f30a3a81": "4853a56a5b965018a9f95b31b67f8188c4f3f3fb9368c7ef7ab48f6ffef3d0f5",
+      "dece26153621959ccd7635814f4b2d08304e681a": "4853a56a5b965018a9f95b31b67f8188c4f3f3fb9368c7ef7ab48f6ffef3d0f5"
     },
     "backend/internal/server/routes/auth_rate_limit_integration_test.go": {
       "01842576b3d5c1e2545b5a99ad555d36e28ed306": "48987185a023b74aff6d813ef8d4e5b56cc3131206be0fdfa9e4861c5ddfa067",
-      "ac1b8f1271be0d674fa6f074403c1410f30a3a81": "48987185a023b74aff6d813ef8d4e5b56cc3131206be0fdfa9e4861c5ddfa067"
+      "ac1b8f1271be0d674fa6f074403c1410f30a3a81": "48987185a023b74aff6d813ef8d4e5b56cc3131206be0fdfa9e4861c5ddfa067",
+      "dece26153621959ccd7635814f4b2d08304e681a": "48987185a023b74aff6d813ef8d4e5b56cc3131206be0fdfa9e4861c5ddfa067"
     },
     "backend/internal/securityaudit/prompt_repository_integration_test.go": {
       "01842576b3d5c1e2545b5a99ad555d36e28ed306": "ae7e4b7d460f4a05bb1197a27d252f8e1ef7229c7f6d3125ea12c50d77347901",
-      "ac1b8f1271be0d674fa6f074403c1410f30a3a81": "ae7e4b7d460f4a05bb1197a27d252f8e1ef7229c7f6d3125ea12c50d77347901"
+      "ac1b8f1271be0d674fa6f074403c1410f30a3a81": "ae7e4b7d460f4a05bb1197a27d252f8e1ef7229c7f6d3125ea12c50d77347901",
+      "dece26153621959ccd7635814f4b2d08304e681a": "ae7e4b7d460f4a05bb1197a27d252f8e1ef7229c7f6d3125ea12c50d77347901"
     },
     "backend/internal/handler/admin/grok_import_probe_test.go": {
       "01842576b3d5c1e2545b5a99ad555d36e28ed306": "be51abc3d3f8ad633feaa39bcbf139aadce54509776f8e3205f724215782d070",
-      "ac1b8f1271be0d674fa6f074403c1410f30a3a81": "be51abc3d3f8ad633feaa39bcbf139aadce54509776f8e3205f724215782d070"
+      "ac1b8f1271be0d674fa6f074403c1410f30a3a81": "be51abc3d3f8ad633feaa39bcbf139aadce54509776f8e3205f724215782d070",
+      "dece26153621959ccd7635814f4b2d08304e681a": "be51abc3d3f8ad633feaa39bcbf139aadce54509776f8e3205f724215782d070"
     },
     "backend/internal/handler/admin/grok_oauth_handler_test.go": {
       "01842576b3d5c1e2545b5a99ad555d36e28ed306": "a5a3c187be2a8cdf53fb5182e0d6b2c1db0d525676050a10e2044323a0b6a0b5",
-      "ac1b8f1271be0d674fa6f074403c1410f30a3a81": "a5a3c187be2a8cdf53fb5182e0d6b2c1db0d525676050a10e2044323a0b6a0b5"
+      "ac1b8f1271be0d674fa6f074403c1410f30a3a81": "a5a3c187be2a8cdf53fb5182e0d6b2c1db0d525676050a10e2044323a0b6a0b5",
+      "dece26153621959ccd7635814f4b2d08304e681a": "a5a3c187be2a8cdf53fb5182e0d6b2c1db0d525676050a10e2044323a0b6a0b5"
     },
     "backend/ent/schema/auth_identity_schema_test.go": {
       "01842576b3d5c1e2545b5a99ad555d36e28ed306": "1b9f45f9c8e8e5ca6e30f517285110dcf1dc3cc178e999649374ea3feda41668",
-      "ac1b8f1271be0d674fa6f074403c1410f30a3a81": "1b9f45f9c8e8e5ca6e30f517285110dcf1dc3cc178e999649374ea3feda41668"
+      "ac1b8f1271be0d674fa6f074403c1410f30a3a81": "1b9f45f9c8e8e5ca6e30f517285110dcf1dc3cc178e999649374ea3feda41668",
+      "dece26153621959ccd7635814f4b2d08304e681a": "1b9f45f9c8e8e5ca6e30f517285110dcf1dc3cc178e999649374ea3feda41668"
     },
     "backend/internal/securityaudit/prompt_config_integration_test.go": {
       "01842576b3d5c1e2545b5a99ad555d36e28ed306": "8b1505e432877ab03cc231e1255087834e5ce5f5e852da6119a085fd8a5a2edb",
-      "ac1b8f1271be0d674fa6f074403c1410f30a3a81": "8b1505e432877ab03cc231e1255087834e5ce5f5e852da6119a085fd8a5a2edb"
+      "ac1b8f1271be0d674fa6f074403c1410f30a3a81": "8b1505e432877ab03cc231e1255087834e5ce5f5e852da6119a085fd8a5a2edb",
+      "dece26153621959ccd7635814f4b2d08304e681a": "8b1505e432877ab03cc231e1255087834e5ce5f5e852da6119a085fd8a5a2edb"
     },
     "backend/internal/securityaudit/prompt_payload_store_integration_test.go": {
       "01842576b3d5c1e2545b5a99ad555d36e28ed306": "d721151b9142200bd2ce1f2c25d1f209afa268b3a2ff38a7cd1195acddb965e0",
-      "ac1b8f1271be0d674fa6f074403c1410f30a3a81": "d721151b9142200bd2ce1f2c25d1f209afa268b3a2ff38a7cd1195acddb965e0"
+      "ac1b8f1271be0d674fa6f074403c1410f30a3a81": "d721151b9142200bd2ce1f2c25d1f209afa268b3a2ff38a7cd1195acddb965e0",
+      "dece26153621959ccd7635814f4b2d08304e681a": "d721151b9142200bd2ce1f2c25d1f209afa268b3a2ff38a7cd1195acddb965e0"
     },
     "backend/internal/service/channel_monitor_quota_mode_test.go": {
       "01842576b3d5c1e2545b5a99ad555d36e28ed306": "5d50055257266a2cd7a1ca66a86fea77c31280acf36544c0d73cbb6e9b490789",
-      "ac1b8f1271be0d674fa6f074403c1410f30a3a81": "5d50055257266a2cd7a1ca66a86fea77c31280acf36544c0d73cbb6e9b490789"
+      "ac1b8f1271be0d674fa6f074403c1410f30a3a81": "5d50055257266a2cd7a1ca66a86fea77c31280acf36544c0d73cbb6e9b490789",
+      "dece26153621959ccd7635814f4b2d08304e681a": "5d50055257266a2cd7a1ca66a86fea77c31280acf36544c0d73cbb6e9b490789"
     },
     "backend/internal/service/channel_monitor_checker_body_test.go": {
       "01842576b3d5c1e2545b5a99ad555d36e28ed306": "18e2e482eabe6a8849d3ac3cd063de5beb951fdec438fe8f5cc9cd2d0c0b6991",
-      "ac1b8f1271be0d674fa6f074403c1410f30a3a81": "18e2e482eabe6a8849d3ac3cd063de5beb951fdec438fe8f5cc9cd2d0c0b6991"
+      "ac1b8f1271be0d674fa6f074403c1410f30a3a81": "18e2e482eabe6a8849d3ac3cd063de5beb951fdec438fe8f5cc9cd2d0c0b6991",
+      "dece26153621959ccd7635814f4b2d08304e681a": "18e2e482eabe6a8849d3ac3cd063de5beb951fdec438fe8f5cc9cd2d0c0b6991"
     },
     "backend/internal/service/grok_free_quota_gate_test.go": {
       "01842576b3d5c1e2545b5a99ad555d36e28ed306": "173d7762f3f4ee6572411e9d528a1ea104c04d47d886c080ffa78b6147beac72",
-      "ac1b8f1271be0d674fa6f074403c1410f30a3a81": "173d7762f3f4ee6572411e9d528a1ea104c04d47d886c080ffa78b6147beac72"
+      "ac1b8f1271be0d674fa6f074403c1410f30a3a81": "173d7762f3f4ee6572411e9d528a1ea104c04d47d886c080ffa78b6147beac72",
+      "dece26153621959ccd7635814f4b2d08304e681a": "173d7762f3f4ee6572411e9d528a1ea104c04d47d886c080ffa78b6147beac72"
     },
     "backend/internal/service/usage_cleanup_service_test.go": {
       "01842576b3d5c1e2545b5a99ad555d36e28ed306": "ae69e0ce0d245f4fa008c5294f4da90c296a53ef9a95f8cfd3dc0fe7e1911389",
-      "ac1b8f1271be0d674fa6f074403c1410f30a3a81": "ae69e0ce0d245f4fa008c5294f4da90c296a53ef9a95f8cfd3dc0fe7e1911389"
+      "ac1b8f1271be0d674fa6f074403c1410f30a3a81": "ae69e0ce0d245f4fa008c5294f4da90c296a53ef9a95f8cfd3dc0fe7e1911389",
+      "dece26153621959ccd7635814f4b2d08304e681a": "ae69e0ce0d245f4fa008c5294f4da90c296a53ef9a95f8cfd3dc0fe7e1911389"
     },
     "backend/internal/service/auth_service_email_bind_test.go": {
       "01842576b3d5c1e2545b5a99ad555d36e28ed306": "b41e7515f120b1ad3998130e98bb6cb650c428022e9fcbd758a6a92254341816",
-      "ac1b8f1271be0d674fa6f074403c1410f30a3a81": "b41e7515f120b1ad3998130e98bb6cb650c428022e9fcbd758a6a92254341816"
+      "ac1b8f1271be0d674fa6f074403c1410f30a3a81": "b41e7515f120b1ad3998130e98bb6cb650c428022e9fcbd758a6a92254341816",
+      "dece26153621959ccd7635814f4b2d08304e681a": "b41e7515f120b1ad3998130e98bb6cb650c428022e9fcbd758a6a92254341816"
     },
     "backend/internal/handler/payment_handler_resume_test.go": {
       "01842576b3d5c1e2545b5a99ad555d36e28ed306": "129aaa23c50245110b7f3ecbdb6cee297031142f34bef5aa065d08e1e3b3de9e",
-      "ac1b8f1271be0d674fa6f074403c1410f30a3a81": "129aaa23c50245110b7f3ecbdb6cee297031142f34bef5aa065d08e1e3b3de9e"
+      "ac1b8f1271be0d674fa6f074403c1410f30a3a81": "129aaa23c50245110b7f3ecbdb6cee297031142f34bef5aa065d08e1e3b3de9e",
+      "dece26153621959ccd7635814f4b2d08304e681a": "129aaa23c50245110b7f3ecbdb6cee297031142f34bef5aa065d08e1e3b3de9e"
     },
     "backend/internal/service/account_test_service_gemini_test.go": {
       "01842576b3d5c1e2545b5a99ad555d36e28ed306": "9889839c92152c0800d1e8d3b1bcc664ae531ef52d1d1a5fd4fde48272054f13",
-      "ac1b8f1271be0d674fa6f074403c1410f30a3a81": "9889839c92152c0800d1e8d3b1bcc664ae531ef52d1d1a5fd4fde48272054f13"
+      "ac1b8f1271be0d674fa6f074403c1410f30a3a81": "9889839c92152c0800d1e8d3b1bcc664ae531ef52d1d1a5fd4fde48272054f13",
+      "dece26153621959ccd7635814f4b2d08304e681a": "811f4b39d3f25dd83f55c58b285632f7a6ce79fc9717d5b165ee967e53ee261b"
     },
     "backend/internal/service/gateway_forward_as_chat_completions_test.go": {
       "01842576b3d5c1e2545b5a99ad555d36e28ed306": "ad1790cfd4b1b7d922066351db7da2668f5eff4303b65e085f894da587edc414",
-      "ac1b8f1271be0d674fa6f074403c1410f30a3a81": "ad1790cfd4b1b7d922066351db7da2668f5eff4303b65e085f894da587edc414"
+      "ac1b8f1271be0d674fa6f074403c1410f30a3a81": "ad1790cfd4b1b7d922066351db7da2668f5eff4303b65e085f894da587edc414",
+      "dece26153621959ccd7635814f4b2d08304e681a": "ad1790cfd4b1b7d922066351db7da2668f5eff4303b65e085f894da587edc414"
     },
     "backend/internal/service/gateway_forward_as_responses_test.go": {
       "01842576b3d5c1e2545b5a99ad555d36e28ed306": "8f43c014054a9dd632025cd2fc0d3e7be527f99d1e76af37c374b03490b2c618",
-      "ac1b8f1271be0d674fa6f074403c1410f30a3a81": "8f43c014054a9dd632025cd2fc0d3e7be527f99d1e76af37c374b03490b2c618"
+      "ac1b8f1271be0d674fa6f074403c1410f30a3a81": "8f43c014054a9dd632025cd2fc0d3e7be527f99d1e76af37c374b03490b2c618",
+      "dece26153621959ccd7635814f4b2d08304e681a": "8f43c014054a9dd632025cd2fc0d3e7be527f99d1e76af37c374b03490b2c618"
     },
     "backend/internal/service/openai_compat_model_test.go": {
       "01842576b3d5c1e2545b5a99ad555d36e28ed306": "9cdc751f22afd64d2e674213cc9cccc1929d627665999789b89425450696e30c",
-      "ac1b8f1271be0d674fa6f074403c1410f30a3a81": "9cdc751f22afd64d2e674213cc9cccc1929d627665999789b89425450696e30c"
+      "ac1b8f1271be0d674fa6f074403c1410f30a3a81": "9cdc751f22afd64d2e674213cc9cccc1929d627665999789b89425450696e30c",
+      "dece26153621959ccd7635814f4b2d08304e681a": "9cdc751f22afd64d2e674213cc9cccc1929d627665999789b89425450696e30c"
     },
     "backend/internal/service/openai_fast_service_tier_test.go": {
       "01842576b3d5c1e2545b5a99ad555d36e28ed306": "86697acdbd34eaa80db2b3b9a9fca0e89e9751c266ac53b6e89d105cd478e80c",
-      "ac1b8f1271be0d674fa6f074403c1410f30a3a81": "86697acdbd34eaa80db2b3b9a9fca0e89e9751c266ac53b6e89d105cd478e80c"
+      "ac1b8f1271be0d674fa6f074403c1410f30a3a81": "86697acdbd34eaa80db2b3b9a9fca0e89e9751c266ac53b6e89d105cd478e80c",
+      "dece26153621959ccd7635814f4b2d08304e681a": "86697acdbd34eaa80db2b3b9a9fca0e89e9751c266ac53b6e89d105cd478e80c"
     },
     "backend/internal/service/account_test_service_openai_test.go": {
       "01842576b3d5c1e2545b5a99ad555d36e28ed306": "e998a1ab588833ca9412d171d3fb37fdc3091829e8f23be7bb62024d14594c32",
-      "ac1b8f1271be0d674fa6f074403c1410f30a3a81": "e998a1ab588833ca9412d171d3fb37fdc3091829e8f23be7bb62024d14594c32"
+      "ac1b8f1271be0d674fa6f074403c1410f30a3a81": "e998a1ab588833ca9412d171d3fb37fdc3091829e8f23be7bb62024d14594c32",
+      "dece26153621959ccd7635814f4b2d08304e681a": "e998a1ab588833ca9412d171d3fb37fdc3091829e8f23be7bb62024d14594c32"
     },
     "backend/internal/service/openai_ws_http_bridge_test.go": {
       "01842576b3d5c1e2545b5a99ad555d36e28ed306": "b3390a8dd320b5dacc7fd2706f45e5b1567f8e2e30ff1c5ab98ed1a10588ed59",
-      "ac1b8f1271be0d674fa6f074403c1410f30a3a81": "845a155883e8aaf13cd203eb2734c01f5497299ed295f744b51c78847cf0ab55"
+      "ac1b8f1271be0d674fa6f074403c1410f30a3a81": "845a155883e8aaf13cd203eb2734c01f5497299ed295f744b51c78847cf0ab55",
+      "dece26153621959ccd7635814f4b2d08304e681a": "845a155883e8aaf13cd203eb2734c01f5497299ed295f744b51c78847cf0ab55"
     },
     "backend/internal/service/content_moderation_cyber_test.go": {
       "01842576b3d5c1e2545b5a99ad555d36e28ed306": "28d118cf4a60441e0906c34d0bd233db14c90b5708fd53ecbcf1d06d163fef0f",
-      "ac1b8f1271be0d674fa6f074403c1410f30a3a81": "28d118cf4a60441e0906c34d0bd233db14c90b5708fd53ecbcf1d06d163fef0f"
+      "ac1b8f1271be0d674fa6f074403c1410f30a3a81": "28d118cf4a60441e0906c34d0bd233db14c90b5708fd53ecbcf1d06d163fef0f",
+      "dece26153621959ccd7635814f4b2d08304e681a": "28d118cf4a60441e0906c34d0bd233db14c90b5708fd53ecbcf1d06d163fef0f"
+    },
+    "backend/internal/repository/custom_admin_keys_postgres_test.go": {
+      "dece26153621959ccd7635814f4b2d08304e681a": "235af89874c5579e132606c370204de00e29525ae66c6b7741cb9d653e794a8e"
+    },
+    "backend/internal/repository/custom_admin_key_group_models_test.go": {
+      "dece26153621959ccd7635814f4b2d08304e681a": "440f075b75fecef0be95e410dadf914fd26b121b89f70d0aaac2f093fa185b2f"
+    },
+    "backend/internal/repository/custom_admin_key_review_test.go": {
+      "dece26153621959ccd7635814f4b2d08304e681a": "a72b76c2ba83ade650a122591b14cb3bc553d3d03f8b11fec4005b3f004532f0"
+    },
+    "backend/internal/repository/custom_admin_key_scope_test.go": {
+      "dece26153621959ccd7635814f4b2d08304e681a": "041a09ddf698328b7b8329fd7b7901a20b6c37bd98ef852f8df71be4e55c1ea3"
+    },
+    "backend/internal/repository/custom_account_proxy_selection_test.go": {
+      "dece26153621959ccd7635814f4b2d08304e681a": "8ae25f11abee44b496e482737d1b9909b40a3222c922d7621295619a26f6667b"
+    },
+    "backend/internal/repository/custom_proxy_sample_test.go": {
+      "dece26153621959ccd7635814f4b2d08304e681a": "f3933e33be3a656f0c0fd01fdce7c0ffa5318ccf031ba612029349732ea4c21c"
+    },
+    "backend/internal/service/custom_admin_key_testdb_test.go": {
+      "dece26153621959ccd7635814f4b2d08304e681a": "f3e17904a2aad57f7251f834c8534b343674ed2dffffcccbca38b28a596f74b1"
+    },
+    "backend/internal/service/custom_admin_key_accounts_test.go": {
+      "dece26153621959ccd7635814f4b2d08304e681a": "d307a7e128545f3dd38c8185ea9b4eedcc3393e9e07385796c8b1941b09da1fc"
+    },
+    "backend/internal/service/custom_admin_key_codex_import_test.go": {
+      "dece26153621959ccd7635814f4b2d08304e681a": "70c85d09acbe271da27665a9bf1883b19644c325af8812fa6193f149fbbf3d85"
+    },
+    "backend/internal/service/custom_admin_key_proxy_selection_test.go": {
+      "dece26153621959ccd7635814f4b2d08304e681a": "1a1b6b603e4d0b2027701511147e35dfeac527f811add51995c858b899293fa6"
+    },
+    "backend/internal/handler/admin/custom_legacy_admin_key_test.go": {
+      "dece26153621959ccd7635814f4b2d08304e681a": "f1d0e36d01bcc0d1cc34cca14a5e124666f460daa5d5ac69c8c866f16f911810"
     }
   },
   "validation_support": {
@@ -556,6 +625,14 @@
     "backend/internal/securityaudit/isolated_shared_fixture_test.go": {
       "source": ".github/upgrade/fixtures/isolated_shared_fixture_test.go",
       "sha256": "6151bfb7035debf7d1b3f5c03e5f047553dde5d78786625f8e6702855b84b391"
+    },
+    "backend/internal/repository/isolated_scoped_admin_unit_test.go": {
+      "source": ".github/upgrade/fixtures/isolated_scoped_admin_repository_unit_test.go",
+      "sha256": "e79f6e71f4ae1f888d67b2291e3987efe774a2149e7b82d5cd4828dd4c732972"
+    },
+    "backend/internal/service/isolated_scoped_admin_unit_test.go": {
+      "source": ".github/upgrade/fixtures/isolated_scoped_admin_service_unit_test.go",
+      "sha256": "02dfe28216020c983acb44ec964a615c8eb466e5c151b8dc22b61d743b496e32"
     }
   },
   "test_reclassifications": [
@@ -591,9 +668,121 @@
         "TestPromptRuntimeAggregatesConfigWorkersQueueRedisEndpointsAndGuardMetrics"
       ],
       "count": 2
+    },
+    {
+      "path": "backend/internal/repository/custom_admin_keys_postgres_test.go",
+      "from": "unit; PostgreSQL tests skipped without operator SCOPED_ADMIN_TEST_DSN",
+      "to": "integration; fixed isolated PostgreSQL mandatory; pure tests remain copied verbatim in unit",
+      "test_functions": [
+        "TestScopedAdminKeyPostgresDeleteRecordPreservesHistory",
+        "TestScopedAdminKeyPostgresMigrationAndLifecycle"
+      ],
+      "count": 2
+    },
+    {
+      "path": "backend/internal/repository/custom_admin_key_group_models_test.go",
+      "from": "unit; PostgreSQL tests skipped without operator SCOPED_ADMIN_TEST_DSN",
+      "to": "integration; fixed isolated PostgreSQL mandatory; pure tests remain copied verbatim in unit",
+      "test_functions": [
+        "TestScopedAdminGroupModelsPostgresScopeAndAtomicWrite"
+      ],
+      "count": 1
+    },
+    {
+      "path": "backend/internal/repository/custom_admin_key_review_test.go",
+      "from": "unit; PostgreSQL tests skipped without operator SCOPED_ADMIN_TEST_DSN",
+      "to": "integration; fixed isolated PostgreSQL mandatory; pure tests remain copied verbatim in unit",
+      "test_functions": [
+        "TestScopedAdminReviewGroupPriorityAndStatus",
+        "TestScopedAdminReviewConcurrentRotation"
+      ],
+      "count": 2
+    },
+    {
+      "path": "backend/internal/repository/custom_admin_key_scope_test.go",
+      "from": "unit; PostgreSQL tests skipped without operator SCOPED_ADMIN_TEST_DSN",
+      "to": "integration; fixed isolated PostgreSQL mandatory; pure tests remain copied verbatim in unit",
+      "test_functions": [
+        "TestScopedAdminAccountListPostgresRulesAndPagination",
+        "TestScopedAdminCodexCandidatesUseCredentialWriteScope",
+        "TestScopedAdminCodexCandidatesMatchIdentityWithoutLoadingUnrelatedCredentials"
+      ],
+      "count": 3
+    },
+    {
+      "path": "backend/internal/repository/custom_account_proxy_selection_test.go",
+      "from": "unit; PostgreSQL tests skipped without operator SCOPED_ADMIN_TEST_DSN",
+      "to": "integration; fixed isolated PostgreSQL mandatory; pure tests remain copied verbatim in unit",
+      "test_functions": [
+        "TestAccountProxySelectionLargePoolAndTransactionalLeastUsed"
+      ],
+      "count": 1
+    },
+    {
+      "path": "backend/internal/repository/custom_proxy_sample_test.go",
+      "from": "unit; PostgreSQL tests skipped without operator SCOPED_ADMIN_TEST_DSN",
+      "to": "integration; fixed isolated PostgreSQL mandatory; pure tests remain copied verbatim in unit",
+      "test_functions": [
+        "TestProxySamplePostgresLargePoolAndEligibility"
+      ],
+      "count": 1
+    },
+    {
+      "path": "backend/internal/service/custom_admin_key_accounts_test.go",
+      "from": "unit; PostgreSQL tests skipped without operator SCOPED_ADMIN_TEST_DSN",
+      "to": "integration; fixed isolated PostgreSQL mandatory; pure tests remain copied verbatim in unit",
+      "test_functions": [
+        "TestScopedAdminWriteModelMappingEnforcesScopeAndPreservesCredentials",
+        "TestScopedAdminWriteEnforcesScopeAndAtomicCreate",
+        "TestScopedAdminWriteHidesAccountsOutsideGrantedScope",
+        "TestScopedAdminCreateWithCredentialWriteDoesNotRequireRead"
+      ],
+      "count": 4
+    },
+    {
+      "path": "backend/internal/service/custom_admin_key_codex_import_test.go",
+      "from": "unit; PostgreSQL tests skipped without operator SCOPED_ADMIN_TEST_DSN",
+      "to": "integration; fixed isolated PostgreSQL mandatory; pure tests remain copied verbatim in unit",
+      "test_functions": [
+        "TestScopedCodexWriteAuthorizationAndTransactions"
+      ],
+      "count": 1
+    },
+    {
+      "path": "backend/internal/service/custom_admin_key_proxy_selection_test.go",
+      "from": "unit; PostgreSQL tests skipped without operator SCOPED_ADMIN_TEST_DSN",
+      "to": "integration; fixed isolated PostgreSQL mandatory; pure tests remain copied verbatim in unit",
+      "test_functions": [
+        "TestScopedAccountProxySelectionPermissionsAndRollback"
+      ],
+      "count": 1
+    },
+    {
+      "path": "backend/internal/handler/admin/custom_legacy_admin_key_test.go",
+      "from": "unit; PostgreSQL tests skipped without operator SCOPED_ADMIN_TEST_DSN",
+      "to": "integration; fixed isolated PostgreSQL mandatory; pure tests remain copied verbatim in unit",
+      "test_functions": [
+        "TestLegacyAdminKeyRotationPostgres"
+      ],
+      "count": 1
     }
   ],
   "public_test_inputs": {
     "frontend/src/constants/platformCatalog.builtin.json": "4b623716857f74de963940450e3bc8e0542f4dcdefefac94cac46da243d3bbc2"
-  }
+  },
+  "upgrade_base": "ac1b8f1271be0d674fa6f074403c1410f30a3a81",
+  "required_integration_tests": [
+    {
+      "package": "github.com/Wei-Shaw/sub2api/internal/repository",
+      "test": "TestUpgrade019CustomAndUpstreamMigrationLedger"
+    },
+    {
+      "package": "github.com/Wei-Shaw/sub2api/internal/repository",
+      "test": "TestUpgrade019AfterAppliedCustomRefundMigration"
+    },
+    {
+      "package": "github.com/Wei-Shaw/sub2api/internal/repository",
+      "test": "TestPaymentAuditLogRefundRetryConstraints"
+    }
+  ]
 }

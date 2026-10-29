@@ -37,7 +37,9 @@ def test_input(path):
 def allowed_support_path(path):
     return ('..' not in Path(path).parts and
             (path.startswith('backend/internal/isolatedfixture/') or
-             path == 'backend/internal/securityaudit/isolated_shared_fixture_test.go'))
+             path in {'backend/internal/securityaudit/isolated_shared_fixture_test.go',
+                      'backend/internal/repository/isolated_scoped_admin_unit_test.go',
+                      'backend/internal/service/isolated_scoped_admin_unit_test.go'}))
 
 
 def main():

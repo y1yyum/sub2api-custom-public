@@ -1,11 +1,9 @@
-# Stable v0.2.18 staged integration
+# Stable v0.2.19 validation harness
 
-> **Backend regression execution is quarantined (2026-10-28).** The unit and
-> integration matrix jobs deliberately fail at their first step, before setup
-> or test execution. This is a blocking failure, not a skip and not a test pass.
-> Existing build/vet/vulnerability checks, frontend jobs and static preservation
-> checks remain active. Do not manually run the backend commands below while
-> this quarantine is in effect.
+Backend execution is permitted only through the reviewed isolated CI runner:
+network-disabled compile and runtime, read-only exact-source receipts, no host
+sockets or credentials, and fail-closed coverage gates. The old unrestricted
+backend suite remains unauthorized. See [runtime boundary](../isolation/README.md).
 
 This series transplants content, not Git ancestry. The public custom repository
 is a snapshot. Production source always comes from the PR checkout.
@@ -13,11 +11,14 @@ is a snapshot. Production source always comes from the PR checkout.
 | Role | Fixed commit |
 | --- | --- |
 | Content baseline v0.2.16 | `01842576b3d5c1e2545b5a99ad555d36e28ed306` |
-| Target v0.2.18 | `ac1b8f1271be0d674fa6f074403c1410f30a3a81` |
-| Reviewed custom v0.3.1 | `357a6f0f5bd6cadc96d1caec19aeb8da52eeb55b` |
+| Previous target / upgrade baseline v0.2.18 | `ac1b8f1271be0d674fa6f074403c1410f30a3a81` |
+| Historical reviewed custom v0.3.1 | `357a6f0f5bd6cadc96d1caec19aeb8da52eeb55b` |
 
-No upstream main-only feature, release, deployment or version bump is included.
-The initial PR establishes safeguards; it does **not** implement v0.2.18.
+Current target: `dece26153621959ccd7635814f4b2d08304e681a` (stable v0.2.19).
+The historical content/custom baselines and protection hashes are retained;
+`upgrade_base` records v0.2.18, while the complete restored test closure now comes
+from v0.2.19. See [reviewed fixture transition](V019_FIXTURE_REVIEW.md).
+No main-only feature, release or deployment is authorized by this harness.
 
 ## Reproduce
 
@@ -27,20 +28,16 @@ fixtures. CI compiles sequentially with bounded GC/concurrency because the large
 generated Ent package can exhaust runner memory during parallel race builds. Do not lower the required compiler version to get a green check.
 
 ```sh
+python3 .github/scripts/fetch-upgrade-fixture-inputs.py
 python3 .github/scripts/test-upgrade-preservation.py
+python3 -m unittest discover -s .github/isolation -p 'test_*.py'
 python3 .github/scripts/prepare-upgrade-validation.py /tmp/sub2api-validation-unique
-cd /tmp/sub2api-validation-unique/backend
-go mod verify
-GOMAXPROCS=2 GOGC=30 go test -p 1 -race -count=1 -tags=unit -timeout=20m ./...
-docker info
-CI=true GOMAXPROCS=2 GOGC=30 go test -p 1 -race -count=1 -tags=integration -timeout=20m ./...
-cd ../frontend
-pnpm install --frozen-lockfile
-pnpm run lint:check
-pnpm run typecheck
-pnpm run test:run
-pnpm run build
 ```
+
+These commands perform source/static preparation only. Actual backend execution
+must use the reviewed [isolated runner](../isolation/README.md#reproduce) in an
+authorized environment; do not run `go test` directly on the host. Frontend
+validation is unchanged.
 
 The destination must not exist and must be outside the source repository. The
 script copies tracked **working-tree bytes** (including local edits) and file
@@ -51,14 +48,11 @@ so `git ls-files` includes them. `validation-receipt.json` records revision,
 local diff summary and each restored path. Do not test a pristine upstream
 checkout and present that as custom application coverage.
 
-`manifest.json.test_revision` starts at v0.2.16 so the baseline can be checked
-before changing behavior. Each coherent implementation stage must advance its
-changed tests using `test_overrides` (path → full target SHA); the completed
-series must use the target SHA globally. Overrides also express target-deleted
-tests: an overridden path missing at the target is not restored from baseline.
-Reviewed custom-contract adaptations live in `adapt-tests.py`. The manifest
-pins SHA256 of each eligible .16/.18 input; unexpected bytes fail preparation.
-The receipt records original/adapted hashes and the adapter's own hash. OAuth
+`manifest.json.test_revision` now selects v0.2.19 globally with no per-file
+overrides. Historical .16/.18 fixture inputs remain available solely for pinned
+static adaptation regression checks. Reviewed custom-contract adaptations live
+in `adapt-tests.py`; eligible .16/.18/.19 input hashes are pinned, and unexpected
+bytes fail preparation. The receipt records original/adapted hashes and the adapter's own hash. OAuth
 URL/scope tests (including the Gemini service authorization-URL matrix) use
 synthetic runtime credentials instead of built-in values;
 missing credentials are asserted to fail closed. Admin-settings JSON fixtures
@@ -83,7 +77,15 @@ settings. A tracked Go subprocess test checks OAuth startup with empty and
 synthetic injected credentials; no real credentials are needed. Static checks
 are not substitutes for runtime tests or browser QA.
 
-## Stages and release blockers
+## Historical .18 stages and retained release blockers
+
+The .18 stages below were merged before this .19 PR. The current PR targets main,
+retains custom refund migration `247_payment_audit_refund_retry.sql`, and adds
+upstream `247_scoped_admin_api_keys.sql` plus `248_group_image_count_billing.sql`.
+See `docs/upgrades/stable-0.2.19.md` for this release's reconciliation. The isolated
+integration lane now requires all 29 named PostgreSQL/Redis/migration contracts
+to run and pass exactly once; missing, skipped, duplicate or failed outcomes
+fail the job. Eight pure scoped-admin tests remain in the unit lane as well.
 
 1. Baseline and executable validation harness (this PR).
 2. Coherent gateway/config/model/price/quota/cache changes, matching tests, and

@@ -1,0 +1,3926 @@
+{
+  "base": "ac1b8f1271be0d674fa6f074403c1410f30a3a81",
+  "target": "dece26153621959ccd7635814f4b2d08304e681a",
+  "custom": "9bef3d75b8d33a2462d1a3f5bea4f10b20182189",
+  "files": [
+    {
+      "path": ".gitignore",
+      "category": "custom-overlap",
+      "base": {
+        "mode": "100644",
+        "sha": "0c977fdfa31018365be0f834d05ee5b50506c6c8"
+      },
+      "target": {
+        "mode": "100644",
+        "sha": "93d301f15714bc17ce267b1d9d2bd087f2c505c0"
+      },
+      "custom": {
+        "mode": "100644",
+        "sha": "188c144d361102c8dbbde0272b1f5491fe1727d5"
+      },
+      "decision": "three-way content transplant preserving custom changes",
+      "integrated_blob": "4a84b5aecf6921bda21b98dc9689069f7b5ec73e",
+      "review": "clean content merge; retain all custom-versus-base hunks; independently reviewed before publication"
+    },
+    {
+      "path": "README.md",
+      "category": "custom-overlap",
+      "base": {
+        "mode": "100644",
+        "sha": "38b70781cf8f373b8594d3bad1ceb9b5432dc08f"
+      },
+      "target": {
+        "mode": "100644",
+        "sha": "81c9dc3ae4f148b72474056898dc504c0e5f6a95"
+      },
+      "custom": {
+        "mode": "100644",
+        "sha": "5f97e47b719ca1d7178650bbc8ff443a44bb92d6"
+      },
+      "decision": "preserve custom deployment branding/version; omit upstream promotional/readme assets",
+      "integrated_blob": "5f97e47b719ca1d7178650bbc8ff443a44bb92d6"
+    },
+    {
+      "path": "README_CN.md",
+      "category": "absent-custom",
+      "base": {
+        "mode": "100644",
+        "sha": "d34649c845560c030c052f4bb374b3dc6a1bad5d"
+      },
+      "target": {
+        "mode": "100644",
+        "sha": "7199015a71a6dce18408556e737d72379c40bf34"
+      },
+      "custom": null,
+      "decision": "preserve custom deployment branding/version; omit upstream promotional/readme assets",
+      "integrated_blob": null
+    },
+    {
+      "path": "README_JA.md",
+      "category": "absent-custom",
+      "base": {
+        "mode": "100644",
+        "sha": "58c5f379f79aa612d3599c6afc7eb0e7407b57c0"
+      },
+      "target": {
+        "mode": "100644",
+        "sha": "a7bb2c47dc73393bea3639844bb0040381faa25d"
+      },
+      "custom": null,
+      "decision": "preserve custom deployment branding/version; omit upstream promotional/readme assets",
+      "integrated_blob": null
+    },
+    {
+      "path": "assets/partners/banners/wandapi-cn-dark.svg",
+      "category": "upstream-equal",
+      "base": null,
+      "target": {
+        "mode": "100644",
+        "sha": "b9081d09c411ccaf1c9a4a3a49b51761a8670b58"
+      },
+      "custom": null,
+      "decision": "preserve custom deployment branding/version; omit upstream promotional/readme assets",
+      "integrated_blob": null
+    },
+    {
+      "path": "assets/partners/banners/wandapi-cn.svg",
+      "category": "upstream-equal",
+      "base": null,
+      "target": {
+        "mode": "100644",
+        "sha": "737bdd95fdda95c90518f50e25dfe4e754e7c7b4"
+      },
+      "custom": null,
+      "decision": "preserve custom deployment branding/version; omit upstream promotional/readme assets",
+      "integrated_blob": null
+    },
+    {
+      "path": "assets/partners/banners/wandapi-en-dark.svg",
+      "category": "upstream-equal",
+      "base": null,
+      "target": {
+        "mode": "100644",
+        "sha": "0babab0868dd654082d4aece5d7c4e9a76a1feaf"
+      },
+      "custom": null,
+      "decision": "preserve custom deployment branding/version; omit upstream promotional/readme assets",
+      "integrated_blob": null
+    },
+    {
+      "path": "assets/partners/banners/wandapi-en.svg",
+      "category": "upstream-equal",
+      "base": null,
+      "target": {
+        "mode": "100644",
+        "sha": "d21f4d9a60c9a90e53f2232ece43c8ec5f5411bd"
+      },
+      "custom": null,
+      "decision": "preserve custom deployment branding/version; omit upstream promotional/readme assets",
+      "integrated_blob": null
+    },
+    {
+      "path": "assets/partners/logos/NiuProxy.jpg",
+      "category": "upstream-equal",
+      "base": null,
+      "target": {
+        "mode": "100644",
+        "sha": "51f400987fb2f761562e3466164cd2711461411d"
+      },
+      "custom": null,
+      "decision": "preserve custom deployment branding/version; omit upstream promotional/readme assets",
+      "integrated_blob": null
+    },
+    {
+      "path": "assets/partners/logos/soleapi.png",
+      "category": "upstream-equal",
+      "base": null,
+      "target": {
+        "mode": "100644",
+        "sha": "ef3db3e140282f48696cc1d79382497dfc0f5cec"
+      },
+      "custom": null,
+      "decision": "preserve custom deployment branding/version; omit upstream promotional/readme assets",
+      "integrated_blob": null
+    },
+    {
+      "path": "backend/cmd/server/VERSION",
+      "category": "custom-overlap",
+      "base": {
+        "mode": "100644",
+        "sha": "0fcb3bba7e0b87a35c839487e3e6abe8296e9571"
+      },
+      "target": {
+        "mode": "100644",
+        "sha": "51e8fdc95c2bab6d2126668779687746053b45ef"
+      },
+      "custom": {
+        "mode": "100644",
+        "sha": "9e11b32fcaa96816319e5d0dcff9fb2873f04061"
+      },
+      "decision": "preserve custom deployment branding/version; omit upstream promotional/readme assets",
+      "integrated_blob": "9e11b32fcaa96816319e5d0dcff9fb2873f04061"
+    },
+    {
+      "path": "backend/cmd/server/wire_gen.go",
+      "category": "custom-overlap",
+      "base": {
+        "mode": "100644",
+        "sha": "53cef320529d2b05ad276915b6fd9d6ca31d808b"
+      },
+      "target": {
+        "mode": "100644",
+        "sha": "49e42b4c7d5951cfad6d484f89623503c6e8cc6e"
+      },
+      "custom": {
+        "mode": "100644",
+        "sha": "29d6d0132857db4c24831a9f782b44fca87b440d"
+      },
+      "decision": "three-way content transplant preserving custom changes",
+      "integrated_blob": "8462ea63476cc75ce977f8461410667e16cd5d9c",
+      "review": "clean content merge; retain all custom-versus-base hunks; independently reviewed before publication"
+    },
+    {
+      "path": "backend/ent/group.go",
+      "category": "upstream-equal",
+      "base": {
+        "mode": "100644",
+        "sha": "747a09d1aa4f2501a67185fc6f5423b25fb6acc2"
+      },
+      "target": {
+        "mode": "100644",
+        "sha": "f6f54735d969cf777e18fd7ee99d774a0d50adeb"
+      },
+      "custom": {
+        "mode": "100644",
+        "sha": "747a09d1aa4f2501a67185fc6f5423b25fb6acc2"
+      },
+      "decision": "adopt exact upstream target bytes/mode",
+      "integrated_blob": "f6f54735d969cf777e18fd7ee99d774a0d50adeb"
+    },
+    {
+      "path": "backend/ent/group/group.go",
+      "category": "upstream-equal",
+      "base": {
+        "mode": "100644",
+        "sha": "cf3feeb6c9e6c2b1351b8831f840f97ddd46e74b"
+      },
+      "target": {
+        "mode": "100644",
+        "sha": "5e265e6c3872dd38ffe8dd5ebff6a804606794e6"
+      },
+      "custom": {
+        "mode": "100644",
+        "sha": "cf3feeb6c9e6c2b1351b8831f840f97ddd46e74b"
+      },
+      "decision": "adopt exact upstream target bytes/mode",
+      "integrated_blob": "5e265e6c3872dd38ffe8dd5ebff6a804606794e6"
+    },
+    {
+      "path": "backend/ent/group/where.go",
+      "category": "upstream-equal",
+      "base": {
+        "mode": "100644",
+        "sha": "149f2da8a083852618dfb00cb189215eeeebb6bd"
+      },
+      "target": {
+        "mode": "100644",
+        "sha": "967965aa2ecc0ed047b04a18e836a643cca9bf1a"
+      },
+      "custom": {
+        "mode": "100644",
+        "sha": "149f2da8a083852618dfb00cb189215eeeebb6bd"
+      },
+      "decision": "adopt exact upstream target bytes/mode",
+      "integrated_blob": "967965aa2ecc0ed047b04a18e836a643cca9bf1a"
+    },
+    {
+      "path": "backend/ent/group_create.go",
+      "category": "upstream-equal",
+      "base": {
+        "mode": "100644",
+        "sha": "d2a3a0d0e31034aadb226896a7f4b01eb0e2dfe3"
+      },
+      "target": {
+        "mode": "100644",
+        "sha": "12b585c67f8c85c012d70763a40a39e7ded0c885"
+      },
+      "custom": {
+        "mode": "100644",
+        "sha": "d2a3a0d0e31034aadb226896a7f4b01eb0e2dfe3"
+      },
+      "decision": "adopt exact upstream target bytes/mode",
+      "integrated_blob": "12b585c67f8c85c012d70763a40a39e7ded0c885"
+    },
+    {
+      "path": "backend/ent/group_update.go",
+      "category": "upstream-equal",
+      "base": {
+        "mode": "100644",
+        "sha": "d4d8b8572913063c00de9c99c38824f28bce4d03"
+      },
+      "target": {
+        "mode": "100644",
+        "sha": "732c2a7c78caade8087d70163c27136c138fcf00"
+      },
+      "custom": {
+        "mode": "100644",
+        "sha": "d4d8b8572913063c00de9c99c38824f28bce4d03"
+      },
+      "decision": "adopt exact upstream target bytes/mode",
+      "integrated_blob": "732c2a7c78caade8087d70163c27136c138fcf00"
+    },
+    {
+      "path": "backend/ent/migrate/schema.go",
+      "category": "upstream-equal",
+      "base": {
+        "mode": "100644",
+        "sha": "f12c75839142442a6ebc446785336a8bae8159cb"
+      },
+      "target": {
+        "mode": "100644",
+        "sha": "18c3fa9b7bed641760ebd4d0064dcc648ab1fc2d"
+      },
+      "custom": {
+        "mode": "100644",
+        "sha": "f12c75839142442a6ebc446785336a8bae8159cb"
+      },
+      "decision": "adopt exact upstream target bytes/mode",
+      "integrated_blob": "18c3fa9b7bed641760ebd4d0064dcc648ab1fc2d"
+    },
+    {
+      "path": "backend/ent/mutation.go",
+      "category": "upstream-equal",
+      "base": {
+        "mode": "100644",
+        "sha": "b4442aef44534388ddf525eadfbd366cb3a8ca18"
+      },
+      "target": {
+        "mode": "100644",
+        "sha": "9f6a50b1a31cb4f8948f84192735db67c9e0f437"
+      },
+      "custom": {
+        "mode": "100644",
+        "sha": "b4442aef44534388ddf525eadfbd366cb3a8ca18"
+      },
+      "decision": "adopt exact upstream target bytes/mode",
+      "integrated_blob": "9f6a50b1a31cb4f8948f84192735db67c9e0f437"
+    },
+    {
+      "path": "backend/ent/runtime/runtime.go",
+      "category": "upstream-equal",
+      "base": {
+        "mode": "100644",
+        "sha": "d36bddb44670dfbefb50f2d7357455c232bf9d71"
+      },
+      "target": {
+        "mode": "100644",
+        "sha": "394f22211604138986139c1bcb3869dadc6ca488"
+      },
+      "custom": {
+        "mode": "100644",
+        "sha": "d36bddb44670dfbefb50f2d7357455c232bf9d71"
+      },
+      "decision": "adopt exact upstream target bytes/mode",
+      "integrated_blob": "394f22211604138986139c1bcb3869dadc6ca488"
+    },
+    {
+      "path": "backend/ent/schema/group.go",
+      "category": "upstream-equal",
+      "base": {
+        "mode": "100644",
+        "sha": "48222c69c552cd423974b46fd9d8247767e73087"
+      },
+      "target": {
+        "mode": "100644",
+        "sha": "e84c388299f26a45cf08f81ada0cb2abd2751fbc"
+      },
+      "custom": {
+        "mode": "100644",
+        "sha": "48222c69c552cd423974b46fd9d8247767e73087"
+      },
+      "decision": "adopt exact upstream target bytes/mode",
+      "integrated_blob": "e84c388299f26a45cf08f81ada0cb2abd2751fbc"
+    },
+    {
+      "path": "backend/go.mod",
+      "category": "already-target",
+      "base": {
+        "mode": "100644",
+        "sha": "50865afb0c7b7a11b34485f0076c68d1aae847a3"
+      },
+      "target": {
+        "mode": "100644",
+        "sha": "c853d277e81da1ae36d0d5201128887dc4edf67b"
+      },
+      "custom": {
+        "mode": "100644",
+        "sha": "c853d277e81da1ae36d0d5201128887dc4edf67b"
+      },
+      "decision": "already applied security dependency graph; unchanged",
+      "integrated_blob": "c853d277e81da1ae36d0d5201128887dc4edf67b"
+    },
+    {
+      "path": "backend/go.sum",
+      "category": "custom-overlap",
+      "base": {
+        "mode": "100644",
+        "sha": "78270b757eed20139391ade40589c11b8df95f80"
+      },
+      "target": {
+        "mode": "100644",
+        "sha": "ff16ab7d138387d90cb25e5f1c303ea697f13d7b"
+      },
+      "custom": {
+        "mode": "100644",
+        "sha": "bfe93bdb9036f4cd7da5f76559448f9cc8d0f67b"
+      },
+      "decision": "adopt exact target sums; go.mod already target; removes obsolete sums only",
+      "integrated_blob": "ff16ab7d138387d90cb25e5f1c303ea697f13d7b"
+    },
+    {
+      "path": "backend/internal/config/config.go",
+      "category": "custom-overlap",
+      "base": {
+        "mode": "100644",
+        "sha": "1f488c89afffe88224c4b8e4c7f863d3257f45b2"
+      },
+      "target": {
+        "mode": "100644",
+        "sha": "3c6e5621642d21c9e7c45dbb68aabfa3d249bf11"
+      },
+      "custom": {
+        "mode": "100644",
+        "sha": "8ccb2a08c2f1fa888c3857c695d4f1060438dabb"
+      },
+      "decision": "three-way content transplant preserving custom changes",
+      "integrated_blob": "a008ca550b725d4dca3c820df88b07996085428c",
+      "review": "clean content merge; retain all custom-versus-base hunks; independently reviewed before publication"
+    },
+    {
+      "path": "backend/internal/config/config_test.go",
+      "category": "test-restoration",
+      "base": {
+        "mode": "100644",
+        "sha": "434b88995547355a02057180fcdd244aa09eee0a"
+      },
+      "target": {
+        "mode": "100644",
+        "sha": "adb48e5bb2aef743ec98ee20cea30da166855fbe"
+      },
+      "custom": null,
+      "decision": "restore exact target tests through pinned harness, do not vendor upstream suite",
+      "integrated_blob": null
+    },
+    {
+      "path": "backend/internal/handler/admin/account_handler.go",
+      "category": "upstream-equal",
+      "base": {
+        "mode": "100644",
+        "sha": "4c2fbd37ca7690f8dbe45535f71f59e726af10d7"
+      },
+      "target": {
+        "mode": "100644",
+        "sha": "352ab5b4d96b5ee271673aae5b104d8449cd58e2"
+      },
+      "custom": {
+        "mode": "100644",
+        "sha": "4c2fbd37ca7690f8dbe45535f71f59e726af10d7"
+      },
+      "decision": "adopt exact upstream target bytes/mode",
+      "integrated_blob": "352ab5b4d96b5ee271673aae5b104d8449cd58e2"
+    },
+    {
+      "path": "backend/internal/handler/admin/account_handler_grok_model_diagnostics_test.go",
+      "category": "test-restoration",
+      "base": null,
+      "target": {
+        "mode": "100644",
+        "sha": "487bdacd2d33fa9755d464091fc1bf944250637c"
+      },
+      "custom": null,
+      "decision": "restore exact target tests through pinned harness, do not vendor upstream suite",
+      "integrated_blob": null
+    },
+    {
+      "path": "backend/internal/handler/admin/admin_helpers_test.go",
+      "category": "test-restoration",
+      "base": {
+        "mode": "100644",
+        "sha": "980c26bab9e7751e2d54d9c391ca4cc14cef0d44"
+      },
+      "target": {
+        "mode": "100644",
+        "sha": "9b6f7010beaccf5568c929457265b485deddedbd"
+      },
+      "custom": null,
+      "decision": "restore exact target tests through pinned harness, do not vendor upstream suite",
+      "integrated_blob": null
+    },
+    {
+      "path": "backend/internal/handler/admin/announcement_handler.go",
+      "category": "upstream-equal",
+      "base": {
+        "mode": "100644",
+        "sha": "d3b9d173731c4b093b770d55e6127ab803e93915"
+      },
+      "target": {
+        "mode": "100644",
+        "sha": "acd084813ebbb9c697a1cbc2c9bc506da2c67cfb"
+      },
+      "custom": {
+        "mode": "100644",
+        "sha": "d3b9d173731c4b093b770d55e6127ab803e93915"
+      },
+      "decision": "adopt exact upstream target bytes/mode",
+      "integrated_blob": "acd084813ebbb9c697a1cbc2c9bc506da2c67cfb"
+    },
+    {
+      "path": "backend/internal/handler/admin/custom_admin_key_accounts.go",
+      "category": "upstream-equal",
+      "base": null,
+      "target": {
+        "mode": "100644",
+        "sha": "dc4a2e21a65d3c794f7a4f7da95466965aed8814"
+      },
+      "custom": null,
+      "decision": "adopt exact upstream target bytes/mode",
+      "integrated_blob": "dc4a2e21a65d3c794f7a4f7da95466965aed8814"
+    },
+    {
+      "path": "backend/internal/handler/admin/custom_admin_key_accounts_test.go",
+      "category": "test-restoration",
+      "base": null,
+      "target": {
+        "mode": "100644",
+        "sha": "08be6e6d31c7ed821564ca6980871ba71a0830fa"
+      },
+      "custom": null,
+      "decision": "restore exact target tests through pinned harness, do not vendor upstream suite",
+      "integrated_blob": null
+    },
+    {
+      "path": "backend/internal/handler/admin/custom_admin_key_codex_import.go",
+      "category": "upstream-equal",
+      "base": null,
+      "target": {
+        "mode": "100644",
+        "sha": "a7c49b568327101f34cea8863ea8d2a0a5c6bb76"
+      },
+      "custom": null,
+      "decision": "adopt exact upstream target bytes/mode",
+      "integrated_blob": "a7c49b568327101f34cea8863ea8d2a0a5c6bb76"
+    },
+    {
+      "path": "backend/internal/handler/admin/custom_admin_key_codex_import_test.go",
+      "category": "test-restoration",
+      "base": null,
+      "target": {
+        "mode": "100644",
+        "sha": "614bda23f35910b39a46ad217c4729dd40e86028"
+      },
+      "custom": null,
+      "decision": "restore exact target tests through pinned harness, do not vendor upstream suite",
+      "integrated_blob": null
+    },
+    {
+      "path": "backend/internal/handler/admin/custom_admin_key_commit_test.go",
+      "category": "test-restoration",
+      "base": null,
+      "target": {
+        "mode": "100644",
+        "sha": "ded090ed2d21f828e17c5c792091541cff5619cc"
+      },
+      "custom": null,
+      "decision": "restore exact target tests through pinned harness, do not vendor upstream suite",
+      "integrated_blob": null
+    },
+    {
+      "path": "backend/internal/handler/admin/custom_admin_key_group_models.go",
+      "category": "upstream-equal",
+      "base": null,
+      "target": {
+        "mode": "100644",
+        "sha": "7b3b5b18ef41d9b79185538db7874496204d4740"
+      },
+      "custom": null,
+      "decision": "adopt exact upstream target bytes/mode",
+      "integrated_blob": "7b3b5b18ef41d9b79185538db7874496204d4740"
+    },
+    {
+      "path": "backend/internal/handler/admin/custom_admin_key_proxies.go",
+      "category": "upstream-equal",
+      "base": null,
+      "target": {
+        "mode": "100644",
+        "sha": "970c5b29f7b5db4dc96ff965e2d3ac7b33d0776e"
+      },
+      "custom": null,
+      "decision": "adopt exact upstream target bytes/mode",
+      "integrated_blob": "970c5b29f7b5db4dc96ff965e2d3ac7b33d0776e"
+    },
+    {
+      "path": "backend/internal/handler/admin/custom_admin_key_proxies_test.go",
+      "category": "test-restoration",
+      "base": null,
+      "target": {
+        "mode": "100644",
+        "sha": "8182cb058e9a3c9126e0d105e0bd0fcd80edcb36"
+      },
+      "custom": null,
+      "decision": "restore exact target tests through pinned harness, do not vendor upstream suite",
+      "integrated_blob": null
+    },
+    {
+      "path": "backend/internal/handler/admin/custom_admin_key_users.go",
+      "category": "upstream-equal",
+      "base": null,
+      "target": {
+        "mode": "100644",
+        "sha": "5a78d7c39337b05ca155e3ae79affc3e9a5550a2"
+      },
+      "custom": null,
+      "decision": "adopt exact upstream target bytes/mode",
+      "integrated_blob": "5a78d7c39337b05ca155e3ae79affc3e9a5550a2"
+    },
+    {
+      "path": "backend/internal/handler/admin/custom_admin_key_users_test.go",
+      "category": "test-restoration",
+      "base": null,
+      "target": {
+        "mode": "100644",
+        "sha": "497cae2822ad57653e947ee69f5878dd13c2755b"
+      },
+      "custom": null,
+      "decision": "restore exact target tests through pinned harness, do not vendor upstream suite",
+      "integrated_blob": null
+    },
+    {
+      "path": "backend/internal/handler/admin/custom_admin_keys.go",
+      "category": "upstream-equal",
+      "base": null,
+      "target": {
+        "mode": "100644",
+        "sha": "8abedc09fb3a1a8913dbb964774656ccf55a3533"
+      },
+      "custom": null,
+      "decision": "adopt exact upstream target bytes/mode",
+      "integrated_blob": "8abedc09fb3a1a8913dbb964774656ccf55a3533"
+    },
+    {
+      "path": "backend/internal/handler/admin/custom_admin_keys_test.go",
+      "category": "test-restoration",
+      "base": null,
+      "target": {
+        "mode": "100644",
+        "sha": "301257aaa043c398612d29c9fa4ee58c8f501388"
+      },
+      "custom": null,
+      "decision": "restore exact target tests through pinned harness, do not vendor upstream suite",
+      "integrated_blob": null
+    },
+    {
+      "path": "backend/internal/handler/admin/custom_legacy_admin_key_test.go",
+      "category": "test-restoration",
+      "base": null,
+      "target": {
+        "mode": "100644",
+        "sha": "2ee229e86ced7b3d6d714c2b6e2bac00dc760bee"
+      },
+      "custom": null,
+      "decision": "restore exact target tests through pinned harness, do not vendor upstream suite",
+      "integrated_blob": null
+    },
+    {
+      "path": "backend/internal/handler/admin/group_handler.go",
+      "category": "upstream-equal",
+      "base": {
+        "mode": "100644",
+        "sha": "4fed4b2bb4fbb0809f7ff5f6e2b412651a762989"
+      },
+      "target": {
+        "mode": "100644",
+        "sha": "a5388afdc3afbf9f256d37289695ba1cf4e35fb7"
+      },
+      "custom": {
+        "mode": "100644",
+        "sha": "4fed4b2bb4fbb0809f7ff5f6e2b412651a762989"
+      },
+      "decision": "adopt exact upstream target bytes/mode",
+      "integrated_blob": "a5388afdc3afbf9f256d37289695ba1cf4e35fb7"
+    },
+    {
+      "path": "backend/internal/handler/admin/idempotency_helper.go",
+      "category": "upstream-equal",
+      "base": {
+        "mode": "100644",
+        "sha": "8017e7211e4b5b8c2d0b743c19d9fffc512ba5d8"
+      },
+      "target": {
+        "mode": "100644",
+        "sha": "db104a7d6c1ac88cf8af7b8e74bd226d3a6e52e4"
+      },
+      "custom": {
+        "mode": "100644",
+        "sha": "8017e7211e4b5b8c2d0b743c19d9fffc512ba5d8"
+      },
+      "decision": "adopt exact upstream target bytes/mode",
+      "integrated_blob": "db104a7d6c1ac88cf8af7b8e74bd226d3a6e52e4"
+    },
+    {
+      "path": "backend/internal/handler/admin/ops_dashboard_handler.go",
+      "category": "upstream-equal",
+      "base": {
+        "mode": "100644",
+        "sha": "ad16cfa08b6110c266148dca772ba821ef7a0ba0"
+      },
+      "target": {
+        "mode": "100644",
+        "sha": "9f776e2cb70a5f1f5f786eebd89d88f650e472dd"
+      },
+      "custom": {
+        "mode": "100644",
+        "sha": "ad16cfa08b6110c266148dca772ba821ef7a0ba0"
+      },
+      "decision": "adopt exact upstream target bytes/mode",
+      "integrated_blob": "9f776e2cb70a5f1f5f786eebd89d88f650e472dd"
+    },
+    {
+      "path": "backend/internal/handler/admin/promo_handler.go",
+      "category": "upstream-equal",
+      "base": {
+        "mode": "100644",
+        "sha": "34a44a81f1dc919e00fae80a0dd918dd2aeb523c"
+      },
+      "target": {
+        "mode": "100644",
+        "sha": "3e8be8641c24417a9d2eba637b8bc4a55a178326"
+      },
+      "custom": {
+        "mode": "100644",
+        "sha": "34a44a81f1dc919e00fae80a0dd918dd2aeb523c"
+      },
+      "decision": "adopt exact upstream target bytes/mode",
+      "integrated_blob": "3e8be8641c24417a9d2eba637b8bc4a55a178326"
+    },
+    {
+      "path": "backend/internal/handler/admin/proxy_handler.go",
+      "category": "upstream-equal",
+      "base": {
+        "mode": "100644",
+        "sha": "3902eaf2f8440f92edac46686b2bc7c9abcc5173"
+      },
+      "target": {
+        "mode": "100644",
+        "sha": "d16453d3b2ad1c63a72a857464bc4d2f4b39c0c0"
+      },
+      "custom": {
+        "mode": "100644",
+        "sha": "3902eaf2f8440f92edac46686b2bc7c9abcc5173"
+      },
+      "decision": "adopt exact upstream target bytes/mode",
+      "integrated_blob": "d16453d3b2ad1c63a72a857464bc4d2f4b39c0c0"
+    },
+    {
+      "path": "backend/internal/handler/admin/scoped_admin_content_response.go",
+      "category": "upstream-equal",
+      "base": null,
+      "target": {
+        "mode": "100644",
+        "sha": "69e037f8be055302a8e34c8222c50d04f5c25b25"
+      },
+      "custom": null,
+      "decision": "adopt exact upstream target bytes/mode",
+      "integrated_blob": "69e037f8be055302a8e34c8222c50d04f5c25b25"
+    },
+    {
+      "path": "backend/internal/handler/admin/scoped_admin_content_response_test.go",
+      "category": "test-restoration",
+      "base": null,
+      "target": {
+        "mode": "100644",
+        "sha": "2055ea1f9e15d483046a551abccfbb01107e4e7c"
+      },
+      "custom": null,
+      "decision": "restore exact target tests through pinned harness, do not vendor upstream suite",
+      "integrated_blob": null
+    },
+    {
+      "path": "backend/internal/handler/admin/scoped_admin_subscription_response.go",
+      "category": "upstream-equal",
+      "base": null,
+      "target": {
+        "mode": "100644",
+        "sha": "8c467fbba1ee7f270285d5dc67560b04635288a8"
+      },
+      "custom": null,
+      "decision": "adopt exact upstream target bytes/mode",
+      "integrated_blob": "8c467fbba1ee7f270285d5dc67560b04635288a8"
+    },
+    {
+      "path": "backend/internal/handler/admin/scoped_admin_subscription_response_test.go",
+      "category": "test-restoration",
+      "base": null,
+      "target": {
+        "mode": "100644",
+        "sha": "0756d674caa0a732c69d9fab6ca7a704ce0a666a"
+      },
+      "custom": null,
+      "decision": "restore exact target tests through pinned harness, do not vendor upstream suite",
+      "integrated_blob": null
+    },
+    {
+      "path": "backend/internal/handler/admin/scoped_admin_usage_response.go",
+      "category": "upstream-equal",
+      "base": null,
+      "target": {
+        "mode": "100644",
+        "sha": "902ae310a7fa76bab99238673a68de6f91dbc88d"
+      },
+      "custom": null,
+      "decision": "adopt exact upstream target bytes/mode",
+      "integrated_blob": "902ae310a7fa76bab99238673a68de6f91dbc88d"
+    },
+    {
+      "path": "backend/internal/handler/admin/scoped_admin_usage_response_test.go",
+      "category": "test-restoration",
+      "base": null,
+      "target": {
+        "mode": "100644",
+        "sha": "c43e9015f40be79f0f4d829bcc50fae6639ed475"
+      },
+      "custom": null,
+      "decision": "restore exact target tests through pinned harness, do not vendor upstream suite",
+      "integrated_blob": null
+    },
+    {
+      "path": "backend/internal/handler/admin/setting_handler_runtime.go",
+      "category": "upstream-equal",
+      "base": {
+        "mode": "100644",
+        "sha": "972604e0a8011b12e39147524e9f8a0db4f85330"
+      },
+      "target": {
+        "mode": "100644",
+        "sha": "3cc4ef4b6064c46fe89341c80351cffb4882d582"
+      },
+      "custom": {
+        "mode": "100644",
+        "sha": "972604e0a8011b12e39147524e9f8a0db4f85330"
+      },
+      "decision": "adopt exact upstream target bytes/mode",
+      "integrated_blob": "3cc4ef4b6064c46fe89341c80351cffb4882d582"
+    },
+    {
+      "path": "backend/internal/handler/admin/subscription_handler.go",
+      "category": "upstream-equal",
+      "base": {
+        "mode": "100644",
+        "sha": "2174e18840a7ab318b4a9b45709c0e862b3d3319"
+      },
+      "target": {
+        "mode": "100644",
+        "sha": "2de88893e782ce6cc39775e08a1acf1606937333"
+      },
+      "custom": {
+        "mode": "100644",
+        "sha": "2174e18840a7ab318b4a9b45709c0e862b3d3319"
+      },
+      "decision": "adopt exact upstream target bytes/mode",
+      "integrated_blob": "2de88893e782ce6cc39775e08a1acf1606937333"
+    },
+    {
+      "path": "backend/internal/handler/admin/usage_handler.go",
+      "category": "upstream-equal",
+      "base": {
+        "mode": "100644",
+        "sha": "4fe37f087f44ca7bea317849a237ac14bd1f94ff"
+      },
+      "target": {
+        "mode": "100644",
+        "sha": "eb06d59cd4971e475ba4cd40deb45f399e7f53a7"
+      },
+      "custom": {
+        "mode": "100644",
+        "sha": "4fe37f087f44ca7bea317849a237ac14bd1f94ff"
+      },
+      "decision": "adopt exact upstream target bytes/mode",
+      "integrated_blob": "eb06d59cd4971e475ba4cd40deb45f399e7f53a7"
+    },
+    {
+      "path": "backend/internal/handler/admin/user_handler.go",
+      "category": "upstream-equal",
+      "base": {
+        "mode": "100644",
+        "sha": "817bfa9117bb4b2de36d8b1fbeea133fc3ab0664"
+      },
+      "target": {
+        "mode": "100644",
+        "sha": "ceffd279473c5de53b0e979093e4ef9467f81e52"
+      },
+      "custom": {
+        "mode": "100644",
+        "sha": "817bfa9117bb4b2de36d8b1fbeea133fc3ab0664"
+      },
+      "decision": "adopt exact upstream target bytes/mode",
+      "integrated_blob": "ceffd279473c5de53b0e979093e4ef9467f81e52"
+    },
+    {
+      "path": "backend/internal/handler/dto/account_mapper_redact_test.go",
+      "category": "test-restoration",
+      "base": {
+        "mode": "100644",
+        "sha": "9a979a66b61df9cf46b94f8926283040de3ce23c"
+      },
+      "target": {
+        "mode": "100644",
+        "sha": "d061a3325b0483e667f8638722222489cbcda523"
+      },
+      "custom": null,
+      "decision": "restore exact target tests through pinned harness, do not vendor upstream suite",
+      "integrated_blob": null
+    },
+    {
+      "path": "backend/internal/handler/dto/mappers.go",
+      "category": "upstream-equal",
+      "base": {
+        "mode": "100644",
+        "sha": "a84d493e52f13c5d436c0d9f1cd5a55439e049d8"
+      },
+      "target": {
+        "mode": "100644",
+        "sha": "5c2410ff2d33dad9a2bf3a8e7f34e3e40621b059"
+      },
+      "custom": {
+        "mode": "100644",
+        "sha": "a84d493e52f13c5d436c0d9f1cd5a55439e049d8"
+      },
+      "decision": "adopt exact upstream target bytes/mode",
+      "integrated_blob": "5c2410ff2d33dad9a2bf3a8e7f34e3e40621b059"
+    },
+    {
+      "path": "backend/internal/handler/dto/types.go",
+      "category": "upstream-equal",
+      "base": {
+        "mode": "100644",
+        "sha": "1c79cc49c085547f620f9556d5adcab353149abe"
+      },
+      "target": {
+        "mode": "100644",
+        "sha": "930cc98193ee5016536b48becfcbc9279e58013a"
+      },
+      "custom": {
+        "mode": "100644",
+        "sha": "1c79cc49c085547f620f9556d5adcab353149abe"
+      },
+      "decision": "adopt exact upstream target bytes/mode",
+      "integrated_blob": "930cc98193ee5016536b48becfcbc9279e58013a"
+    },
+    {
+      "path": "backend/internal/handler/gateway_models_test.go",
+      "category": "test-restoration",
+      "base": {
+        "mode": "100644",
+        "sha": "3724973dae33fa9686f9b1208c5a344ca64430ac"
+      },
+      "target": {
+        "mode": "100644",
+        "sha": "27daa74f8cbfa3abd0f7d8c1f64938a16de8eea9"
+      },
+      "custom": null,
+      "decision": "restore exact target tests through pinned harness, do not vendor upstream suite",
+      "integrated_blob": null
+    },
+    {
+      "path": "backend/internal/handler/gemini_cached_content_bound_retry_test.go",
+      "category": "test-restoration",
+      "base": null,
+      "target": {
+        "mode": "100644",
+        "sha": "6220f12e5c724e54552e92cb2af8718a6f481880"
+      },
+      "custom": null,
+      "decision": "restore exact target tests through pinned harness, do not vendor upstream suite",
+      "integrated_blob": null
+    },
+    {
+      "path": "backend/internal/handler/gemini_mixed_models_test.go",
+      "category": "test-restoration",
+      "base": {
+        "mode": "100644",
+        "sha": "6a0e2c2eb5b63f8607df55e92bbdaeb96e4ba34a"
+      },
+      "target": {
+        "mode": "100644",
+        "sha": "3f5ed01401d3243d98ba1a6eeb96d33d53c4428f"
+      },
+      "custom": null,
+      "decision": "restore exact target tests through pinned harness, do not vendor upstream suite",
+      "integrated_blob": null
+    },
+    {
+      "path": "backend/internal/handler/gemini_v1beta_handler.go",
+      "category": "upstream-equal",
+      "base": {
+        "mode": "100644",
+        "sha": "c15d212a3be2fffbc8356212fa2bcd6d84b67f9c"
+      },
+      "target": {
+        "mode": "100644",
+        "sha": "3c8c34bb531625703bf6c6fb1d308de5f99b9948"
+      },
+      "custom": {
+        "mode": "100644",
+        "sha": "c15d212a3be2fffbc8356212fa2bcd6d84b67f9c"
+      },
+      "decision": "adopt exact upstream target bytes/mode",
+      "integrated_blob": "3c8c34bb531625703bf6c6fb1d308de5f99b9948"
+    },
+    {
+      "path": "backend/internal/pkg/adminaccess/catalog.go",
+      "category": "upstream-equal",
+      "base": null,
+      "target": {
+        "mode": "100644",
+        "sha": "d8dbe44b559358b1cb143863db7a991f05d86ad2"
+      },
+      "custom": null,
+      "decision": "adopt exact upstream target bytes/mode",
+      "integrated_blob": "d8dbe44b559358b1cb143863db7a991f05d86ad2"
+    },
+    {
+      "path": "backend/internal/pkg/adminaccess/policy.go",
+      "category": "upstream-equal",
+      "base": null,
+      "target": {
+        "mode": "100644",
+        "sha": "2eaf07b5ed72da4091769b25a1647de2832e7f1b"
+      },
+      "custom": null,
+      "decision": "adopt exact upstream target bytes/mode",
+      "integrated_blob": "2eaf07b5ed72da4091769b25a1647de2832e7f1b"
+    },
+    {
+      "path": "backend/internal/pkg/adminaccess/policy_test.go",
+      "category": "test-restoration",
+      "base": null,
+      "target": {
+        "mode": "100644",
+        "sha": "ef415487c0bd6483840ab8eb7eff7226bc3c97a0"
+      },
+      "custom": null,
+      "decision": "restore exact target tests through pinned harness, do not vendor upstream suite",
+      "integrated_blob": null
+    },
+    {
+      "path": "backend/internal/pkg/antigravity/response_transformer.go",
+      "category": "upstream-equal",
+      "base": {
+        "mode": "100644",
+        "sha": "03e26ac50cd98eafea16a20ef93367400b9f5dfa"
+      },
+      "target": {
+        "mode": "100644",
+        "sha": "712234043442cf2bddecd6c9d27a9e0049aa5050"
+      },
+      "custom": {
+        "mode": "100644",
+        "sha": "03e26ac50cd98eafea16a20ef93367400b9f5dfa"
+      },
+      "decision": "adopt exact upstream target bytes/mode",
+      "integrated_blob": "712234043442cf2bddecd6c9d27a9e0049aa5050"
+    },
+    {
+      "path": "backend/internal/pkg/antigravity/response_transformer_malformed_test.go",
+      "category": "test-restoration",
+      "base": null,
+      "target": {
+        "mode": "100644",
+        "sha": "84616e603b477a8eefd8a80c2691ca169f6c0f3f"
+      },
+      "custom": null,
+      "decision": "restore exact target tests through pinned harness, do not vendor upstream suite",
+      "integrated_blob": null
+    },
+    {
+      "path": "backend/internal/pkg/apicompat/anthropic_to_responses.go",
+      "category": "upstream-equal",
+      "base": {
+        "mode": "100644",
+        "sha": "a54ca94133cd582b8c0177e04266c0eb6f608e4c"
+      },
+      "target": {
+        "mode": "100644",
+        "sha": "c27e44553717e9f5a5b71a71be5bdc38a1b80565"
+      },
+      "custom": {
+        "mode": "100644",
+        "sha": "a54ca94133cd582b8c0177e04266c0eb6f608e4c"
+      },
+      "decision": "adopt exact upstream target bytes/mode",
+      "integrated_blob": "c27e44553717e9f5a5b71a71be5bdc38a1b80565"
+    },
+    {
+      "path": "backend/internal/pkg/gemini/models.go",
+      "category": "upstream-equal",
+      "base": {
+        "mode": "100644",
+        "sha": "1d38fc99099f0d6b85b89358399883121f6cdf6e"
+      },
+      "target": {
+        "mode": "100644",
+        "sha": "7e4066c004d0b2c87f1a2a68e40e3069999d3010"
+      },
+      "custom": {
+        "mode": "100644",
+        "sha": "1d38fc99099f0d6b85b89358399883121f6cdf6e"
+      },
+      "decision": "adopt exact upstream target bytes/mode",
+      "integrated_blob": "7e4066c004d0b2c87f1a2a68e40e3069999d3010"
+    },
+    {
+      "path": "backend/internal/pkg/gemini/models_test.go",
+      "category": "test-restoration",
+      "base": {
+        "mode": "100644",
+        "sha": "1d20c0e62d5d61ebb1a57920450027d769c80ce0"
+      },
+      "target": {
+        "mode": "100644",
+        "sha": "a85ecb20e590d0fa2da7d89223b53f4b94f4c465"
+      },
+      "custom": null,
+      "decision": "restore exact target tests through pinned harness, do not vendor upstream suite",
+      "integrated_blob": null
+    },
+    {
+      "path": "backend/internal/pkg/geminicli/models.go",
+      "category": "upstream-equal",
+      "base": {
+        "mode": "100644",
+        "sha": "4e2fa55bb146a311315f2f1d1ea15a77ac93e6b2"
+      },
+      "target": {
+        "mode": "100644",
+        "sha": "6fe3a5f36899d2daf3d459347a51c4d61841b147"
+      },
+      "custom": {
+        "mode": "100644",
+        "sha": "4e2fa55bb146a311315f2f1d1ea15a77ac93e6b2"
+      },
+      "decision": "adopt exact upstream target bytes/mode",
+      "integrated_blob": "6fe3a5f36899d2daf3d459347a51c4d61841b147"
+    },
+    {
+      "path": "backend/internal/pkg/geminicli/models_test.go",
+      "category": "test-restoration",
+      "base": {
+        "mode": "100644",
+        "sha": "e0cb57941f790824833d2a5f202f29a9eb8ce359"
+      },
+      "target": {
+        "mode": "100644",
+        "sha": "7ef2647fa5b31fd5bbb4dd443546efbdb9d4d059"
+      },
+      "custom": null,
+      "decision": "restore exact target tests through pinned harness, do not vendor upstream suite",
+      "integrated_blob": null
+    },
+    {
+      "path": "backend/internal/pkg/openai/constants.go",
+      "category": "upstream-equal",
+      "base": {
+        "mode": "100644",
+        "sha": "8c1d7c9571513d46d2f6b1dda5f076a5bc472a96"
+      },
+      "target": {
+        "mode": "100644",
+        "sha": "f213459eca8b161a50aef2021d7d38e06b3baf0c"
+      },
+      "custom": {
+        "mode": "100644",
+        "sha": "8c1d7c9571513d46d2f6b1dda5f076a5bc472a96"
+      },
+      "decision": "adopt exact upstream target bytes/mode",
+      "integrated_blob": "f213459eca8b161a50aef2021d7d38e06b3baf0c"
+    },
+    {
+      "path": "backend/internal/pkg/pagination/pagination.go",
+      "category": "upstream-equal",
+      "base": {
+        "mode": "100644",
+        "sha": "334ba809de478549f53ce64696790e9317fe109e"
+      },
+      "target": {
+        "mode": "100644",
+        "sha": "597afbcd5bc63bba0e6fc8195928523d7cc3455a"
+      },
+      "custom": {
+        "mode": "100644",
+        "sha": "334ba809de478549f53ce64696790e9317fe109e"
+      },
+      "decision": "adopt exact upstream target bytes/mode",
+      "integrated_blob": "597afbcd5bc63bba0e6fc8195928523d7cc3455a"
+    },
+    {
+      "path": "backend/internal/pkg/pagination/pagination_test.go",
+      "category": "test-restoration",
+      "base": {
+        "mode": "100644",
+        "sha": "9704449e92ea0fdc87120758477a610df04a3d1e"
+      },
+      "target": {
+        "mode": "100644",
+        "sha": "89b1613763c18673078231782ce6d4c1de73f314"
+      },
+      "custom": null,
+      "decision": "restore exact target tests through pinned harness, do not vendor upstream suite",
+      "integrated_blob": null
+    },
+    {
+      "path": "backend/internal/pkg/response/response.go",
+      "category": "upstream-equal",
+      "base": {
+        "mode": "100644",
+        "sha": "b1d6c2d059ec1bcf0121182ec5602dd356719502"
+      },
+      "target": {
+        "mode": "100644",
+        "sha": "a91aebd9eacdd2bfb026cadbd06ad6b43116b9e8"
+      },
+      "custom": {
+        "mode": "100644",
+        "sha": "b1d6c2d059ec1bcf0121182ec5602dd356719502"
+      },
+      "decision": "adopt exact upstream target bytes/mode",
+      "integrated_blob": "a91aebd9eacdd2bfb026cadbd06ad6b43116b9e8"
+    },
+    {
+      "path": "backend/internal/pkg/response/response_test.go",
+      "category": "test-restoration",
+      "base": {
+        "mode": "100644",
+        "sha": "0debce5fd60e73accecdd1119820981e8adc01f9"
+      },
+      "target": {
+        "mode": "100644",
+        "sha": "202a9b4b5bb687ddfddf68b416df0a3aecb38905"
+      },
+      "custom": null,
+      "decision": "restore exact target tests through pinned harness, do not vendor upstream suite",
+      "integrated_blob": null
+    },
+    {
+      "path": "backend/internal/repository/account_repo.go",
+      "category": "upstream-equal",
+      "base": {
+        "mode": "100644",
+        "sha": "781928aea28032ddb380adb1ae6c68b79d9c6b2a"
+      },
+      "target": {
+        "mode": "100644",
+        "sha": "bd9b1b04191441a3cc3b441cb199066a066485f8"
+      },
+      "custom": {
+        "mode": "100644",
+        "sha": "781928aea28032ddb380adb1ae6c68b79d9c6b2a"
+      },
+      "decision": "adopt exact upstream target bytes/mode",
+      "integrated_blob": "bd9b1b04191441a3cc3b441cb199066a066485f8"
+    },
+    {
+      "path": "backend/internal/repository/account_repo_grok_managed_extra_integration_test.go",
+      "category": "test-restoration",
+      "base": null,
+      "target": {
+        "mode": "100644",
+        "sha": "84edfd56231b53f77c8c22dfedcfa460bb86a7fc"
+      },
+      "custom": null,
+      "decision": "restore exact target tests through pinned harness, do not vendor upstream suite",
+      "integrated_blob": null
+    },
+    {
+      "path": "backend/internal/repository/account_repo_grok_managed_extra_test.go",
+      "category": "test-restoration",
+      "base": null,
+      "target": {
+        "mode": "100644",
+        "sha": "ff224d210b58c2fbe5c8248bf01fad838928ec0a"
+      },
+      "custom": null,
+      "decision": "restore exact target tests through pinned harness, do not vendor upstream suite",
+      "integrated_blob": null
+    },
+    {
+      "path": "backend/internal/repository/account_repo_grok_models.go",
+      "category": "upstream-equal",
+      "base": null,
+      "target": {
+        "mode": "100644",
+        "sha": "29b1b26dea4fccf7f5288a7066edaddb22642694"
+      },
+      "custom": null,
+      "decision": "adopt exact upstream target bytes/mode",
+      "integrated_blob": "29b1b26dea4fccf7f5288a7066edaddb22642694"
+    },
+    {
+      "path": "backend/internal/repository/account_repo_grok_models_integration_test.go",
+      "category": "test-restoration",
+      "base": null,
+      "target": {
+        "mode": "100644",
+        "sha": "514646fe740065053617f0d97299afc59b8097fe"
+      },
+      "custom": null,
+      "decision": "restore exact target tests through pinned harness, do not vendor upstream suite",
+      "integrated_blob": null
+    },
+    {
+      "path": "backend/internal/repository/account_repo_grok_models_test.go",
+      "category": "test-restoration",
+      "base": null,
+      "target": {
+        "mode": "100644",
+        "sha": "d81dfb61f814553fec51d4dc468c69f291c06b33"
+      },
+      "custom": null,
+      "decision": "restore exact target tests through pinned harness, do not vendor upstream suite",
+      "integrated_blob": null
+    },
+    {
+      "path": "backend/internal/repository/account_repo_opencode_go_usage_test.go",
+      "category": "test-restoration",
+      "base": {
+        "mode": "100644",
+        "sha": "8a5add8ffd60898a391ed58bdc4a83687e627e23"
+      },
+      "target": {
+        "mode": "100644",
+        "sha": "43581ec2312668e371d8324eec674de182a569af"
+      },
+      "custom": null,
+      "decision": "restore exact target tests through pinned harness, do not vendor upstream suite",
+      "integrated_blob": null
+    },
+    {
+      "path": "backend/internal/repository/account_repo_upstream_billing_probe_update_test.go",
+      "category": "test-restoration",
+      "base": {
+        "mode": "100644",
+        "sha": "d3778ac00f559fbf3667ac72de72e6493908c18b"
+      },
+      "target": {
+        "mode": "100644",
+        "sha": "15bccacf7924919b79a86f264ed87807d0dc69d6"
+      },
+      "custom": null,
+      "decision": "restore exact target tests through pinned harness, do not vendor upstream suite",
+      "integrated_blob": null
+    },
+    {
+      "path": "backend/internal/repository/api_key_repo.go",
+      "category": "upstream-equal",
+      "base": {
+        "mode": "100644",
+        "sha": "cc47f5e62335b344bb8a61b4285e0f7c5d468098"
+      },
+      "target": {
+        "mode": "100644",
+        "sha": "d2a8a83f108eecd0bbeff031b357c4b49b17b213"
+      },
+      "custom": {
+        "mode": "100644",
+        "sha": "cc47f5e62335b344bb8a61b4285e0f7c5d468098"
+      },
+      "decision": "adopt exact upstream target bytes/mode",
+      "integrated_blob": "d2a8a83f108eecd0bbeff031b357c4b49b17b213"
+    },
+    {
+      "path": "backend/internal/repository/custom_account_proxy_selection.go",
+      "category": "upstream-equal",
+      "base": null,
+      "target": {
+        "mode": "100644",
+        "sha": "c4d27de49456047619e1c8fc9b886aed93307550"
+      },
+      "custom": null,
+      "decision": "adopt exact upstream target bytes/mode",
+      "integrated_blob": "c4d27de49456047619e1c8fc9b886aed93307550"
+    },
+    {
+      "path": "backend/internal/repository/custom_account_proxy_selection_test.go",
+      "category": "test-restoration",
+      "base": null,
+      "target": {
+        "mode": "100644",
+        "sha": "29317f9a93cd1922f93d275159bc38315a6334a3"
+      },
+      "custom": null,
+      "decision": "restore exact target tests through pinned harness, do not vendor upstream suite",
+      "integrated_blob": null
+    },
+    {
+      "path": "backend/internal/repository/custom_admin_key_group_models.go",
+      "category": "upstream-equal",
+      "base": null,
+      "target": {
+        "mode": "100644",
+        "sha": "f7d219f987e5613c3a0c0718270617886fab4fe6"
+      },
+      "custom": null,
+      "decision": "adopt exact upstream target bytes/mode",
+      "integrated_blob": "f7d219f987e5613c3a0c0718270617886fab4fe6"
+    },
+    {
+      "path": "backend/internal/repository/custom_admin_key_group_models_test.go",
+      "category": "test-restoration",
+      "base": null,
+      "target": {
+        "mode": "100644",
+        "sha": "71554d06964a721a68b3ac404218cd45ad4929d6"
+      },
+      "custom": null,
+      "decision": "restore exact target tests through pinned harness, do not vendor upstream suite",
+      "integrated_blob": null
+    },
+    {
+      "path": "backend/internal/repository/custom_admin_key_review_test.go",
+      "category": "test-restoration",
+      "base": null,
+      "target": {
+        "mode": "100644",
+        "sha": "fabf36b073925ecd0544ac9be75bd3020c852322"
+      },
+      "custom": null,
+      "decision": "restore exact target tests through pinned harness, do not vendor upstream suite",
+      "integrated_blob": null
+    },
+    {
+      "path": "backend/internal/repository/custom_admin_key_scope.go",
+      "category": "upstream-equal",
+      "base": null,
+      "target": {
+        "mode": "100644",
+        "sha": "79e9fd19fe2119d18174fa0f14c464bac10ed000"
+      },
+      "custom": null,
+      "decision": "adopt exact upstream target bytes/mode",
+      "integrated_blob": "79e9fd19fe2119d18174fa0f14c464bac10ed000"
+    },
+    {
+      "path": "backend/internal/repository/custom_admin_key_scope_test.go",
+      "category": "test-restoration",
+      "base": null,
+      "target": {
+        "mode": "100644",
+        "sha": "06c192c9a08f45879eaa457c8c647042fc2f677b"
+      },
+      "custom": null,
+      "decision": "restore exact target tests through pinned harness, do not vendor upstream suite",
+      "integrated_blob": null
+    },
+    {
+      "path": "backend/internal/repository/custom_admin_key_transaction.go",
+      "category": "upstream-equal",
+      "base": null,
+      "target": {
+        "mode": "100644",
+        "sha": "e3eaee83746432a167663081dfa5ec2bd8d0df2a"
+      },
+      "custom": null,
+      "decision": "adopt exact upstream target bytes/mode",
+      "integrated_blob": "e3eaee83746432a167663081dfa5ec2bd8d0df2a"
+    },
+    {
+      "path": "backend/internal/repository/custom_admin_keys.go",
+      "category": "upstream-equal",
+      "base": null,
+      "target": {
+        "mode": "100644",
+        "sha": "18d459ed5bb09a4770e1edd7701d71394a244683"
+      },
+      "custom": null,
+      "decision": "adopt exact upstream target bytes/mode",
+      "integrated_blob": "18d459ed5bb09a4770e1edd7701d71394a244683"
+    },
+    {
+      "path": "backend/internal/repository/custom_admin_keys_postgres_test.go",
+      "category": "test-restoration",
+      "base": null,
+      "target": {
+        "mode": "100644",
+        "sha": "5fe0f3d7af1e7389d30ba378edafa7a68694f7cb"
+      },
+      "custom": null,
+      "decision": "restore exact target tests through pinned harness, do not vendor upstream suite",
+      "integrated_blob": null
+    },
+    {
+      "path": "backend/internal/repository/custom_admin_keys_test.go",
+      "category": "test-restoration",
+      "base": null,
+      "target": {
+        "mode": "100644",
+        "sha": "1d7684035f640abf94643b2a262e39dbebe40648"
+      },
+      "custom": null,
+      "decision": "restore exact target tests through pinned harness, do not vendor upstream suite",
+      "integrated_blob": null
+    },
+    {
+      "path": "backend/internal/repository/custom_proxy_options.go",
+      "category": "upstream-equal",
+      "base": null,
+      "target": {
+        "mode": "100644",
+        "sha": "116421ccc77f667ec2beab96679d867cd46ff962"
+      },
+      "custom": null,
+      "decision": "adopt exact upstream target bytes/mode",
+      "integrated_blob": "116421ccc77f667ec2beab96679d867cd46ff962"
+    },
+    {
+      "path": "backend/internal/repository/custom_proxy_sample_test.go",
+      "category": "test-restoration",
+      "base": null,
+      "target": {
+        "mode": "100644",
+        "sha": "aa7dfedbc663dbdd9982931281a1523e14cd1f35"
+      },
+      "custom": null,
+      "decision": "restore exact target tests through pinned harness, do not vendor upstream suite",
+      "integrated_blob": null
+    },
+    {
+      "path": "backend/internal/repository/custom_proxy_search.go",
+      "category": "upstream-equal",
+      "base": null,
+      "target": {
+        "mode": "100644",
+        "sha": "25570cd316105a9f24122ff54abe559b993a18c1"
+      },
+      "custom": null,
+      "decision": "adopt exact upstream target bytes/mode",
+      "integrated_blob": "25570cd316105a9f24122ff54abe559b993a18c1"
+    },
+    {
+      "path": "backend/internal/repository/group_repo.go",
+      "category": "upstream-equal",
+      "base": {
+        "mode": "100644",
+        "sha": "3f619ba9b0887bc7155e7dbe2724195bc4a4ecf9"
+      },
+      "target": {
+        "mode": "100644",
+        "sha": "cd8bfe7560e70b1d088642e30a7f8bc8ffdeecff"
+      },
+      "custom": {
+        "mode": "100644",
+        "sha": "3f619ba9b0887bc7155e7dbe2724195bc4a4ecf9"
+      },
+      "decision": "adopt exact upstream target bytes/mode",
+      "integrated_blob": "cd8bfe7560e70b1d088642e30a7f8bc8ffdeecff"
+    },
+    {
+      "path": "backend/internal/repository/pagination_test.go",
+      "category": "test-restoration",
+      "base": null,
+      "target": {
+        "mode": "100644",
+        "sha": "5d11b5a379fd8cf757f4c6867a4166d03daa0ac5"
+      },
+      "custom": null,
+      "decision": "restore exact target tests through pinned harness, do not vendor upstream suite",
+      "integrated_blob": null
+    },
+    {
+      "path": "backend/internal/repository/setting_repo.go",
+      "category": "upstream-equal",
+      "base": {
+        "mode": "100644",
+        "sha": "815daa54be7a8aa046bfdc78735456bedaa5c789"
+      },
+      "target": {
+        "mode": "100644",
+        "sha": "468d4e66c13713ba55f9b4477e076aa0c3d81153"
+      },
+      "custom": {
+        "mode": "100644",
+        "sha": "815daa54be7a8aa046bfdc78735456bedaa5c789"
+      },
+      "decision": "adopt exact upstream target bytes/mode",
+      "integrated_blob": "468d4e66c13713ba55f9b4477e076aa0c3d81153"
+    },
+    {
+      "path": "backend/internal/repository/wire.go",
+      "category": "upstream-equal",
+      "base": {
+        "mode": "100644",
+        "sha": "ba13b0f7670b94428dbfac5061d03f19de283ae6"
+      },
+      "target": {
+        "mode": "100644",
+        "sha": "f176e56eeab8d41eaea3436601785714793b6978"
+      },
+      "custom": {
+        "mode": "100644",
+        "sha": "ba13b0f7670b94428dbfac5061d03f19de283ae6"
+      },
+      "decision": "adopt exact upstream target bytes/mode",
+      "integrated_blob": "f176e56eeab8d41eaea3436601785714793b6978"
+    },
+    {
+      "path": "backend/internal/securityaudit/prompt_handler.go",
+      "category": "upstream-equal",
+      "base": {
+        "mode": "100644",
+        "sha": "342f3a54610f43175c541343d1a8ed7e52b808e1"
+      },
+      "target": {
+        "mode": "100644",
+        "sha": "71d5d5ae711bc0c22e42dea235b4a20a84f6c32e"
+      },
+      "custom": {
+        "mode": "100644",
+        "sha": "342f3a54610f43175c541343d1a8ed7e52b808e1"
+      },
+      "decision": "adopt exact upstream target bytes/mode",
+      "integrated_blob": "71d5d5ae711bc0c22e42dea235b4a20a84f6c32e"
+    },
+    {
+      "path": "backend/internal/securityaudit/prompt_handler_test.go",
+      "category": "test-restoration",
+      "base": {
+        "mode": "100644",
+        "sha": "0ec2ff5d8bac5d4665f2c9ed79adfe51cab3e2a2"
+      },
+      "target": {
+        "mode": "100644",
+        "sha": "b5a6136c429819d87d629f2ba7c1f75deed965fa"
+      },
+      "custom": null,
+      "decision": "restore exact target tests through pinned harness, do not vendor upstream suite",
+      "integrated_blob": null
+    },
+    {
+      "path": "backend/internal/server/api_contract_test.go",
+      "category": "test-restoration",
+      "base": {
+        "mode": "100644",
+        "sha": "5f9033d7762ed3d1c01521362e6bf041136ae650"
+      },
+      "target": {
+        "mode": "100644",
+        "sha": "4e3efb5cfb5ef5bb28da60048d5428c582320873"
+      },
+      "custom": null,
+      "decision": "restore exact target tests through pinned harness, do not vendor upstream suite",
+      "integrated_blob": null
+    },
+    {
+      "path": "backend/internal/server/middleware/admin_auth.go",
+      "category": "upstream-equal",
+      "base": {
+        "mode": "100644",
+        "sha": "741cbcf6c03041fca6b750c21ad7374f767b3258"
+      },
+      "target": {
+        "mode": "100644",
+        "sha": "fd0f270534773be2475e1b428870861398db30b1"
+      },
+      "custom": {
+        "mode": "100644",
+        "sha": "741cbcf6c03041fca6b750c21ad7374f767b3258"
+      },
+      "decision": "adopt exact upstream target bytes/mode",
+      "integrated_blob": "fd0f270534773be2475e1b428870861398db30b1"
+    },
+    {
+      "path": "backend/internal/server/middleware/custom_admin_key_rate_limit_test.go",
+      "category": "test-restoration",
+      "base": null,
+      "target": {
+        "mode": "100644",
+        "sha": "305b7b34deaa06c166d93a590e3e3d417d6f73b9"
+      },
+      "custom": null,
+      "decision": "restore exact target tests through pinned harness, do not vendor upstream suite",
+      "integrated_blob": null
+    },
+    {
+      "path": "backend/internal/server/middleware/custom_admin_keys_test.go",
+      "category": "test-restoration",
+      "base": null,
+      "target": {
+        "mode": "100644",
+        "sha": "23d40240c84bab8d9073ef84bc24d9aa409e02d1"
+      },
+      "custom": null,
+      "decision": "restore exact target tests through pinned harness, do not vendor upstream suite",
+      "integrated_blob": null
+    },
+    {
+      "path": "backend/internal/server/middleware/panel_rate_limit.go",
+      "category": "upstream-equal",
+      "base": {
+        "mode": "100644",
+        "sha": "1d7846997a532cdf072abff1b3a3ed48470c8c13"
+      },
+      "target": {
+        "mode": "100644",
+        "sha": "b9f2453d0f145be50350cf379e3405999ea25ed3"
+      },
+      "custom": {
+        "mode": "100644",
+        "sha": "1d7846997a532cdf072abff1b3a3ed48470c8c13"
+      },
+      "decision": "adopt exact upstream target bytes/mode",
+      "integrated_blob": "b9f2453d0f145be50350cf379e3405999ea25ed3"
+    },
+    {
+      "path": "backend/internal/server/routes/admin.go",
+      "category": "upstream-equal",
+      "base": {
+        "mode": "100644",
+        "sha": "315fc20e425890f53f85c60d55a7328f168af377"
+      },
+      "target": {
+        "mode": "100644",
+        "sha": "fbeac5fe11e738264c43af8d75dc9e3a5d27981f"
+      },
+      "custom": {
+        "mode": "100644",
+        "sha": "315fc20e425890f53f85c60d55a7328f168af377"
+      },
+      "decision": "adopt exact upstream target bytes/mode",
+      "integrated_blob": "fbeac5fe11e738264c43af8d75dc9e3a5d27981f"
+    },
+    {
+      "path": "backend/internal/server/routes/custom_admin_key_access_test.go",
+      "category": "test-restoration",
+      "base": null,
+      "target": {
+        "mode": "100644",
+        "sha": "32794e1b8812b360ebbed4ac7fc69b5a1b0b1d1c"
+      },
+      "custom": null,
+      "decision": "restore exact target tests through pinned harness, do not vendor upstream suite",
+      "integrated_blob": null
+    },
+    {
+      "path": "backend/internal/server/routes/custom_admin_key_group_models_test.go",
+      "category": "test-restoration",
+      "base": null,
+      "target": {
+        "mode": "100644",
+        "sha": "05657e6719c450d81987f5e51d106f06b0629e32"
+      },
+      "custom": null,
+      "decision": "restore exact target tests through pinned harness, do not vendor upstream suite",
+      "integrated_blob": null
+    },
+    {
+      "path": "backend/internal/server/routes/custom_admin_key_payment_rate_limit_test.go",
+      "category": "test-restoration",
+      "base": null,
+      "target": {
+        "mode": "100644",
+        "sha": "7db8f6af69d32b40caec89a6e24f1e027fc79d9e"
+      },
+      "custom": null,
+      "decision": "restore exact target tests through pinned harness, do not vendor upstream suite",
+      "integrated_blob": null
+    },
+    {
+      "path": "backend/internal/server/routes/custom_admin_key_user_responses_test.go",
+      "category": "test-restoration",
+      "base": null,
+      "target": {
+        "mode": "100644",
+        "sha": "1260e79584022f39004864b698ca09dac51f65e9"
+      },
+      "custom": null,
+      "decision": "restore exact target tests through pinned harness, do not vendor upstream suite",
+      "integrated_blob": null
+    },
+    {
+      "path": "backend/internal/server/routes/custom_admin_keys.go",
+      "category": "upstream-equal",
+      "base": null,
+      "target": {
+        "mode": "100644",
+        "sha": "00f09aa92903acdaac18c8d3aa6106de5849d0ef"
+      },
+      "custom": null,
+      "decision": "adopt exact upstream target bytes/mode",
+      "integrated_blob": "00f09aa92903acdaac18c8d3aa6106de5849d0ef"
+    },
+    {
+      "path": "backend/internal/server/routes/custom_admin_keys_test.go",
+      "category": "test-restoration",
+      "base": null,
+      "target": {
+        "mode": "100644",
+        "sha": "0eec76fff46e6cb85828dcba26df4e6e69db9841"
+      },
+      "custom": null,
+      "decision": "restore exact target tests through pinned harness, do not vendor upstream suite",
+      "integrated_blob": null
+    },
+    {
+      "path": "backend/internal/server/routes/payment.go",
+      "category": "upstream-equal",
+      "base": {
+        "mode": "100644",
+        "sha": "26d0fcd669730c4018438658f0fd6fb3df28e632"
+      },
+      "target": {
+        "mode": "100644",
+        "sha": "86536d67ac7a7f334836c72928148e3be8645387"
+      },
+      "custom": {
+        "mode": "100644",
+        "sha": "26d0fcd669730c4018438658f0fd6fb3df28e632"
+      },
+      "decision": "adopt exact upstream target bytes/mode",
+      "integrated_blob": "86536d67ac7a7f334836c72928148e3be8645387"
+    },
+    {
+      "path": "backend/internal/service/account_test_service.go",
+      "category": "upstream-equal",
+      "base": {
+        "mode": "100644",
+        "sha": "210033179add89723556e2bc449c24b181cdef39"
+      },
+      "target": {
+        "mode": "100644",
+        "sha": "6f970eb0f57dcb33b22a87951e6beecab0b5f696"
+      },
+      "custom": {
+        "mode": "100644",
+        "sha": "210033179add89723556e2bc449c24b181cdef39"
+      },
+      "decision": "adopt exact upstream target bytes/mode",
+      "integrated_blob": "6f970eb0f57dcb33b22a87951e6beecab0b5f696"
+    },
+    {
+      "path": "backend/internal/service/account_test_service_gemini_test.go",
+      "category": "test-restoration",
+      "base": {
+        "mode": "100644",
+        "sha": "f38264a215d2b2767ccb4085f08a1ec9c8e49289"
+      },
+      "target": {
+        "mode": "100644",
+        "sha": "16492c4cf7199a8d85abb08fedcc4c1b717fcde7"
+      },
+      "custom": null,
+      "decision": "restore exact target tests through pinned harness, do not vendor upstream suite",
+      "integrated_blob": null
+    },
+    {
+      "path": "backend/internal/service/admin_account.go",
+      "category": "upstream-equal",
+      "base": {
+        "mode": "100644",
+        "sha": "256e488d0901b5fba2844a84720e4a0682ae4730"
+      },
+      "target": {
+        "mode": "100644",
+        "sha": "0521f7a90bc1bd72ae7bd40ae7ba5db109c76d97"
+      },
+      "custom": {
+        "mode": "100644",
+        "sha": "256e488d0901b5fba2844a84720e4a0682ae4730"
+      },
+      "decision": "adopt exact upstream target bytes/mode",
+      "integrated_blob": "0521f7a90bc1bd72ae7bd40ae7ba5db109c76d97"
+    },
+    {
+      "path": "backend/internal/service/admin_account_grok_catalog_test.go",
+      "category": "test-restoration",
+      "base": null,
+      "target": {
+        "mode": "100644",
+        "sha": "209f04fcbfd34e89c45f6ac2e08c1473ebabedc9"
+      },
+      "custom": null,
+      "decision": "restore exact target tests through pinned harness, do not vendor upstream suite",
+      "integrated_blob": null
+    },
+    {
+      "path": "backend/internal/service/admin_group.go",
+      "category": "upstream-equal",
+      "base": {
+        "mode": "100644",
+        "sha": "f2c06a9a839a022609a6fb56577779fde2fee9a9"
+      },
+      "target": {
+        "mode": "100644",
+        "sha": "68bbfca90d9a230878bdeeb5d5489f702aecf184"
+      },
+      "custom": {
+        "mode": "100644",
+        "sha": "f2c06a9a839a022609a6fb56577779fde2fee9a9"
+      },
+      "decision": "adopt exact upstream target bytes/mode",
+      "integrated_blob": "68bbfca90d9a230878bdeeb5d5489f702aecf184"
+    },
+    {
+      "path": "backend/internal/service/admin_group_duplicate.go",
+      "category": "upstream-equal",
+      "base": {
+        "mode": "100644",
+        "sha": "b31a4ab33733a40c11ec9c6a23809c108f1f4be4"
+      },
+      "target": {
+        "mode": "100644",
+        "sha": "9e7ea93331d9a912af1cf54222342d5b1360ce3a"
+      },
+      "custom": {
+        "mode": "100644",
+        "sha": "b31a4ab33733a40c11ec9c6a23809c108f1f4be4"
+      },
+      "decision": "adopt exact upstream target bytes/mode",
+      "integrated_blob": "9e7ea93331d9a912af1cf54222342d5b1360ce3a"
+    },
+    {
+      "path": "backend/internal/service/admin_service.go",
+      "category": "upstream-equal",
+      "base": {
+        "mode": "100644",
+        "sha": "a5e0ad635c306174947d8519b4499e4e90aa7f27"
+      },
+      "target": {
+        "mode": "100644",
+        "sha": "89ae03f0755d37435d04e03e834d8f94057c97bc"
+      },
+      "custom": {
+        "mode": "100644",
+        "sha": "a5e0ad635c306174947d8519b4499e4e90aa7f27"
+      },
+      "decision": "adopt exact upstream target bytes/mode",
+      "integrated_blob": "89ae03f0755d37435d04e03e834d8f94057c97bc"
+    },
+    {
+      "path": "backend/internal/service/admin_service_role_test.go",
+      "category": "test-restoration",
+      "base": {
+        "mode": "100644",
+        "sha": "956b7fae17c043ca61a67e928c7adeaedeb3c782"
+      },
+      "target": {
+        "mode": "100644",
+        "sha": "86fe8eee461ccdb66f09b49ef19067fedb7a5a46"
+      },
+      "custom": null,
+      "decision": "restore exact target tests through pinned harness, do not vendor upstream suite",
+      "integrated_blob": null
+    },
+    {
+      "path": "backend/internal/service/admin_user.go",
+      "category": "upstream-equal",
+      "base": {
+        "mode": "100644",
+        "sha": "12f71f96a26772a253e1e0e2372fedefad4c0f0a"
+      },
+      "target": {
+        "mode": "100644",
+        "sha": "653a5d62dd1dac565f6ace4e66f79194781fd365"
+      },
+      "custom": {
+        "mode": "100644",
+        "sha": "12f71f96a26772a253e1e0e2372fedefad4c0f0a"
+      },
+      "decision": "adopt exact upstream target bytes/mode",
+      "integrated_blob": "653a5d62dd1dac565f6ace4e66f79194781fd365"
+    },
+    {
+      "path": "backend/internal/service/antigravity_gateway_compat.go",
+      "category": "upstream-equal",
+      "base": {
+        "mode": "100644",
+        "sha": "2869675449f7969510d51c3ca862bfe12602cf6e"
+      },
+      "target": {
+        "mode": "100644",
+        "sha": "f4e041adc0efe0389c3e3c482bc7e5ec4a89bdff"
+      },
+      "custom": {
+        "mode": "100644",
+        "sha": "2869675449f7969510d51c3ca862bfe12602cf6e"
+      },
+      "decision": "adopt exact upstream target bytes/mode",
+      "integrated_blob": "f4e041adc0efe0389c3e3c482bc7e5ec4a89bdff"
+    },
+    {
+      "path": "backend/internal/service/antigravity_gateway_gemini.go",
+      "category": "upstream-equal",
+      "base": {
+        "mode": "100644",
+        "sha": "0d12fe77590e381eac5bc8d61df4a5fbca2b7746"
+      },
+      "target": {
+        "mode": "100644",
+        "sha": "5a409a96a9dabc6795c18036bf03134ef624f637"
+      },
+      "custom": {
+        "mode": "100644",
+        "sha": "0d12fe77590e381eac5bc8d61df4a5fbca2b7746"
+      },
+      "decision": "adopt exact upstream target bytes/mode",
+      "integrated_blob": "5a409a96a9dabc6795c18036bf03134ef624f637"
+    },
+    {
+      "path": "backend/internal/service/antigravity_gateway_nonstream_malformed_test.go",
+      "category": "test-restoration",
+      "base": null,
+      "target": {
+        "mode": "100644",
+        "sha": "3f4a7c0d6442b1b260d390d05db56567983d0cd0"
+      },
+      "custom": null,
+      "decision": "restore exact target tests through pinned harness, do not vendor upstream suite",
+      "integrated_blob": null
+    },
+    {
+      "path": "backend/internal/service/antigravity_gateway_streaming.go",
+      "category": "upstream-equal",
+      "base": {
+        "mode": "100644",
+        "sha": "58d5b9ce4fe00b4d29edea9310ede99ad1e236ec"
+      },
+      "target": {
+        "mode": "100644",
+        "sha": "e02541ed0d1557ea71b83cdb8a80afea039d0e51"
+      },
+      "custom": {
+        "mode": "100644",
+        "sha": "58d5b9ce4fe00b4d29edea9310ede99ad1e236ec"
+      },
+      "decision": "adopt exact upstream target bytes/mode",
+      "integrated_blob": "e02541ed0d1557ea71b83cdb8a80afea039d0e51"
+    },
+    {
+      "path": "backend/internal/service/antigravity_image_test.go",
+      "category": "test-restoration",
+      "base": {
+        "mode": "100644",
+        "sha": "76269dd3c331a4f2a0522703d3c429f972976fde"
+      },
+      "target": {
+        "mode": "100644",
+        "sha": "11029785b3b6a33096c9cd06612f8ad95d659821"
+      },
+      "custom": null,
+      "decision": "restore exact target tests through pinned harness, do not vendor upstream suite",
+      "integrated_blob": null
+    },
+    {
+      "path": "backend/internal/service/api_key_auth_cache.go",
+      "category": "upstream-equal",
+      "base": {
+        "mode": "100644",
+        "sha": "474c0d85f1a2729934e6b5d8f98b6d10e739150f"
+      },
+      "target": {
+        "mode": "100644",
+        "sha": "bf66fa0c25766e8d857659187aa28d99812bd2d2"
+      },
+      "custom": {
+        "mode": "100644",
+        "sha": "474c0d85f1a2729934e6b5d8f98b6d10e739150f"
+      },
+      "decision": "adopt exact upstream target bytes/mode",
+      "integrated_blob": "bf66fa0c25766e8d857659187aa28d99812bd2d2"
+    },
+    {
+      "path": "backend/internal/service/api_key_auth_cache_impl.go",
+      "category": "upstream-equal",
+      "base": {
+        "mode": "100644",
+        "sha": "836edbb2b53075dd5ca0c3b3be68e9a3affa66fd"
+      },
+      "target": {
+        "mode": "100644",
+        "sha": "cb2ade94b829599584c18e9ce5b0344a0fede928"
+      },
+      "custom": {
+        "mode": "100644",
+        "sha": "836edbb2b53075dd5ca0c3b3be68e9a3affa66fd"
+      },
+      "decision": "adopt exact upstream target bytes/mode",
+      "integrated_blob": "cb2ade94b829599584c18e9ce5b0344a0fede928"
+    },
+    {
+      "path": "backend/internal/service/api_key_service.go",
+      "category": "upstream-equal",
+      "base": {
+        "mode": "100644",
+        "sha": "e20a2697eb7e5b0822f7e94c55360b6a234a2bf6"
+      },
+      "target": {
+        "mode": "100644",
+        "sha": "ec9f2c46d9bf70508d62f5a0ec8e0a68a94dbdaf"
+      },
+      "custom": {
+        "mode": "100644",
+        "sha": "e20a2697eb7e5b0822f7e94c55360b6a234a2bf6"
+      },
+      "decision": "adopt exact upstream target bytes/mode",
+      "integrated_blob": "ec9f2c46d9bf70508d62f5a0ec8e0a68a94dbdaf"
+    },
+    {
+      "path": "backend/internal/service/billing_service.go",
+      "category": "upstream-equal",
+      "base": {
+        "mode": "100644",
+        "sha": "bd639ebfab30984ecfd41d92d8e30b677c273de3"
+      },
+      "target": {
+        "mode": "100644",
+        "sha": "f66293ba04e5c726be56eda7421f4ab976e51f0c"
+      },
+      "custom": {
+        "mode": "100644",
+        "sha": "bd639ebfab30984ecfd41d92d8e30b677c273de3"
+      },
+      "decision": "adopt exact upstream target bytes/mode",
+      "integrated_blob": "f66293ba04e5c726be56eda7421f4ab976e51f0c"
+    },
+    {
+      "path": "backend/internal/service/billing_service_test.go",
+      "category": "test-restoration",
+      "base": {
+        "mode": "100644",
+        "sha": "d02c942cb3fc0501f096903f721e8b49395caeb4"
+      },
+      "target": {
+        "mode": "100644",
+        "sha": "cb68489b49d8806fd03a0f197f36a9d5de619d5d"
+      },
+      "custom": null,
+      "decision": "restore exact target tests through pinned harness, do not vendor upstream suite",
+      "integrated_blob": null
+    },
+    {
+      "path": "backend/internal/service/channel_service.go",
+      "category": "upstream-equal",
+      "base": {
+        "mode": "100644",
+        "sha": "85d6409301038617bc0f500856df7b76dcb70d14"
+      },
+      "target": {
+        "mode": "100644",
+        "sha": "1473f3edfd56bb1b243bec88bdeec379ab315994"
+      },
+      "custom": {
+        "mode": "100644",
+        "sha": "85d6409301038617bc0f500856df7b76dcb70d14"
+      },
+      "decision": "adopt exact upstream target bytes/mode",
+      "integrated_blob": "1473f3edfd56bb1b243bec88bdeec379ab315994"
+    },
+    {
+      "path": "backend/internal/service/channel_websearch_merge_test.go",
+      "category": "test-restoration",
+      "base": null,
+      "target": {
+        "mode": "100644",
+        "sha": "e37d7506243085ea1450e9f34e433ffb11301c5a"
+      },
+      "custom": null,
+      "decision": "restore exact target tests through pinned harness, do not vendor upstream suite",
+      "integrated_blob": null
+    },
+    {
+      "path": "backend/internal/service/custom_admin_key_accounts.go",
+      "category": "upstream-equal",
+      "base": null,
+      "target": {
+        "mode": "100644",
+        "sha": "91d5131f9c64997bf98fc1948014326009bad71a"
+      },
+      "custom": null,
+      "decision": "adopt exact upstream target bytes/mode",
+      "integrated_blob": "91d5131f9c64997bf98fc1948014326009bad71a"
+    },
+    {
+      "path": "backend/internal/service/custom_admin_key_accounts_test.go",
+      "category": "test-restoration",
+      "base": null,
+      "target": {
+        "mode": "100644",
+        "sha": "674ef32503965adf3aa732cfba971668f8b740b2"
+      },
+      "custom": null,
+      "decision": "restore exact target tests through pinned harness, do not vendor upstream suite",
+      "integrated_blob": null
+    },
+    {
+      "path": "backend/internal/service/custom_admin_key_codex_import.go",
+      "category": "upstream-equal",
+      "base": null,
+      "target": {
+        "mode": "100644",
+        "sha": "8a09e7a90206a4315562c9b45f65c24f9b53e275"
+      },
+      "custom": null,
+      "decision": "adopt exact upstream target bytes/mode",
+      "integrated_blob": "8a09e7a90206a4315562c9b45f65c24f9b53e275"
+    },
+    {
+      "path": "backend/internal/service/custom_admin_key_codex_import_test.go",
+      "category": "test-restoration",
+      "base": null,
+      "target": {
+        "mode": "100644",
+        "sha": "fd3e84aa9b15dcd35b619d9b8e6850e6059466fe"
+      },
+      "custom": null,
+      "decision": "restore exact target tests through pinned harness, do not vendor upstream suite",
+      "integrated_blob": null
+    },
+    {
+      "path": "backend/internal/service/custom_admin_key_group_models.go",
+      "category": "upstream-equal",
+      "base": null,
+      "target": {
+        "mode": "100644",
+        "sha": "d02d8af4d56122d2b2233e224896f002f56132d0"
+      },
+      "custom": null,
+      "decision": "adopt exact upstream target bytes/mode",
+      "integrated_blob": "d02d8af4d56122d2b2233e224896f002f56132d0"
+    },
+    {
+      "path": "backend/internal/service/custom_admin_key_group_models_test.go",
+      "category": "test-restoration",
+      "base": null,
+      "target": {
+        "mode": "100644",
+        "sha": "d6d398c0bdecf875f3c7c7e202bb6f74918eb363"
+      },
+      "custom": null,
+      "decision": "restore exact target tests through pinned harness, do not vendor upstream suite",
+      "integrated_blob": null
+    },
+    {
+      "path": "backend/internal/service/custom_admin_key_proxy_selection.go",
+      "category": "upstream-equal",
+      "base": null,
+      "target": {
+        "mode": "100644",
+        "sha": "eb53926ca33192dcfa1d03622aecbb87e340f3ae"
+      },
+      "custom": null,
+      "decision": "adopt exact upstream target bytes/mode",
+      "integrated_blob": "eb53926ca33192dcfa1d03622aecbb87e340f3ae"
+    },
+    {
+      "path": "backend/internal/service/custom_admin_key_proxy_selection_test.go",
+      "category": "test-restoration",
+      "base": null,
+      "target": {
+        "mode": "100644",
+        "sha": "1280afd2aac5b5e2fa9eb3dbb243ff1e7eeb3e68"
+      },
+      "custom": null,
+      "decision": "restore exact target tests through pinned harness, do not vendor upstream suite",
+      "integrated_blob": null
+    },
+    {
+      "path": "backend/internal/service/custom_admin_key_recovery_review_test.go",
+      "category": "test-restoration",
+      "base": null,
+      "target": {
+        "mode": "100644",
+        "sha": "71820596ae5201e61e6e5771df9b3a2bc5478889"
+      },
+      "custom": null,
+      "decision": "restore exact target tests through pinned harness, do not vendor upstream suite",
+      "integrated_blob": null
+    },
+    {
+      "path": "backend/internal/service/custom_admin_key_testdb_test.go",
+      "category": "test-restoration",
+      "base": null,
+      "target": {
+        "mode": "100644",
+        "sha": "1855ae00a029d9570c32dd2c50aadc837238d109"
+      },
+      "custom": null,
+      "decision": "restore exact target tests through pinned harness, do not vendor upstream suite",
+      "integrated_blob": null
+    },
+    {
+      "path": "backend/internal/service/custom_admin_key_transaction.go",
+      "category": "upstream-equal",
+      "base": null,
+      "target": {
+        "mode": "100644",
+        "sha": "ac46878a143f56322666db54cc2926c3ed2241f1"
+      },
+      "custom": null,
+      "decision": "adopt exact upstream target bytes/mode",
+      "integrated_blob": "ac46878a143f56322666db54cc2926c3ed2241f1"
+    },
+    {
+      "path": "backend/internal/service/custom_admin_key_transaction_test.go",
+      "category": "test-restoration",
+      "base": null,
+      "target": {
+        "mode": "100644",
+        "sha": "93d6a65942c83d03ebdf85743c51aca9355de2b2"
+      },
+      "custom": null,
+      "decision": "restore exact target tests through pinned harness, do not vendor upstream suite",
+      "integrated_blob": null
+    },
+    {
+      "path": "backend/internal/service/custom_admin_keys.go",
+      "category": "upstream-equal",
+      "base": null,
+      "target": {
+        "mode": "100644",
+        "sha": "f11c31711be1df2d13d6565db38d330af07e3f82"
+      },
+      "custom": null,
+      "decision": "adopt exact upstream target bytes/mode",
+      "integrated_blob": "f11c31711be1df2d13d6565db38d330af07e3f82"
+    },
+    {
+      "path": "backend/internal/service/custom_admin_keys_test.go",
+      "category": "test-restoration",
+      "base": null,
+      "target": {
+        "mode": "100644",
+        "sha": "881ac853d0108ac7a58732c1458e6fee8ee908f2"
+      },
+      "custom": null,
+      "decision": "restore exact target tests through pinned harness, do not vendor upstream suite",
+      "integrated_blob": null
+    },
+    {
+      "path": "backend/internal/service/custom_proxy_options.go",
+      "category": "upstream-equal",
+      "base": null,
+      "target": {
+        "mode": "100644",
+        "sha": "fd5839112b16cd22fe9424151740cdc23e233ced"
+      },
+      "custom": null,
+      "decision": "adopt exact upstream target bytes/mode",
+      "integrated_blob": "fd5839112b16cd22fe9424151740cdc23e233ced"
+    },
+    {
+      "path": "backend/internal/service/deepseek_pricing_test.go",
+      "category": "test-restoration",
+      "base": {
+        "mode": "100644",
+        "sha": "7862d82e0ea63bf1ac5c75387322b99a501867f3"
+      },
+      "target": {
+        "mode": "100644",
+        "sha": "4f7f8b6f4982ba9352802961ada81795bed6f425"
+      },
+      "custom": null,
+      "decision": "restore exact target tests through pinned harness, do not vendor upstream suite",
+      "integrated_blob": null
+    },
+    {
+      "path": "backend/internal/service/gateway_billing_block.go",
+      "category": "upstream-equal",
+      "base": {
+        "mode": "100644",
+        "sha": "98f98bc044c653dc033c31b7b1a42d5e9926181f"
+      },
+      "target": {
+        "mode": "100644",
+        "sha": "9c8e8484515666305476ed5bbb4839521e7a75b3"
+      },
+      "custom": {
+        "mode": "100644",
+        "sha": "98f98bc044c653dc033c31b7b1a42d5e9926181f"
+      },
+      "decision": "adopt exact upstream target bytes/mode",
+      "integrated_blob": "9c8e8484515666305476ed5bbb4839521e7a75b3"
+    },
+    {
+      "path": "backend/internal/service/gateway_billing_block_test.go",
+      "category": "test-restoration",
+      "base": null,
+      "target": {
+        "mode": "100644",
+        "sha": "d69a46bec9a91f432ee32c3a7c66242feb7c799c"
+      },
+      "custom": null,
+      "decision": "restore exact target tests through pinned harness, do not vendor upstream suite",
+      "integrated_blob": null
+    },
+    {
+      "path": "backend/internal/service/gateway_billing_header_test.go",
+      "category": "test-restoration",
+      "base": {
+        "mode": "100644",
+        "sha": "5d85b2992444be88a7e12f6a596c449b963455e6"
+      },
+      "target": {
+        "mode": "100644",
+        "sha": "c1d3793ef1e95ed8453f4993b945f0ff7f001160"
+      },
+      "custom": null,
+      "decision": "restore exact target tests through pinned harness, do not vendor upstream suite",
+      "integrated_blob": null
+    },
+    {
+      "path": "backend/internal/service/gateway_service.go",
+      "category": "upstream-equal",
+      "base": {
+        "mode": "100644",
+        "sha": "2dbec0ccaf191e83b7785e15ddba7d334e8cba7a"
+      },
+      "target": {
+        "mode": "100644",
+        "sha": "e6e8131009c8045e6da72390a592b514f8fe2767"
+      },
+      "custom": {
+        "mode": "100644",
+        "sha": "2dbec0ccaf191e83b7785e15ddba7d334e8cba7a"
+      },
+      "decision": "adopt exact upstream target bytes/mode",
+      "integrated_blob": "e6e8131009c8045e6da72390a592b514f8fe2767"
+    },
+    {
+      "path": "backend/internal/service/gateway_usage_billing.go",
+      "category": "upstream-equal",
+      "base": {
+        "mode": "100644",
+        "sha": "580ca81dc1acfec4ce88e0202e64b369524bfef0"
+      },
+      "target": {
+        "mode": "100644",
+        "sha": "0ece86cd3b36864637380aac70e3de0448ee188b"
+      },
+      "custom": {
+        "mode": "100644",
+        "sha": "580ca81dc1acfec4ce88e0202e64b369524bfef0"
+      },
+      "decision": "adopt exact upstream target bytes/mode",
+      "integrated_blob": "0ece86cd3b36864637380aac70e3de0448ee188b"
+    },
+    {
+      "path": "backend/internal/service/gemini_cached_content.go",
+      "category": "upstream-equal",
+      "base": {
+        "mode": "100644",
+        "sha": "bc1a3353dc030f5d78c7175417d954a160468081"
+      },
+      "target": {
+        "mode": "100644",
+        "sha": "95264148d08bab4e6c8753251b9e227baeec2b1c"
+      },
+      "custom": {
+        "mode": "100644",
+        "sha": "bc1a3353dc030f5d78c7175417d954a160468081"
+      },
+      "decision": "adopt exact upstream target bytes/mode",
+      "integrated_blob": "95264148d08bab4e6c8753251b9e227baeec2b1c"
+    },
+    {
+      "path": "backend/internal/service/gemini_cached_content_hardening_test.go",
+      "category": "test-restoration",
+      "base": {
+        "mode": "100644",
+        "sha": "f93b9424a0584eb50ec8a8275fd5986049bdcca1"
+      },
+      "target": {
+        "mode": "100644",
+        "sha": "965df5b48b6eb2ffa775bab5ce4068e20960c3b1"
+      },
+      "custom": null,
+      "decision": "restore exact target tests through pinned harness, do not vendor upstream suite",
+      "integrated_blob": null
+    },
+    {
+      "path": "backend/internal/service/gemini_chat_completions_compat_service.go",
+      "category": "upstream-equal",
+      "base": {
+        "mode": "100644",
+        "sha": "02dcc073ffb933ad436e5773f0d5b9fc40008775"
+      },
+      "target": {
+        "mode": "100644",
+        "sha": "8e1cd1aa2997a7d291d4188cf2ab56e604bfd366"
+      },
+      "custom": {
+        "mode": "100644",
+        "sha": "02dcc073ffb933ad436e5773f0d5b9fc40008775"
+      },
+      "decision": "adopt exact upstream target bytes/mode",
+      "integrated_blob": "8e1cd1aa2997a7d291d4188cf2ab56e604bfd366"
+    },
+    {
+      "path": "backend/internal/service/gemini_error_policy_single_check_test.go",
+      "category": "test-restoration",
+      "base": {
+        "mode": "100644",
+        "sha": "0ba4344c530364eae2d119c8ad68d276346a0034"
+      },
+      "target": {
+        "mode": "100644",
+        "sha": "3ab842a534fd4b7cb21a26ddd044c3bd9ce1a0de"
+      },
+      "custom": null,
+      "decision": "restore exact target tests through pinned harness, do not vendor upstream suite",
+      "integrated_blob": null
+    },
+    {
+      "path": "backend/internal/service/gemini_image_output_accounting.go",
+      "category": "upstream-equal",
+      "base": {
+        "mode": "100644",
+        "sha": "948a2d4aee5b30cfb22f5e135972e98f74b8f411"
+      },
+      "target": {
+        "mode": "100644",
+        "sha": "1a273567354be71208847e5972fd26521e0c2cdf"
+      },
+      "custom": {
+        "mode": "100644",
+        "sha": "948a2d4aee5b30cfb22f5e135972e98f74b8f411"
+      },
+      "decision": "adopt exact upstream target bytes/mode",
+      "integrated_blob": "1a273567354be71208847e5972fd26521e0c2cdf"
+    },
+    {
+      "path": "backend/internal/service/gemini_image_output_accounting_test.go",
+      "category": "test-restoration",
+      "base": {
+        "mode": "100644",
+        "sha": "73e525e00988d3820208b903b828b868a5a4f5a5"
+      },
+      "target": {
+        "mode": "100644",
+        "sha": "2f13e5d4eba24eacb1b39a23bb205c939a6c495b"
+      },
+      "custom": null,
+      "decision": "restore exact target tests through pinned harness, do not vendor upstream suite",
+      "integrated_blob": null
+    },
+    {
+      "path": "backend/internal/service/gemini_messages_compat_service.go",
+      "category": "upstream-equal",
+      "base": {
+        "mode": "100644",
+        "sha": "b4ca7607ad4c0fbf26e0389caaa818ec2515e15e"
+      },
+      "target": {
+        "mode": "100644",
+        "sha": "6f4edef96c99d56e9afd2742215dec66df7bbf84"
+      },
+      "custom": {
+        "mode": "100644",
+        "sha": "b4ca7607ad4c0fbf26e0389caaa818ec2515e15e"
+      },
+      "decision": "adopt exact upstream target bytes/mode",
+      "integrated_blob": "6f4edef96c99d56e9afd2742215dec66df7bbf84"
+    },
+    {
+      "path": "backend/internal/service/gemini_models_endpoints.go",
+      "category": "upstream-equal",
+      "base": {
+        "mode": "100644",
+        "sha": "02f3b985a17121b0f52df16ae535297bb994ee5a"
+      },
+      "target": {
+        "mode": "100644",
+        "sha": "34a86444d1b2066beb93ffc5a4b5bf1e310e4d96"
+      },
+      "custom": {
+        "mode": "100644",
+        "sha": "02f3b985a17121b0f52df16ae535297bb994ee5a"
+      },
+      "decision": "adopt exact upstream target bytes/mode",
+      "integrated_blob": "34a86444d1b2066beb93ffc5a4b5bf1e310e4d96"
+    },
+    {
+      "path": "backend/internal/service/gemini_same_account_retries_test.go",
+      "category": "test-restoration",
+      "base": null,
+      "target": {
+        "mode": "100644",
+        "sha": "56c63de7899a23c697172538882ebfef006919ed"
+      },
+      "custom": null,
+      "decision": "restore exact target tests through pinned harness, do not vendor upstream suite",
+      "integrated_blob": null
+    },
+    {
+      "path": "backend/internal/service/gemini_vertex_api_key_forward_test.go",
+      "category": "test-restoration",
+      "base": {
+        "mode": "100644",
+        "sha": "5c1d5f1b20241e066c3b5926f1a57a9ab90872d2"
+      },
+      "target": {
+        "mode": "100644",
+        "sha": "1b57bbb1fc3f483f736750c9df8494a099eaf2d6"
+      },
+      "custom": null,
+      "decision": "restore exact target tests through pinned harness, do not vendor upstream suite",
+      "integrated_blob": null
+    },
+    {
+      "path": "backend/internal/service/grok_media.go",
+      "category": "upstream-equal",
+      "base": {
+        "mode": "100644",
+        "sha": "b73972ae58f4c92c7dbdb43e04391b08d972f0b3"
+      },
+      "target": {
+        "mode": "100644",
+        "sha": "b9c95747adcb89cc21e54a31d2cde5364381d150"
+      },
+      "custom": {
+        "mode": "100644",
+        "sha": "b73972ae58f4c92c7dbdb43e04391b08d972f0b3"
+      },
+      "decision": "adopt exact upstream target bytes/mode",
+      "integrated_blob": "b9c95747adcb89cc21e54a31d2cde5364381d150"
+    },
+    {
+      "path": "backend/internal/service/grok_model_catalog.go",
+      "category": "upstream-equal",
+      "base": null,
+      "target": {
+        "mode": "100644",
+        "sha": "99f60971bbd948a3a3b31c4f4fd1c36586a1456d"
+      },
+      "custom": null,
+      "decision": "adopt exact upstream target bytes/mode",
+      "integrated_blob": "99f60971bbd948a3a3b31c4f4fd1c36586a1456d"
+    },
+    {
+      "path": "backend/internal/service/grok_model_catalog_store.go",
+      "category": "upstream-equal",
+      "base": null,
+      "target": {
+        "mode": "100644",
+        "sha": "6d524812c88ade465bee26db484e5abc7216e700"
+      },
+      "custom": null,
+      "decision": "adopt exact upstream target bytes/mode",
+      "integrated_blob": "6d524812c88ade465bee26db484e5abc7216e700"
+    },
+    {
+      "path": "backend/internal/service/grok_model_catalog_store_test.go",
+      "category": "test-restoration",
+      "base": null,
+      "target": {
+        "mode": "100644",
+        "sha": "8c620c92f95fdfc6e2f326e755f7fd94cad78d4e"
+      },
+      "custom": null,
+      "decision": "restore exact target tests through pinned harness, do not vendor upstream suite",
+      "integrated_blob": null
+    },
+    {
+      "path": "backend/internal/service/grok_model_catalog_sync_test.go",
+      "category": "test-restoration",
+      "base": null,
+      "target": {
+        "mode": "100644",
+        "sha": "2aea769e922bf20b1c6211d6e8c4d5fac74ef3b3"
+      },
+      "custom": null,
+      "decision": "restore exact target tests through pinned harness, do not vendor upstream suite",
+      "integrated_blob": null
+    },
+    {
+      "path": "backend/internal/service/grok_model_catalog_test.go",
+      "category": "test-restoration",
+      "base": null,
+      "target": {
+        "mode": "100644",
+        "sha": "11d00032ca50b5836c8cd0ac483b051fbb9bcf23"
+      },
+      "custom": null,
+      "decision": "restore exact target tests through pinned harness, do not vendor upstream suite",
+      "integrated_blob": null
+    },
+    {
+      "path": "backend/internal/service/grok_model_diagnostics.go",
+      "category": "upstream-equal",
+      "base": null,
+      "target": {
+        "mode": "100644",
+        "sha": "43005fdb95645f5d28464956334ddb78f8fa4b31"
+      },
+      "custom": null,
+      "decision": "adopt exact upstream target bytes/mode",
+      "integrated_blob": "43005fdb95645f5d28464956334ddb78f8fa4b31"
+    },
+    {
+      "path": "backend/internal/service/grok_model_diagnostics_test.go",
+      "category": "test-restoration",
+      "base": null,
+      "target": {
+        "mode": "100644",
+        "sha": "9d6e6ffd69225df932e060830a8cf03399f1915b"
+      },
+      "custom": null,
+      "decision": "restore exact target tests through pinned harness, do not vendor upstream suite",
+      "integrated_blob": null
+    },
+    {
+      "path": "backend/internal/service/grok_observed_models.go",
+      "category": "upstream-equal",
+      "base": {
+        "mode": "100644",
+        "sha": "3dba5f0013a65c9dc12fcb54b8d41c619c0c63c6"
+      },
+      "target": {
+        "mode": "100644",
+        "sha": "23700bdd1952e7a7c89d31da14433eaa27de0596"
+      },
+      "custom": {
+        "mode": "100644",
+        "sha": "3dba5f0013a65c9dc12fcb54b8d41c619c0c63c6"
+      },
+      "decision": "adopt exact upstream target bytes/mode",
+      "integrated_blob": "23700bdd1952e7a7c89d31da14433eaa27de0596"
+    },
+    {
+      "path": "backend/internal/service/grok_observed_models_log_test.go",
+      "category": "test-restoration",
+      "base": null,
+      "target": {
+        "mode": "100644",
+        "sha": "f62eb984105fc814a6ef20f533487e77f7f8366b"
+      },
+      "custom": null,
+      "decision": "restore exact target tests through pinned harness, do not vendor upstream suite",
+      "integrated_blob": null
+    },
+    {
+      "path": "backend/internal/service/grok_p2_test.go",
+      "category": "test-restoration",
+      "base": {
+        "mode": "100644",
+        "sha": "2be382d26ea129be82ae92acfef5550db18889e1"
+      },
+      "target": {
+        "mode": "100644",
+        "sha": "f582ce92cc6ed03b7fe627b452a8ffdbe748c5a6"
+      },
+      "custom": null,
+      "decision": "restore exact target tests through pinned harness, do not vendor upstream suite",
+      "integrated_blob": null
+    },
+    {
+      "path": "backend/internal/service/grok_quota_service_test.go",
+      "category": "test-restoration",
+      "base": {
+        "mode": "100644",
+        "sha": "af27b67f122da527db51c7ec2e738fd9ef35b935"
+      },
+      "target": {
+        "mode": "100644",
+        "sha": "7aa85588086579abde36f31e5b1e18c1329ac892"
+      },
+      "custom": null,
+      "decision": "restore exact target tests through pinned harness, do not vendor upstream suite",
+      "integrated_blob": null
+    },
+    {
+      "path": "backend/internal/service/grok_response_model_audit_test.go",
+      "category": "test-restoration",
+      "base": null,
+      "target": {
+        "mode": "100644",
+        "sha": "bda076a5572cdbd0a4b2aa688ef1a640277283b1"
+      },
+      "custom": null,
+      "decision": "restore exact target tests through pinned harness, do not vendor upstream suite",
+      "integrated_blob": null
+    },
+    {
+      "path": "backend/internal/service/group.go",
+      "category": "upstream-equal",
+      "base": {
+        "mode": "100644",
+        "sha": "0489fe35ccc9d4615056ddd3310b3952d08b5324"
+      },
+      "target": {
+        "mode": "100644",
+        "sha": "bcaa3a045054c484b787e5d4a29610cc744e5858"
+      },
+      "custom": {
+        "mode": "100644",
+        "sha": "0489fe35ccc9d4615056ddd3310b3952d08b5324"
+      },
+      "decision": "adopt exact upstream target bytes/mode",
+      "integrated_blob": "bcaa3a045054c484b787e5d4a29610cc744e5858"
+    },
+    {
+      "path": "backend/internal/service/group_service.go",
+      "category": "upstream-equal",
+      "base": {
+        "mode": "100644",
+        "sha": "c46cbf4db4d7baff1d58d05dd6a38bcaf9c5e56c"
+      },
+      "target": {
+        "mode": "100644",
+        "sha": "d7c97e265919e56a0477306504674256455464b9"
+      },
+      "custom": {
+        "mode": "100644",
+        "sha": "c46cbf4db4d7baff1d58d05dd6a38bcaf9c5e56c"
+      },
+      "decision": "adopt exact upstream target bytes/mode",
+      "integrated_blob": "d7c97e265919e56a0477306504674256455464b9"
+    },
+    {
+      "path": "backend/internal/service/image_billing_count.go",
+      "category": "upstream-equal",
+      "base": null,
+      "target": {
+        "mode": "100644",
+        "sha": "21520289e5774ad44851343213fcecd121ce8b97"
+      },
+      "custom": null,
+      "decision": "adopt exact upstream target bytes/mode",
+      "integrated_blob": "21520289e5774ad44851343213fcecd121ce8b97"
+    },
+    {
+      "path": "backend/internal/service/image_billing_count_test.go",
+      "category": "test-restoration",
+      "base": null,
+      "target": {
+        "mode": "100644",
+        "sha": "e6fdf4bd96564936d036dbd1bf440717769a759c"
+      },
+      "custom": null,
+      "decision": "restore exact target tests through pinned harness, do not vendor upstream suite",
+      "integrated_blob": null
+    },
+    {
+      "path": "backend/internal/service/image_count_billing_switch_test.go",
+      "category": "test-restoration",
+      "base": null,
+      "target": {
+        "mode": "100644",
+        "sha": "31864fe785192d18760c67066f72c4d146634401"
+      },
+      "custom": null,
+      "decision": "restore exact target tests through pinned harness, do not vendor upstream suite",
+      "integrated_blob": null
+    },
+    {
+      "path": "backend/internal/service/media_price_config.go",
+      "category": "upstream-equal",
+      "base": {
+        "mode": "100644",
+        "sha": "53d63c97a4361d72321258ec94358a0fd62a0deb"
+      },
+      "target": {
+        "mode": "100644",
+        "sha": "5ddbbbc6db47a333084e8371299eb39ddae533ef"
+      },
+      "custom": {
+        "mode": "100644",
+        "sha": "53d63c97a4361d72321258ec94358a0fd62a0deb"
+      },
+      "decision": "adopt exact upstream target bytes/mode",
+      "integrated_blob": "5ddbbbc6db47a333084e8371299eb39ddae533ef"
+    },
+    {
+      "path": "backend/internal/service/model_plaza_service.go",
+      "category": "upstream-equal",
+      "base": {
+        "mode": "100644",
+        "sha": "37ef1e303d5650b878c9f99902074f3e2ba69cfe"
+      },
+      "target": {
+        "mode": "100644",
+        "sha": "27e4e0a53b717fcab8317e026a7981bf7fc9496d"
+      },
+      "custom": {
+        "mode": "100644",
+        "sha": "37ef1e303d5650b878c9f99902074f3e2ba69cfe"
+      },
+      "decision": "adopt exact upstream target bytes/mode",
+      "integrated_blob": "27e4e0a53b717fcab8317e026a7981bf7fc9496d"
+    },
+    {
+      "path": "backend/internal/service/model_plaza_service_test.go",
+      "category": "test-restoration",
+      "base": {
+        "mode": "100644",
+        "sha": "b7008f87e924f875118b45ed14a0b7a09f205d8f"
+      },
+      "target": {
+        "mode": "100644",
+        "sha": "326dffe729dcf21daf2c1c5a99598e19c8fd6546"
+      },
+      "custom": null,
+      "decision": "restore exact target tests through pinned harness, do not vendor upstream suite",
+      "integrated_blob": null
+    },
+    {
+      "path": "backend/internal/service/openai_chat_roles.go",
+      "category": "upstream-equal",
+      "base": {
+        "mode": "100644",
+        "sha": "1e80101f5dcb786f5399aadec7e56918845cc790"
+      },
+      "target": {
+        "mode": "100644",
+        "sha": "cf773b2355d7e9089780dc410c3f377c449900ce"
+      },
+      "custom": {
+        "mode": "100644",
+        "sha": "1e80101f5dcb786f5399aadec7e56918845cc790"
+      },
+      "decision": "adopt exact upstream target bytes/mode",
+      "integrated_blob": "cf773b2355d7e9089780dc410c3f377c449900ce"
+    },
+    {
+      "path": "backend/internal/service/openai_chat_roles_test.go",
+      "category": "test-restoration",
+      "base": {
+        "mode": "100644",
+        "sha": "27434ad983176321a0d40570f37c2a2ce6d73cb2"
+      },
+      "target": {
+        "mode": "100644",
+        "sha": "842dad54224c6165386275a1520bf6758764ab95"
+      },
+      "custom": null,
+      "decision": "restore exact target tests through pinned harness, do not vendor upstream suite",
+      "integrated_blob": null
+    },
+    {
+      "path": "backend/internal/service/openai_codex_models_service.go",
+      "category": "upstream-equal",
+      "base": {
+        "mode": "100644",
+        "sha": "61c4d5d44bfa92df5271a8abf17f2294b51abcb7"
+      },
+      "target": {
+        "mode": "100644",
+        "sha": "22e5d613f21892ce46da293a9bf3ef49d2ea06e5"
+      },
+      "custom": {
+        "mode": "100644",
+        "sha": "61c4d5d44bfa92df5271a8abf17f2294b51abcb7"
+      },
+      "decision": "adopt exact upstream target bytes/mode",
+      "integrated_blob": "22e5d613f21892ce46da293a9bf3ef49d2ea06e5"
+    },
+    {
+      "path": "backend/internal/service/openai_codex_transform.go",
+      "category": "upstream-equal",
+      "base": {
+        "mode": "100644",
+        "sha": "220358f1e47587ede14ec882fbc2d8064d897001"
+      },
+      "target": {
+        "mode": "100644",
+        "sha": "f4b33dbab3dc9df221448c68bffcda4bad7bc868"
+      },
+      "custom": {
+        "mode": "100644",
+        "sha": "220358f1e47587ede14ec882fbc2d8064d897001"
+      },
+      "decision": "adopt exact upstream target bytes/mode",
+      "integrated_blob": "f4b33dbab3dc9df221448c68bffcda4bad7bc868"
+    },
+    {
+      "path": "backend/internal/service/openai_compat_model.go",
+      "category": "upstream-equal",
+      "base": {
+        "mode": "100644",
+        "sha": "19a6fb072c8098568cb3961f19d1b0a01827f2fc"
+      },
+      "target": {
+        "mode": "100644",
+        "sha": "8f4a2585bdcaa36c7c3af5fd35936016742abc32"
+      },
+      "custom": {
+        "mode": "100644",
+        "sha": "19a6fb072c8098568cb3961f19d1b0a01827f2fc"
+      },
+      "decision": "adopt exact upstream target bytes/mode",
+      "integrated_blob": "8f4a2585bdcaa36c7c3af5fd35936016742abc32"
+    },
+    {
+      "path": "backend/internal/service/openai_gateway_chat_completions.go",
+      "category": "upstream-equal",
+      "base": {
+        "mode": "100644",
+        "sha": "af4eae36ea6df5e238d65f53c5b57f76246dfae6"
+      },
+      "target": {
+        "mode": "100644",
+        "sha": "6c727da0cc1c00c3f32cd56ca046acf0769142ee"
+      },
+      "custom": {
+        "mode": "100644",
+        "sha": "af4eae36ea6df5e238d65f53c5b57f76246dfae6"
+      },
+      "decision": "adopt exact upstream target bytes/mode",
+      "integrated_blob": "6c727da0cc1c00c3f32cd56ca046acf0769142ee"
+    },
+    {
+      "path": "backend/internal/service/openai_gateway_chat_completions_raw.go",
+      "category": "upstream-equal",
+      "base": {
+        "mode": "100644",
+        "sha": "98fa8c4a0d7a9126f912d88f5c89659657f1e6b4"
+      },
+      "target": {
+        "mode": "100644",
+        "sha": "6943f519e6156f800f2632d1e3da8dd60f8e8b54"
+      },
+      "custom": {
+        "mode": "100644",
+        "sha": "98fa8c4a0d7a9126f912d88f5c89659657f1e6b4"
+      },
+      "decision": "adopt exact upstream target bytes/mode",
+      "integrated_blob": "6943f519e6156f800f2632d1e3da8dd60f8e8b54"
+    },
+    {
+      "path": "backend/internal/service/openai_gateway_grok.go",
+      "category": "upstream-equal",
+      "base": {
+        "mode": "100644",
+        "sha": "7aaa649a7425054bbdb7f4288935e8d1dfaf90b8"
+      },
+      "target": {
+        "mode": "100644",
+        "sha": "aea1e3c964c4058993dfc1dbb7fc3fe1a3bf40c5"
+      },
+      "custom": {
+        "mode": "100644",
+        "sha": "7aaa649a7425054bbdb7f4288935e8d1dfaf90b8"
+      },
+      "decision": "adopt exact upstream target bytes/mode",
+      "integrated_blob": "aea1e3c964c4058993dfc1dbb7fc3fe1a3bf40c5"
+    },
+    {
+      "path": "backend/internal/service/openai_gateway_messages.go",
+      "category": "upstream-equal",
+      "base": {
+        "mode": "100644",
+        "sha": "45f890a37065fdcec2e2cf83d8e605f62471c6ec"
+      },
+      "target": {
+        "mode": "100644",
+        "sha": "dfe326e8475a2f31cba43488985f6a2dd8b1f304"
+      },
+      "custom": {
+        "mode": "100644",
+        "sha": "45f890a37065fdcec2e2cf83d8e605f62471c6ec"
+      },
+      "decision": "adopt exact upstream target bytes/mode",
+      "integrated_blob": "dfe326e8475a2f31cba43488985f6a2dd8b1f304"
+    },
+    {
+      "path": "backend/internal/service/openai_gateway_messages_chat_fallback.go",
+      "category": "upstream-equal",
+      "base": {
+        "mode": "100644",
+        "sha": "d12918a3bb685f8d85ec145c7b4b30f6dbfcebbc"
+      },
+      "target": {
+        "mode": "100644",
+        "sha": "59a70dd191e8bf9c1c99f2b295a2b59e100e08f0"
+      },
+      "custom": {
+        "mode": "100644",
+        "sha": "d12918a3bb685f8d85ec145c7b4b30f6dbfcebbc"
+      },
+      "decision": "adopt exact upstream target bytes/mode",
+      "integrated_blob": "59a70dd191e8bf9c1c99f2b295a2b59e100e08f0"
+    },
+    {
+      "path": "backend/internal/service/openai_gateway_response_handling.go",
+      "category": "upstream-equal",
+      "base": {
+        "mode": "100644",
+        "sha": "f8b0078303f20c6d311e7eaa0d8a97673bebac5e"
+      },
+      "target": {
+        "mode": "100644",
+        "sha": "0707d85a39a0e0f7e424d137ff906ad2490de9ce"
+      },
+      "custom": {
+        "mode": "100644",
+        "sha": "f8b0078303f20c6d311e7eaa0d8a97673bebac5e"
+      },
+      "decision": "adopt exact upstream target bytes/mode",
+      "integrated_blob": "0707d85a39a0e0f7e424d137ff906ad2490de9ce"
+    },
+    {
+      "path": "backend/internal/service/openai_gateway_responses_chat_fallback.go",
+      "category": "upstream-equal",
+      "base": {
+        "mode": "100644",
+        "sha": "184e3152dc44c5e14f4214e62d4050dbab8975c5"
+      },
+      "target": {
+        "mode": "100644",
+        "sha": "ad4e65e05e8a75999b02a4efe227dac262f1777c"
+      },
+      "custom": {
+        "mode": "100644",
+        "sha": "184e3152dc44c5e14f4214e62d4050dbab8975c5"
+      },
+      "decision": "adopt exact upstream target bytes/mode",
+      "integrated_blob": "ad4e65e05e8a75999b02a4efe227dac262f1777c"
+    },
+    {
+      "path": "backend/internal/service/openai_gateway_service.go",
+      "category": "upstream-equal",
+      "base": {
+        "mode": "100644",
+        "sha": "a29ff0d1c6f7608f04f644a57d36ec4276c044b4"
+      },
+      "target": {
+        "mode": "100644",
+        "sha": "1084c824a262b1898a8fd86048801ff7608c28ca"
+      },
+      "custom": {
+        "mode": "100644",
+        "sha": "a29ff0d1c6f7608f04f644a57d36ec4276c044b4"
+      },
+      "decision": "adopt exact upstream target bytes/mode",
+      "integrated_blob": "1084c824a262b1898a8fd86048801ff7608c28ca"
+    },
+    {
+      "path": "backend/internal/service/openai_gateway_usage.go",
+      "category": "upstream-equal",
+      "base": {
+        "mode": "100644",
+        "sha": "ce2e276a7e15f503588f870ba3db502bc4368e5c"
+      },
+      "target": {
+        "mode": "100644",
+        "sha": "f3ff6e491c670bdaaee2c254f27471d5dfaa3186"
+      },
+      "custom": {
+        "mode": "100644",
+        "sha": "ce2e276a7e15f503588f870ba3db502bc4368e5c"
+      },
+      "decision": "adopt exact upstream target bytes/mode",
+      "integrated_blob": "f3ff6e491c670bdaaee2c254f27471d5dfaa3186"
+    },
+    {
+      "path": "backend/internal/service/openai_gpt61_terra_test.go",
+      "category": "test-restoration",
+      "base": null,
+      "target": {
+        "mode": "100644",
+        "sha": "1a8877478b1105a3a4e0924f064f109ab1a0c7da"
+      },
+      "custom": null,
+      "decision": "restore exact target tests through pinned harness, do not vendor upstream suite",
+      "integrated_blob": null
+    },
+    {
+      "path": "backend/internal/service/openai_images.go",
+      "category": "upstream-equal",
+      "base": {
+        "mode": "100644",
+        "sha": "e3d60085f37892d0b3526648fe797f094ae91a07"
+      },
+      "target": {
+        "mode": "100644",
+        "sha": "12042b0e584a77f0de8dea7ed90700e95c49003a"
+      },
+      "custom": {
+        "mode": "100644",
+        "sha": "e3d60085f37892d0b3526648fe797f094ae91a07"
+      },
+      "decision": "adopt exact upstream target bytes/mode",
+      "integrated_blob": "12042b0e584a77f0de8dea7ed90700e95c49003a"
+    },
+    {
+      "path": "backend/internal/service/openai_images_responses.go",
+      "category": "upstream-equal",
+      "base": {
+        "mode": "100644",
+        "sha": "51bc32d6f8b041a530e5616cd71e4c83478ec5b2"
+      },
+      "target": {
+        "mode": "100644",
+        "sha": "36995437fd44045a76e6651ec1a52b425d3798e3"
+      },
+      "custom": {
+        "mode": "100644",
+        "sha": "51bc32d6f8b041a530e5616cd71e4c83478ec5b2"
+      },
+      "decision": "adopt exact upstream target bytes/mode",
+      "integrated_blob": "36995437fd44045a76e6651ec1a52b425d3798e3"
+    },
+    {
+      "path": "backend/internal/service/openai_images_upload_limit_test.go",
+      "category": "test-restoration",
+      "base": null,
+      "target": {
+        "mode": "100644",
+        "sha": "cf52633079060649f0ff7f9a8601527c5f843ebf"
+      },
+      "custom": null,
+      "decision": "restore exact target tests through pinned harness, do not vendor upstream suite",
+      "integrated_blob": null
+    },
+    {
+      "path": "backend/internal/service/openai_model_alias.go",
+      "category": "upstream-equal",
+      "base": {
+        "mode": "100644",
+        "sha": "dd822b2f4af9f7cccce3d5065a4728db26b1729f"
+      },
+      "target": {
+        "mode": "100644",
+        "sha": "8a8a01a2f4a607fe3795158af2f174de66fb5c06"
+      },
+      "custom": {
+        "mode": "100644",
+        "sha": "dd822b2f4af9f7cccce3d5065a4728db26b1729f"
+      },
+      "decision": "adopt exact upstream target bytes/mode",
+      "integrated_blob": "8a8a01a2f4a607fe3795158af2f174de66fb5c06"
+    },
+    {
+      "path": "backend/internal/service/openai_usage_deepseek_cache_test.go",
+      "category": "test-restoration",
+      "base": null,
+      "target": {
+        "mode": "100644",
+        "sha": "9b8f9bacc2f4d0490dc81cdc56bff116790b0999"
+      },
+      "custom": null,
+      "decision": "restore exact target tests through pinned harness, do not vendor upstream suite",
+      "integrated_blob": null
+    },
+    {
+      "path": "backend/internal/service/pagination_test.go",
+      "category": "test-restoration",
+      "base": null,
+      "target": {
+        "mode": "100644",
+        "sha": "e195959e00fde3eeca73076a01f4ca95ca712cd9"
+      },
+      "custom": null,
+      "decision": "restore exact target tests through pinned harness, do not vendor upstream suite",
+      "integrated_blob": null
+    },
+    {
+      "path": "backend/internal/service/pricing_service.go",
+      "category": "upstream-equal",
+      "base": {
+        "mode": "100644",
+        "sha": "6b8c6e06655bd3339274241e5b01cad9462fda4d"
+      },
+      "target": {
+        "mode": "100644",
+        "sha": "08f7f9d6ba0e7115b48052f1e2273b0134e11383"
+      },
+      "custom": {
+        "mode": "100644",
+        "sha": "6b8c6e06655bd3339274241e5b01cad9462fda4d"
+      },
+      "decision": "adopt exact upstream target bytes/mode",
+      "integrated_blob": "08f7f9d6ba0e7115b48052f1e2273b0134e11383"
+    },
+    {
+      "path": "backend/internal/service/ratelimit_cn_frequency_429_test.go",
+      "category": "test-restoration",
+      "base": null,
+      "target": {
+        "mode": "100644",
+        "sha": "2343a0152c90968108ba01ebe966c7e01e6bf341"
+      },
+      "custom": null,
+      "decision": "restore exact target tests through pinned harness, do not vendor upstream suite",
+      "integrated_blob": null
+    },
+    {
+      "path": "backend/internal/service/ratelimit_cn_providers.go",
+      "category": "upstream-equal",
+      "base": {
+        "mode": "100644",
+        "sha": "226f7bdb0f667facf019fbe573e2eb7bb09a502e"
+      },
+      "target": {
+        "mode": "100644",
+        "sha": "8ffa3e774dd2383a244e75614e300c70be519f2e"
+      },
+      "custom": {
+        "mode": "100644",
+        "sha": "226f7bdb0f667facf019fbe573e2eb7bb09a502e"
+      },
+      "decision": "adopt exact upstream target bytes/mode",
+      "integrated_blob": "8ffa3e774dd2383a244e75614e300c70be519f2e"
+    },
+    {
+      "path": "backend/internal/service/response_model_billing_test.go",
+      "category": "test-restoration",
+      "base": {
+        "mode": "100644",
+        "sha": "6b04fc424a4db9602b0d43d722a611e1d645acdf"
+      },
+      "target": {
+        "mode": "100644",
+        "sha": "1a09218b42daa74817cb5d7a005394030654c422"
+      },
+      "custom": null,
+      "decision": "restore exact target tests through pinned harness, do not vendor upstream suite",
+      "integrated_blob": null
+    },
+    {
+      "path": "backend/internal/service/setting_features.go",
+      "category": "upstream-equal",
+      "base": {
+        "mode": "100644",
+        "sha": "f282761b58ad8b468fc9ca3f77fc21e0c861576a"
+      },
+      "target": {
+        "mode": "100644",
+        "sha": "6169cdd37982890350cd4a942aab638240218e38"
+      },
+      "custom": {
+        "mode": "100644",
+        "sha": "f282761b58ad8b468fc9ca3f77fc21e0c861576a"
+      },
+      "decision": "adopt exact upstream target bytes/mode",
+      "integrated_blob": "6169cdd37982890350cd4a942aab638240218e38"
+    },
+    {
+      "path": "backend/internal/service/setting_service.go",
+      "category": "upstream-equal",
+      "base": {
+        "mode": "100644",
+        "sha": "7aea7c8ae98d6f5bbbd23b65365fe7ff5d675454"
+      },
+      "target": {
+        "mode": "100644",
+        "sha": "c8c0ad1e9de9d5765fd59eadac8d3c40c5e2341d"
+      },
+      "custom": {
+        "mode": "100644",
+        "sha": "7aea7c8ae98d6f5bbbd23b65365fe7ff5d675454"
+      },
+      "decision": "adopt exact upstream target bytes/mode",
+      "integrated_blob": "c8c0ad1e9de9d5765fd59eadac8d3c40c5e2341d"
+    },
+    {
+      "path": "backend/internal/service/upstream_models.go",
+      "category": "upstream-equal",
+      "base": {
+        "mode": "100644",
+        "sha": "bfd82887f5ecfa5655b5257b1cab8de1d3397090"
+      },
+      "target": {
+        "mode": "100644",
+        "sha": "3d04d8ccb251734317454ce821ff6c260c34dd78"
+      },
+      "custom": {
+        "mode": "100644",
+        "sha": "bfd82887f5ecfa5655b5257b1cab8de1d3397090"
+      },
+      "decision": "adopt exact upstream target bytes/mode",
+      "integrated_blob": "3d04d8ccb251734317454ce821ff6c260c34dd78"
+    },
+    {
+      "path": "backend/internal/service/upstream_models_test.go",
+      "category": "test-restoration",
+      "base": {
+        "mode": "100644",
+        "sha": "e0e9f263ec0cf03d7e1c6046b88c487f100a8085"
+      },
+      "target": {
+        "mode": "100644",
+        "sha": "8d023f03837ef9813770d1ec4f967f795ab3c07d"
+      },
+      "custom": null,
+      "decision": "restore exact target tests through pinned harness, do not vendor upstream suite",
+      "integrated_blob": null
+    },
+    {
+      "path": "backend/internal/service/upstream_response_model_test.go",
+      "category": "test-restoration",
+      "base": {
+        "mode": "100644",
+        "sha": "ea616d53ee15f08181d3f8389a9ba40ec82be6cc"
+      },
+      "target": {
+        "mode": "100644",
+        "sha": "b97dcc43406b41c2ab652790843cfd15130b0d98"
+      },
+      "custom": null,
+      "decision": "restore exact target tests through pinned harness, do not vendor upstream suite",
+      "integrated_blob": null
+    },
+    {
+      "path": "backend/internal/service/wire.go",
+      "category": "custom-overlap",
+      "base": {
+        "mode": "100644",
+        "sha": "688d729b31e13b9a5aa8508db65eb223c7caec4f"
+      },
+      "target": {
+        "mode": "100644",
+        "sha": "472046b04721557067ccc0d2bd663e6e9a182840"
+      },
+      "custom": {
+        "mode": "100644",
+        "sha": "bfe3e71c446ac0c6ecb97acd4bfb11f376dbaba6"
+      },
+      "decision": "three-way content transplant preserving custom changes",
+      "integrated_blob": "b339e79b72fed72a71400785ca7358e010349de0",
+      "review": "clean content merge; retain all custom-versus-base hunks; independently reviewed before publication"
+    },
+    {
+      "path": "backend/migrations/247_scoped_admin_api_keys.sql",
+      "category": "upstream-equal",
+      "base": null,
+      "target": {
+        "mode": "100644",
+        "sha": "2a9e2dca835ad99ee23c0ca3268d79ad5e125dc3"
+      },
+      "custom": null,
+      "decision": "adopt exact upstream target bytes/mode",
+      "integrated_blob": "2a9e2dca835ad99ee23c0ca3268d79ad5e125dc3"
+    },
+    {
+      "path": "backend/migrations/248_group_image_count_billing.sql",
+      "category": "upstream-equal",
+      "base": null,
+      "target": {
+        "mode": "100644",
+        "sha": "f9e6cd9f29d9d92462038dbe1f3e10a1ee2e2308"
+      },
+      "custom": null,
+      "decision": "adopt exact upstream target bytes/mode",
+      "integrated_blob": "f9e6cd9f29d9d92462038dbe1f3e10a1ee2e2308"
+    },
+    {
+      "path": "backend/resources/model-pricing/model_prices_and_context_window.json",
+      "category": "upstream-equal",
+      "base": {
+        "mode": "100644",
+        "sha": "c9a5c3fb48eb123d47eaa2bfc076725a4eb782ee"
+      },
+      "target": {
+        "mode": "100644",
+        "sha": "cd1e84434fdf75284d40d83618f7183ed1f6338f"
+      },
+      "custom": {
+        "mode": "100644",
+        "sha": "c9a5c3fb48eb123d47eaa2bfc076725a4eb782ee"
+      },
+      "decision": "adopt exact upstream target bytes/mode",
+      "integrated_blob": "cd1e84434fdf75284d40d83618f7183ed1f6338f"
+    },
+    {
+      "path": "docs/admin-api-keys.md",
+      "category": "upstream-equal",
+      "base": null,
+      "target": {
+        "mode": "100644",
+        "sha": "c24627f9b6816279ff6955244527d26ae62129fc"
+      },
+      "custom": null,
+      "decision": "adopt exact upstream target bytes/mode",
+      "integrated_blob": "c24627f9b6816279ff6955244527d26ae62129fc"
+    },
+    {
+      "path": "frontend/src/api/__tests__/admin.accounts.grokModelDiagnostics.spec.ts",
+      "category": "test-restoration",
+      "base": null,
+      "target": {
+        "mode": "100644",
+        "sha": "ef7c90650632dbf689bec22f06654656b0e86e4d"
+      },
+      "custom": null,
+      "decision": "restore exact target tests through pinned harness, do not vendor upstream suite",
+      "integrated_blob": null
+    },
+    {
+      "path": "frontend/src/api/admin/accounts.ts",
+      "category": "upstream-equal",
+      "base": {
+        "mode": "100644",
+        "sha": "e504775fa340b8f127c6e60b8300d6d9d2e2abc5"
+      },
+      "target": {
+        "mode": "100644",
+        "sha": "44d0ab9be07d38bea5bf6647d7ce682dd84c2a71"
+      },
+      "custom": {
+        "mode": "100644",
+        "sha": "e504775fa340b8f127c6e60b8300d6d9d2e2abc5"
+      },
+      "decision": "adopt exact upstream target bytes/mode",
+      "integrated_blob": "44d0ab9be07d38bea5bf6647d7ce682dd84c2a71"
+    },
+    {
+      "path": "frontend/src/api/admin/adminAccessKeys.ts",
+      "category": "upstream-equal",
+      "base": null,
+      "target": {
+        "mode": "100644",
+        "sha": "3580a5f30fb74e2b908f98af3ac262562b556967"
+      },
+      "custom": null,
+      "decision": "adopt exact upstream target bytes/mode",
+      "integrated_blob": "3580a5f30fb74e2b908f98af3ac262562b556967"
+    },
+    {
+      "path": "frontend/src/components/account/EditAccountModal.vue",
+      "category": "upstream-equal",
+      "base": {
+        "mode": "100644",
+        "sha": "288abd793e45b9ad9d0b1ab5434de4ff47c9ffed"
+      },
+      "target": {
+        "mode": "100644",
+        "sha": "9ca560b519b79b5624b017dc2d4fb4e49fe5eb08"
+      },
+      "custom": {
+        "mode": "100644",
+        "sha": "288abd793e45b9ad9d0b1ab5434de4ff47c9ffed"
+      },
+      "decision": "adopt exact upstream target bytes/mode",
+      "integrated_blob": "9ca560b519b79b5624b017dc2d4fb4e49fe5eb08"
+    },
+    {
+      "path": "frontend/src/components/account/GrokModelDiagnosticsPanel.vue",
+      "category": "upstream-equal",
+      "base": null,
+      "target": {
+        "mode": "100644",
+        "sha": "9c408197ddab6590392cd916decd91b6f4226ac9"
+      },
+      "custom": null,
+      "decision": "adopt exact upstream target bytes/mode",
+      "integrated_blob": "9c408197ddab6590392cd916decd91b6f4226ac9"
+    },
+    {
+      "path": "frontend/src/components/account/ModelWhitelistSelector.vue",
+      "category": "upstream-equal",
+      "base": {
+        "mode": "100644",
+        "sha": "aa09de7bbb38539212efe024a666e335bf93fc96"
+      },
+      "target": {
+        "mode": "100644",
+        "sha": "b1645a49fa5dbe3fd6a755b37783358b032ddd89"
+      },
+      "custom": {
+        "mode": "100644",
+        "sha": "aa09de7bbb38539212efe024a666e335bf93fc96"
+      },
+      "decision": "adopt exact upstream target bytes/mode",
+      "integrated_blob": "b1645a49fa5dbe3fd6a755b37783358b032ddd89"
+    },
+    {
+      "path": "frontend/src/components/account/__tests__/EditAccountModal.grokUpstream.spec.ts",
+      "category": "test-restoration",
+      "base": {
+        "mode": "100644",
+        "sha": "c96cd86d0c4d54083bb4f695efefaf54371eb9f4"
+      },
+      "target": {
+        "mode": "100644",
+        "sha": "bf6bb34126511bf8da9f2dadf4fea272041328cb"
+      },
+      "custom": null,
+      "decision": "restore exact target tests through pinned harness, do not vendor upstream suite",
+      "integrated_blob": null
+    },
+    {
+      "path": "frontend/src/components/account/__tests__/GrokModelDiagnosticsPanel.spec.ts",
+      "category": "test-restoration",
+      "base": null,
+      "target": {
+        "mode": "100644",
+        "sha": "81db25dbd823ea69443d0bc0d8b1a7af5ce6ca00"
+      },
+      "custom": null,
+      "decision": "restore exact target tests through pinned harness, do not vendor upstream suite",
+      "integrated_blob": null
+    },
+    {
+      "path": "frontend/src/components/account/__tests__/ModelWhitelistSelector.spec.ts",
+      "category": "test-restoration",
+      "base": {
+        "mode": "100644",
+        "sha": "0b5f10a015562e4f09a84e14139e5e02ddf9445b"
+      },
+      "target": {
+        "mode": "100644",
+        "sha": "83f843df7302e955ba2295c302b368404abb425c"
+      },
+      "custom": null,
+      "decision": "restore exact target tests through pinned harness, do not vendor upstream suite",
+      "integrated_blob": null
+    },
+    {
+      "path": "frontend/src/components/admin/settings/AdminAccessKeysSettings.vue",
+      "category": "upstream-equal",
+      "base": null,
+      "target": {
+        "mode": "100644",
+        "sha": "bc256fc479524a4e4615259fdf66dd4d7b227bdf"
+      },
+      "custom": null,
+      "decision": "adopt exact upstream target bytes/mode",
+      "integrated_blob": "bc256fc479524a4e4615259fdf66dd4d7b227bdf"
+    },
+    {
+      "path": "frontend/src/components/admin/settings/__tests__/AdminAccessKeysSettings.spec.ts",
+      "category": "test-restoration",
+      "base": null,
+      "target": {
+        "mode": "100644",
+        "sha": "42565e517ac689a17179e4cae85ad09b094d0cca"
+      },
+      "custom": null,
+      "decision": "restore exact target tests through pinned harness, do not vendor upstream suite",
+      "integrated_blob": null
+    },
+    {
+      "path": "frontend/src/components/keys/UseKeyModal.vue",
+      "category": "upstream-equal",
+      "base": {
+        "mode": "100644",
+        "sha": "e0dece4ea803d3b9a604faf60ecf3e720167b24c"
+      },
+      "target": {
+        "mode": "100644",
+        "sha": "c0dfa1afdd098ff6207e5e1e4a5349fb2fc50746"
+      },
+      "custom": {
+        "mode": "100644",
+        "sha": "e0dece4ea803d3b9a604faf60ecf3e720167b24c"
+      },
+      "decision": "adopt exact upstream target bytes/mode",
+      "integrated_blob": "c0dfa1afdd098ff6207e5e1e4a5349fb2fc50746"
+    },
+    {
+      "path": "frontend/src/components/keys/__tests__/UseKeyModal.spec.ts",
+      "category": "test-restoration",
+      "base": {
+        "mode": "100644",
+        "sha": "0550d4b4ab8c0e46a4c90a15f98dfd4a76f74eaa"
+      },
+      "target": {
+        "mode": "100644",
+        "sha": "34adf3fb924f2455ec993b69e3696e3ad48caee7"
+      },
+      "custom": null,
+      "decision": "restore exact target tests through pinned harness, do not vendor upstream suite",
+      "integrated_blob": null
+    },
+    {
+      "path": "frontend/src/composables/__tests__/useModelWhitelist.spec.ts",
+      "category": "test-restoration",
+      "base": {
+        "mode": "100644",
+        "sha": "97d132b1adcda7a3ff2876b6760200e68a033d2e"
+      },
+      "target": {
+        "mode": "100644",
+        "sha": "4b1e445462aacb9aa60e0495ae74f7e9a637c773"
+      },
+      "custom": null,
+      "decision": "restore exact target tests through pinned harness, do not vendor upstream suite",
+      "integrated_blob": null
+    },
+    {
+      "path": "frontend/src/composables/useModelWhitelist.ts",
+      "category": "upstream-equal",
+      "base": {
+        "mode": "100644",
+        "sha": "cf1db731563f0649e71175ba2112e02db57eb340"
+      },
+      "target": {
+        "mode": "100644",
+        "sha": "00cf9e16e3bdabcbd038c56ebc524b52fc4b37ff"
+      },
+      "custom": {
+        "mode": "100644",
+        "sha": "cf1db731563f0649e71175ba2112e02db57eb340"
+      },
+      "decision": "adopt exact upstream target bytes/mode",
+      "integrated_blob": "00cf9e16e3bdabcbd038c56ebc524b52fc4b37ff"
+    },
+    {
+      "path": "frontend/src/i18n/locales/en/admin/accounts.ts",
+      "category": "upstream-equal",
+      "base": {
+        "mode": "100644",
+        "sha": "e1fa589330b2a638dfa25562d02246c68fbd1e9f"
+      },
+      "target": {
+        "mode": "100644",
+        "sha": "36ebff4beebd6a8b2daff135d5026664ae2c6ea7"
+      },
+      "custom": {
+        "mode": "100644",
+        "sha": "e1fa589330b2a638dfa25562d02246c68fbd1e9f"
+      },
+      "decision": "adopt exact upstream target bytes/mode",
+      "integrated_blob": "36ebff4beebd6a8b2daff135d5026664ae2c6ea7"
+    },
+    {
+      "path": "frontend/src/i18n/locales/en/admin/channels.ts",
+      "category": "custom-overlap",
+      "base": {
+        "mode": "100644",
+        "sha": "b0574f71594c6bbbecd5f7e3129a38f58894b65e"
+      },
+      "target": {
+        "mode": "100644",
+        "sha": "b065f1ed1ea86b048f70e04d5e9bd35232070793"
+      },
+      "custom": {
+        "mode": "100644",
+        "sha": "5faaf691396c77c0eb2ec1dbad51f8ce88964fad"
+      },
+      "decision": "three-way content transplant preserving custom changes",
+      "integrated_blob": "a709958767d8043c0cad703c41dece43eab95446",
+      "review": "clean content merge; retain all custom-versus-base hunks; independently reviewed before publication"
+    },
+    {
+      "path": "frontend/src/i18n/locales/en/admin/overview.ts",
+      "category": "upstream-equal",
+      "base": {
+        "mode": "100644",
+        "sha": "1b79627bd0161cde9d487b86a811e76d7774e62a"
+      },
+      "target": {
+        "mode": "100644",
+        "sha": "8faf063f2619b66f39a2933c51fcd2cab34bdcb6"
+      },
+      "custom": {
+        "mode": "100644",
+        "sha": "1b79627bd0161cde9d487b86a811e76d7774e62a"
+      },
+      "decision": "adopt exact upstream target bytes/mode",
+      "integrated_blob": "8faf063f2619b66f39a2933c51fcd2cab34bdcb6"
+    },
+    {
+      "path": "frontend/src/i18n/locales/en/adminAccessKeys.ts",
+      "category": "upstream-equal",
+      "base": null,
+      "target": {
+        "mode": "100644",
+        "sha": "4fcbc0165af4749bcb585b6fab8186dd01308780"
+      },
+      "custom": null,
+      "decision": "adopt exact upstream target bytes/mode",
+      "integrated_blob": "4fcbc0165af4749bcb585b6fab8186dd01308780"
+    },
+    {
+      "path": "frontend/src/i18n/locales/en/index.ts",
+      "category": "custom-overlap",
+      "base": {
+        "mode": "100644",
+        "sha": "ac2867bfda96f6bcf4fb44cdb42dde1998edc728"
+      },
+      "target": {
+        "mode": "100644",
+        "sha": "1b111b8b2facaa41206d2909b0fc976b009ac2bc"
+      },
+      "custom": {
+        "mode": "100644",
+        "sha": "2b17d4be0fbfbfd1a2438eb687d9e3340a09454a"
+      },
+      "decision": "three-way content transplant preserving custom changes",
+      "integrated_blob": "e9bf88dd6d7f4e6ad907f4d8a96cbd08d0de3366",
+      "review": "clean content merge; retain all custom-versus-base hunks; independently reviewed before publication"
+    },
+    {
+      "path": "frontend/src/i18n/locales/zh/admin/accounts.ts",
+      "category": "upstream-equal",
+      "base": {
+        "mode": "100644",
+        "sha": "1092445e664072bfd82bccbaa760e09e2d13ab3b"
+      },
+      "target": {
+        "mode": "100644",
+        "sha": "d34e534ef7fd1072d33b072c96964de496ff6cc4"
+      },
+      "custom": {
+        "mode": "100644",
+        "sha": "1092445e664072bfd82bccbaa760e09e2d13ab3b"
+      },
+      "decision": "adopt exact upstream target bytes/mode",
+      "integrated_blob": "d34e534ef7fd1072d33b072c96964de496ff6cc4"
+    },
+    {
+      "path": "frontend/src/i18n/locales/zh/admin/channels.ts",
+      "category": "custom-overlap",
+      "base": {
+        "mode": "100644",
+        "sha": "592c3e63f11851498f2f32ca1117bd845f523b1e"
+      },
+      "target": {
+        "mode": "100644",
+        "sha": "6e8b0df008d51d5b2f0da69eab698c1e29ee9c81"
+      },
+      "custom": {
+        "mode": "100644",
+        "sha": "0ef87202623dc2192df7826b8314a8007dc135eb"
+      },
+      "decision": "three-way content transplant preserving custom changes",
+      "integrated_blob": "7df3365e399d1bb1e2e66b27004a5ae36f340cf6",
+      "review": "clean content merge; retain all custom-versus-base hunks; independently reviewed before publication"
+    },
+    {
+      "path": "frontend/src/i18n/locales/zh/admin/overview.ts",
+      "category": "upstream-equal",
+      "base": {
+        "mode": "100644",
+        "sha": "9088319bc6c3157cbbc6e914c7767ff9f25f97b1"
+      },
+      "target": {
+        "mode": "100644",
+        "sha": "9b84e772e8417e9e53487febffaacaa594015a99"
+      },
+      "custom": {
+        "mode": "100644",
+        "sha": "9088319bc6c3157cbbc6e914c7767ff9f25f97b1"
+      },
+      "decision": "adopt exact upstream target bytes/mode",
+      "integrated_blob": "9b84e772e8417e9e53487febffaacaa594015a99"
+    },
+    {
+      "path": "frontend/src/i18n/locales/zh/adminAccessKeys.ts",
+      "category": "upstream-equal",
+      "base": null,
+      "target": {
+        "mode": "100644",
+        "sha": "415e457437fbb0b6e386f6a52a23dbfc63e89089"
+      },
+      "custom": null,
+      "decision": "adopt exact upstream target bytes/mode",
+      "integrated_blob": "415e457437fbb0b6e386f6a52a23dbfc63e89089"
+    },
+    {
+      "path": "frontend/src/i18n/locales/zh/index.ts",
+      "category": "custom-overlap",
+      "base": {
+        "mode": "100644",
+        "sha": "ac2867bfda96f6bcf4fb44cdb42dde1998edc728"
+      },
+      "target": {
+        "mode": "100644",
+        "sha": "1b111b8b2facaa41206d2909b0fc976b009ac2bc"
+      },
+      "custom": {
+        "mode": "100644",
+        "sha": "2b17d4be0fbfbfd1a2438eb687d9e3340a09454a"
+      },
+      "decision": "three-way content transplant preserving custom changes",
+      "integrated_blob": "e9bf88dd6d7f4e6ad907f4d8a96cbd08d0de3366",
+      "review": "clean content merge; retain all custom-versus-base hunks; independently reviewed before publication"
+    },
+    {
+      "path": "frontend/src/types/index.ts",
+      "category": "custom-overlap",
+      "base": {
+        "mode": "100644",
+        "sha": "1eac972ce914bc84107f879bc0a68a9934b83c86"
+      },
+      "target": {
+        "mode": "100644",
+        "sha": "25ac0fb936dcd18da730a78dd74881083f6d12b0"
+      },
+      "custom": {
+        "mode": "100644",
+        "sha": "40be7c09c6009e70cbc4355a837f29ec1c467775"
+      },
+      "decision": "three-way content transplant preserving custom changes",
+      "integrated_blob": "1b0e34b001213274578dbec210b45fa6aa7d7acb",
+      "review": "clean content merge; retain all custom-versus-base hunks; independently reviewed before publication"
+    },
+    {
+      "path": "frontend/src/views/admin/ChannelsView.vue",
+      "category": "upstream-equal",
+      "base": {
+        "mode": "100644",
+        "sha": "bdb372b7fbccfc2ef7dbb48fb022fce2aee7ad32"
+      },
+      "target": {
+        "mode": "100644",
+        "sha": "7f149346623723deaf8c7df4bd092b1e29c9e84e"
+      },
+      "custom": {
+        "mode": "100644",
+        "sha": "bdb372b7fbccfc2ef7dbb48fb022fce2aee7ad32"
+      },
+      "decision": "adopt exact upstream target bytes/mode",
+      "integrated_blob": "7f149346623723deaf8c7df4bd092b1e29c9e84e"
+    },
+    {
+      "path": "frontend/src/views/admin/GroupsView.vue",
+      "category": "upstream-equal",
+      "base": {
+        "mode": "100644",
+        "sha": "8572f7b0bf8a0f650fbdac6405bc3d6541cd0bdb"
+      },
+      "target": {
+        "mode": "100644",
+        "sha": "516441b821be06034ff8e263d3b4010439f68859"
+      },
+      "custom": {
+        "mode": "100644",
+        "sha": "8572f7b0bf8a0f650fbdac6405bc3d6541cd0bdb"
+      },
+      "decision": "adopt exact upstream target bytes/mode",
+      "integrated_blob": "516441b821be06034ff8e263d3b4010439f68859"
+    },
+    {
+      "path": "frontend/src/views/admin/SettingsView.vue",
+      "category": "custom-overlap",
+      "base": {
+        "mode": "100644",
+        "sha": "5c344267fad18b8c068e100bfdc36036693da653"
+      },
+      "target": {
+        "mode": "100644",
+        "sha": "36bbfd4b4a7ee5d5b079cb6b43bd83efbf06f205"
+      },
+      "custom": {
+        "mode": "100644",
+        "sha": "8914fb11bf6cc1633946256f1d44bf1856917a86"
+      },
+      "decision": "three-way content transplant preserving custom changes",
+      "integrated_blob": "0fc4a24dc1e1b6b64da2029bcabbd86168c7d20a",
+      "review": "clean content merge; retain all custom-versus-base hunks; independently reviewed before publication"
+    },
+    {
+      "path": "frontend/src/views/admin/__tests__/ChannelsView.webSearchEmulation.spec.ts",
+      "category": "test-restoration",
+      "base": null,
+      "target": {
+        "mode": "100644",
+        "sha": "361838cc937cb49ccda7fd74ec7ba35d36e516a3"
+      },
+      "custom": null,
+      "decision": "restore exact target tests through pinned harness, do not vendor upstream suite",
+      "integrated_blob": null
+    }
+  ],
+  "version_policy": "Preserve custom0.3.1; upstream .19 tag VERSION fallback0.2.18 intentionally not copied",
+  "new_pr_base": "main",
+  "migration_identity": "full filename; retain existing247_payment_audit_refund_retry and add upstream247_scoped plus248"
+}

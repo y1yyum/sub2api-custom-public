@@ -1,0 +1,33 @@
+{
+  "paths": [
+    "backend/internal/repository/custom_admin_keys_postgres_test.go",
+    "backend/internal/repository/custom_admin_key_group_models_test.go",
+    "backend/internal/repository/custom_admin_key_review_test.go",
+    "backend/internal/repository/custom_admin_key_scope_test.go",
+    "backend/internal/repository/custom_account_proxy_selection_test.go",
+    "backend/internal/repository/custom_proxy_sample_test.go",
+    "backend/internal/service/custom_admin_key_testdb_test.go",
+    "backend/internal/service/custom_admin_key_accounts_test.go",
+    "backend/internal/service/custom_admin_key_codex_import_test.go",
+    "backend/internal/service/custom_admin_key_proxy_selection_test.go",
+    "backend/internal/handler/admin/custom_legacy_admin_key_test.go"
+  ],
+  "unit_copies": {
+    "backend/internal/repository/custom_admin_key_scope_test.go": [
+      "TestScopedAdminAccountListScopesCountAndPageInSQL",
+      "TestScopedAdminCodexCandidatesQueryIsBounded"
+    ],
+    "backend/internal/repository/custom_proxy_sample_test.go": [
+      "TestProxySampleSQLRandomizesWholePoolBeforeLimit"
+    ],
+    "backend/internal/service/custom_admin_key_accounts_test.go": [
+      "TestScopedAdminAccountFieldsRejectUnknown",
+      "TestScopedAdminAccountModelMappingFieldPermissions",
+      "TestScopedAdminGroupReplacementPreservesForeignBindings",
+      "TestScopedAdminAccountCredentialsNeedIndependentPermissions"
+    ],
+    "backend/internal/service/custom_admin_key_proxy_selection_test.go": [
+      "TestNormalizeAccountProxySelectionConflicts"
+    ]
+  }
+}

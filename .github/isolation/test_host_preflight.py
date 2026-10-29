@@ -57,7 +57,8 @@ class HostPreflight(unittest.TestCase):
 class StreamEvidence(unittest.TestCase):
     def records(self, suite='unit'):
         fixed = list(host.FIXED_SERVICE_TESTS if suite == 'unit' else host.FIXED_SERVICE_TESTS[-1:])
-        main = ['TestMainCase', 'ExampleCatalog', 'FuzzSeed']
+        required = host.required_integration_tests(json.loads((host.ROOT / '.github/upgrade/manifest.json').read_text())) if suite == 'integration' else []
+        main = ['TestMainCase', 'ExampleCatalog', 'FuzzSeed'] + [name for package, name in required if package == host.SERVICE_PACKAGE]
         names = sorted(main + fixed)
         partitions = [{'name': 'main', 'tests': main, 'regex': '^('+'|'.join(main)+')$'}]
         partitions += [{'name': n, 'tests': [n], 'regex': '^'+re.escape(n)+'$'} for n in fixed]
@@ -69,7 +70,9 @@ class StreamEvidence(unittest.TestCase):
                     package_results=[{'package': host.SERVICE_PACKAGE, 'partition': p['name'],
                         'binary_sha256': 'c'*64, 'raw_exit_code': 0, 'exit_code': 0} for p in partitions],
                     fixture_receipt={'cleanup': 'stopped', 'postgres_ready': True})
-        return [first, *[{'Action': 'run', 'Package': host.SERVICE_PACKAGE, 'Test': n} for n in names],
+        mandatory = [{'Action': 'run', 'Package': p, 'Test': n} for p, n in required if p != host.SERVICE_PACKAGE]
+        mandatory += [{'Action': 'pass', 'Package': p, 'Test': n} for p, n in required]
+        return [first, *mandatory, *[{'Action': 'run', 'Package': host.SERVICE_PACKAGE, 'Test': n} for n in names],
                 {'Action': 'pass', 'Package': 'example', 'Test': 'TestOne'}, last]
 
     def collect(self, records, suite='unit'):
@@ -87,7 +90,7 @@ class StreamEvidence(unittest.TestCase):
             _, collect = self.collect(records, suite)
             receipt = collect()
             self.assertEqual(receipt['actual_service_coverage']['status'], 'passed')
-            self.assertEqual(receipt['test_event_counts'], {'pass': 1, 'fail': 0, 'skip': 1})
+            self.assertEqual(receipt['test_event_counts'], {'pass': 1 + len(receipt['required_integration_coverage']['tests']), 'fail': 0, 'skip': 1})
             self.assertEqual(receipt['skipped_tests'][0]['test'], 'FuzzSeed')
 
     def test_actual_coverage_missing_duplicate_and_unknown_fail_with_persisted_evidence(self):

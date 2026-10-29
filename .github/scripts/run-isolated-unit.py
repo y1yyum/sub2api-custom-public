@@ -128,10 +128,40 @@ def audit_service_coverage(receipt, runs, suite):
     return result
 
 
+def required_integration_tests(manifest):
+    """Exact mandatory database coverage, derived from reviewed fixture inventory."""
+    expected = []
+    for item in manifest.get('test_reclassifications', []):
+        path = Path(item['path'])
+        if not str(path).startswith('backend/internal/') or '..' in path.parts:
+            raise RuntimeError('invalid required fixture package path')
+        package = 'github.com/Wei-Shaw/sub2api/' + str(path.parent.relative_to('backend'))
+        expected.extend((package, name) for name in item['test_functions'])
+    for item in manifest.get('required_integration_tests', []):
+        expected.append((item['package'], item['test']))
+    if len(expected) != len(set(expected)) or any(
+            not package.startswith('github.com/Wei-Shaw/sub2api/internal/') or
+            not name.startswith('Test') or '/' in name for package, name in expected):
+        raise RuntimeError('invalid or duplicate required integration test identity')
+    return expected
+
+
+def audit_required_integration(expected, terminals, suite):
+    if suite != 'integration':
+        return {'status': 'not_applicable', 'tests': []}
+    results = []
+    for package, name in expected:
+        counts = {action: terminals[(package, name, action)] for action in ('run', 'pass', 'fail', 'skip')}
+        results.append({'package': package, 'test': name, **counts})
+    passed = bool(results) and all(x['run'] == 1 and x['pass'] == 1 and x['fail'] == 0 and x['skip'] == 0 for x in results)
+    return {'status': 'passed' if passed else 'failed', 'tests': results}
+
+
 def collect_stream(work, expected_commit, expected_manifest, suite='unit'):
     """Preserve streamed receipts even after tmpfs/container teardown."""
     receipts, counts, skipped = [], {'pass': 0, 'fail': 0, 'skip': 0}, []
     service_runs = Counter()
+    terminals = Counter()
     with (work / 'runtime-output.jsonl').open() as stream, (work / (suite+'-tests.jsonl')).open('w') as tests:
         for line in stream:
             try:
@@ -146,8 +176,11 @@ def collect_stream(work, expected_commit, expected_manifest, suite='unit'):
                 if (event.get('Package') == SERVICE_PACKAGE and event.get('Action') == 'run' and
                         isinstance(event.get('Test'), str) and '/' not in event['Test']):
                     service_runs[event['Test']] += 1
+                if event.get('Test') and event.get('Action') == 'run':
+                    terminals[(event.get('Package'), event['Test'], 'run')] += 1
                 if event.get('Test') and event.get('Action') in counts:
                     counts[event['Action']] += 1
+                    terminals[(event.get('Package'), event['Test'], event['Action'])] += 1
                     if event['Action'] == 'skip':
                         skipped.append({'package': event.get('Package'), 'test': event['Test']})
     receipt = receipts[-1] if receipts else {'isolation_preflight': 'not_proven'}
@@ -155,6 +188,9 @@ def collect_stream(work, expected_commit, expected_manifest, suite='unit'):
     receipt['skipped_tests'] = skipped
     receipt['streamed_receipt_count'] = len(receipts)
     receipt['actual_service_coverage'] = audit_service_coverage(receipt, service_runs, suite)
+    manifest = json.loads((ROOT / '.github/upgrade/manifest.json').read_text())
+    receipt['required_integration_coverage'] = audit_required_integration(
+        required_integration_tests(manifest), terminals, suite)
     (work / 'isolation-receipt.json').write_text(json.dumps(receipt, indent=2)+'\n')
     if (not receipts or any(r.get('source_commit') != expected_commit or
                              r.get('manifest_sha256') != expected_manifest or
@@ -168,6 +204,8 @@ def collect_stream(work, expected_commit, expected_manifest, suite='unit'):
         raise RuntimeError('incomplete or mismatched runtime isolation evidence')
     if receipt['actual_service_coverage']['status'] != 'passed':
         raise RuntimeError('actual service partition coverage failed; see isolation-receipt.json')
+    if suite == 'integration' and receipt['required_integration_coverage']['status'] != 'passed':
+        raise RuntimeError('mandatory integration tests missing, skipped, duplicated or failed')
     if suite == 'integration' and (receipt.get('fixture_receipt', {}).get('cleanup') not in {'stopped', 'stopped-immediate'} or
                                    not receipt.get('fixture_receipt', {}).get('postgres_ready')):
         raise RuntimeError('integration fixtures were not ready or cleanly stopped')
@@ -181,7 +219,9 @@ def collect_stream(work, expected_commit, expected_manifest, suite='unit'):
 def allowed_support_path(path):
     return ('..' not in Path(path).parts and
             (path.startswith('backend/internal/isolatedfixture/') or
-             path == 'backend/internal/securityaudit/isolated_shared_fixture_test.go'))
+             path in {'backend/internal/securityaudit/isolated_shared_fixture_test.go',
+                      'backend/internal/repository/isolated_scoped_admin_unit_test.go',
+                      'backend/internal/service/isolated_scoped_admin_unit_test.go'}))
 
 
 def prepare_context(work, suite='unit'):

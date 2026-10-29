@@ -191,7 +191,9 @@ def verify_sources(root, manifest_path, expected_digest):
     for item in receipt.get('validation_support', []):
         destination, source = item.get('destination', ''), item.get('source', '')
         require((destination.startswith('backend/internal/isolatedfixture/') or
-                 destination == 'backend/internal/securityaudit/isolated_shared_fixture_test.go') and
+                 destination in {'backend/internal/securityaudit/isolated_shared_fixture_test.go',
+                                 'backend/internal/repository/isolated_scoped_admin_unit_test.go',
+                                 'backend/internal/service/isolated_scoped_admin_unit_test.go'}) and
                 source.startswith('.github/upgrade/fixtures/') and
                 files.get(destination) == item.get('sha256') == tracked.get(source),
                 'validation-only support receipt mismatch')
