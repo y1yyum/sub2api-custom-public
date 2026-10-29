@@ -1407,7 +1407,7 @@ var openAIStreamErrorStatusPaths = []string{
 }
 
 // openAIWrappedUpstreamClientStatus keeps explicit request failures authoritative
-// when a relay labels them upstream_error. Credential, permission, timeout and
+// when a relay labels them upstream_error. Credential, billing, permission, timeout and
 // rate-limit statuses retain their existing dedicated account/retry policies.
 func openAIWrappedUpstreamClientStatus(payload []byte) int {
 	if !gjson.ValidBytes(payload) || openAIStreamFailedEventErrorCode(payload) != "upstream_error" {
@@ -1415,7 +1415,7 @@ func openAIWrappedUpstreamClientStatus(payload []byte) int {
 	}
 	for _, path := range openAIStreamErrorStatusPaths {
 		status := int(gjson.GetBytes(payload, path).Int())
-		if status >= 400 && status < 500 && status != http.StatusUnauthorized &&
+		if status >= 400 && status < 500 && status != http.StatusUnauthorized && status != http.StatusPaymentRequired &&
 			status != http.StatusForbidden && status != http.StatusRequestTimeout && status != http.StatusTooManyRequests {
 			return status
 		}
@@ -1439,7 +1439,7 @@ func openAIStreamFailedEventSemanticStatus(payload []byte, message string) int {
 	combined := strings.TrimSpace(errType + " " + code + " " + strings.ToLower(strings.TrimSpace(message)))
 	for _, path := range openAIStreamErrorStatusPaths {
 		if status := int(gjson.GetBytes(payload, path).Int()); status == http.StatusUnauthorized ||
-			status == http.StatusForbidden || status == http.StatusTooManyRequests || status == 529 {
+			status == http.StatusPaymentRequired || status == http.StatusForbidden || status == http.StatusTooManyRequests || status == 529 {
 			return status
 		}
 	}
@@ -1476,7 +1476,7 @@ func openAIStreamFailureStatus(payload []byte, message string) int {
 	}
 	semanticStatus := openAIStreamFailedEventSemanticStatus(payload, message)
 	switch semanticStatus {
-	case http.StatusUnauthorized, http.StatusForbidden, http.StatusTooManyRequests, 529:
+	case http.StatusUnauthorized, http.StatusPaymentRequired, http.StatusForbidden, http.StatusTooManyRequests, 529:
 		return semanticStatus
 	case http.StatusServiceUnavailable:
 		if isOpenAIUpstreamCapacityShedEvent(payload) {
@@ -1592,6 +1592,28 @@ func applyOpenAIStreamFailedErrorPassthroughRule(
 	)
 }
 
+// Concrete request-policy evidence remains non-replayable even when a relay
+// supplies an account-level status. A generic invalid_request type alone is not
+// such evidence: relays also use it for explicit 429 and billing failures.
+func openAIStreamHasRequestPolicyFailure(payload []byte, message string) bool {
+	// Structured policy/safety classifications are stronger evidence than a
+	// relay's generic invalid_request type. Do not infer request policy from
+	// generic prose like "rate limit policy" or "billing policy violation".
+	for _, path := range []string{"response.error.code", "error.code", "response.error.type", "error.type"} {
+		value := strings.ToLower(gjson.GetBytes(payload, path).String())
+		if strings.Contains(value, "policy") || strings.Contains(value, "safety") {
+			return true
+		}
+	}
+	message = strings.ToLower(message)
+	for _, marker := range []string{"content_policy", "content policy", "high-risk cyber", "safety policy"} {
+		if strings.Contains(message, marker) {
+			return true
+		}
+	}
+	return false
+}
+
 func openAIStreamFailedEventShouldFailover(payload []byte, message string) bool {
 	if openAIWrappedUpstreamClientStatus(payload) != 0 {
 		return false
@@ -1612,8 +1634,8 @@ func openAIStreamFailedEventShouldFailover(payload []byte, message string) bool 
 	// A response.failed event is transported over HTTP 200. Prefer its semantic
 	// rate-limit status over a generic/invalid_request error type so it can enter
 	// the same 429 retry policy as a regular upstream HTTP response.
-	if semanticStatus == http.StatusTooManyRequests {
-		return true
+	if semanticStatus == http.StatusTooManyRequests || semanticStatus == http.StatusPaymentRequired {
+		return !openAIStreamHasRequestPolicyFailure(payload, message)
 	}
 	if isOpenAITransientProcessingError(http.StatusBadRequest, message, payload) {
 		return true
@@ -1659,6 +1681,12 @@ func openAIStreamErrorEventShouldFailover(payload []byte, message string) bool {
 	}
 	if isOpenAIUpstreamAccessStateError(message, payload) {
 		return true
+	}
+	// Explicit rate limiting and upstream billing failures keep the same
+	// account-failover priority as response.failed and ordinary HTTP errors.
+	// Request-policy/context guards above still prevent unsafe replay.
+	if status := openAIStreamFailureStatus(payload, message); status == http.StatusTooManyRequests || status == http.StatusPaymentRequired {
+		return !openAIStreamHasRequestPolicyFailure(payload, message)
 	}
 	// Only an untyped relay wrapper inherits response.failed retry policy.
 	// Explicit bare-error types keep their existing event-specific semantics.

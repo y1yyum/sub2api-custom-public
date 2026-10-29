@@ -94,6 +94,9 @@ def adapt(path, text):
     scoped = runpy.run_path(str(Path(__file__).with_name('adapt-scoped-admin-fixtures.py')))
     if path in scoped['SPEC']['paths']:
         return scoped['adapt'](path, text)
+    if path == 'backend/internal/service/oauth_refresh_api_test.go':
+        fixture = Path(__file__).with_name('adapt-oauth-deadline-fixture.py')
+        return runpy.run_path(str(fixture))['adapt'](path, text)
     if path.startswith('frontend/'):
         frontend = Path(__file__).with_name('adapt-frontend-tests.py')
         return runpy.run_path(str(frontend))['adapt'](path, text)

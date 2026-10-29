@@ -221,3 +221,22 @@ func TestOpenAIWrappedAccountStatusCannotReplayConcreteRequestRestrictions(t *te
 		}
 	}
 }
+
+func TestOpenAIWrappedAccountPolicyWordingIsNotRequestPolicy(t *testing.T) {
+	for _, tc := range []struct {
+		status  int
+		message string
+	}{
+		{429, "rate limit policy exceeded"},
+		{402, "billing policy: insufficient balance"},
+		{429, "quota policy violation: requests not allowed until reset"},
+	} {
+		inner := fmt.Sprintf(`{"code":"upstream_error","status_code":%d,"type":"invalid_request_error","message":%q}`, tc.status, tc.message)
+		for _, payload := range []string{`{"type":"error","error":` + inner + `}`, `{"type":"response.failed","response":{"error":` + inner + `}}`} {
+			require.True(t, json.Valid([]byte(payload)), "fixture must be valid JSON: %s", payload)
+			require.Equal(t, tc.status, openAIStreamFailureStatus([]byte(payload), tc.message))
+			require.True(t, openAIStreamFailedEventShouldFailover([]byte(payload), tc.message))
+			require.True(t, openAIStreamErrorEventShouldFailover([]byte(payload), tc.message))
+		}
+	}
+}
