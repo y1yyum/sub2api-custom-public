@@ -787,6 +787,10 @@
     {
       "package": "github.com/Wei-Shaw/sub2api/internal/repository",
       "test": "TestCustomMigrationLedgerReadOnlyRole"
+    },
+    {
+      "package": "github.com/Wei-Shaw/sub2api/cmd/server",
+      "test": "TestCustomValidateAutoSetupStartupRejectsBeforeWrites"
     }
   ]
 }
