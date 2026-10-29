@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"strings"
 	"testing"
 	"time"
@@ -29,9 +30,21 @@ func TestCustomValidateAutoSetupStartupRejectsBeforeWrites(t *testing.T) {
 		// external server executable is needed. Let the real main parse no flags.
 		flag.CommandLine = flag.NewFlagSet("server", flag.ExitOnError)
 		os.Args = os.Args[:1]
+		if os.Getenv("SUB2API_TEST_VALIDATE_AUTO_SETUP_COMMAND") == "check" {
+			os.Args = append(os.Args, "--check-migrations")
+		}
 		main()
 		t.Fatal("unsafe startup unexpectedly returned successfully")
 	}
+
+	for _, scenario := range []string{"environment", "config_file", "explicit_check"} {
+		t.Run(scenario, func(t *testing.T) {
+			testValidateAutoSetupStartup(t, scenario)
+		})
+	}
+}
+
+func testValidateAutoSetupStartup(t *testing.T, scenario string) {
 
 	dsn, err := isolatedfixture.PostgresDSN("repository")
 	if err != nil {
@@ -84,6 +97,24 @@ func TestCustomValidateAutoSetupStartupRejectsBeforeWrites(t *testing.T) {
 		// No Redis listener is needed: rejection must precede any setup work.
 		"REDIS_HOST=127.0.0.1", "REDIS_PORT=1", "JWT_SECRET=fixture-not-a-production-jwt-secret",
 	}
+	wantDiagnostic := "AUTO_SETUP is incompatible with DATABASE_MIGRATION_MODE=validate"
+	if scenario == "config_file" {
+		configPath := filepath.Join(t.TempDir(), "policy.yaml")
+		if err := os.WriteFile(configPath, []byte("database:\n  migration_mode: validate\n"), 0600); err != nil {
+			t.Fatal(err)
+		}
+		for i, entry := range cmd.Env {
+			if strings.HasPrefix(entry, "DATABASE_MIGRATION_MODE=") {
+				cmd.Env[i] = "CONFIG_FILE=" + configPath
+			}
+		}
+	}
+	if scenario == "explicit_check" {
+		cmd.Env = append(cmd.Env, "SUB2API_TEST_VALIDATE_AUTO_SETUP_COMMAND=check")
+		// A missing database must fail a read-only check, not run auto-setup or
+		// the incompatible-mode guard. This proves explicit CLI precedence.
+		wantDiagnostic = "migration ledger check failed"
+	}
 	output, runErr := cmd.CombinedOutput()
 	if ctx.Err() != nil {
 		t.Fatalf("startup did not reject within the bounded deadline: %v", ctx.Err())
@@ -91,8 +122,8 @@ func TestCustomValidateAutoSetupStartupRejectsBeforeWrites(t *testing.T) {
 	if runErr == nil {
 		t.Error("validate plus AUTO_SETUP must fail startup")
 	}
-	if !strings.Contains(string(output), "AUTO_SETUP is incompatible with DATABASE_MIGRATION_MODE=validate") {
-		t.Error("startup did not report the explicit incompatible-mode rejection")
+	if !strings.Contains(string(output), wantDiagnostic) {
+		t.Errorf("startup did not report expected rejection class %q", wantDiagnostic)
 	}
 	if strings.Contains(string(output), "fixture-only") {
 		t.Error("startup diagnostic exposed the database password")
