@@ -615,6 +615,12 @@
     },
     "backend/internal/handler/admin/custom_legacy_admin_key_test.go": {
       "dece26153621959ccd7635814f4b2d08304e681a": "f1d0e36d01bcc0d1cc34cca14a5e124666f460daa5d5ac69c8c866f16f911810"
+    },
+    "backend/internal/service/content_moderation_test.go": {
+      "dece26153621959ccd7635814f4b2d08304e681a": "d84bdd8ef8eaa9964fca4b746bbd31220959194258a795753a06ccfa76fc3d17"
+    },
+    "backend/internal/service/oauth_refresh_api_test.go": {
+      "dece26153621959ccd7635814f4b2d08304e681a": "3be9fe6abad0467c3b8ccf6b33ed3bd4065dbe001656b838fb2c9edcdeea2177"
     }
   },
   "validation_support": {

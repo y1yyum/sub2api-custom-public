@@ -5,6 +5,7 @@ package service
 import (
 	"bytes"
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
@@ -133,4 +134,109 @@ func TestOpenAIWrappedUpstreamBareServerErrorRemainsVisibleWithoutReplay(t *test
 	require.False(t, errors.As(err, &retry))
 	require.Contains(t, rec.Body.String(), "mixed tools failed")
 	require.Len(t, upstream.requests, 1)
+}
+
+func TestOpenAIWrappedUpstreamAccountStatusPriorityAcrossEvents(t *testing.T) {
+	for _, event := range []string{"error", "response.failed"} {
+		for _, statusField := range []string{"status", "status_code"} {
+			for _, status := range []int{http.StatusTooManyRequests, http.StatusPaymentRequired} {
+				for _, errType := range []string{"", "upstream_error", "invalid_request_error"} {
+					t.Run(fmt.Sprintf("%s/%s/%d/%s", event, statusField, status, errType), func(t *testing.T) {
+						message := "upstream account has insufficient balance"
+						if status == http.StatusTooManyRequests {
+							message = "upstream rate limit exceeded"
+						}
+						inner := fmt.Sprintf(`{"code":"upstream_error",%q:%d,"type":%q,"message":%q}`, statusField, status, errType, message)
+						payload := `{"type":"error","error":` + inner + `}`
+						if event == "response.failed" {
+							payload = `{"type":"response.failed","response":{"error":` + inner + `}}`
+						}
+						require.True(t, json.Valid([]byte(payload)), "account status fixture must be valid JSON: %s", payload)
+						var decoded map[string]any
+						require.NoError(t, json.Unmarshal([]byte(inner), &decoded))
+						require.Equal(t, float64(status), decoded[statusField], "fixture must carry the selected explicit status field")
+						require.Equal(t, status, openAIStreamFailureStatus([]byte(payload), message))
+						require.True(t, openAIStreamFailedEventShouldFailover([]byte(payload), message))
+						require.True(t, openAIStreamErrorEventShouldFailover([]byte(payload), message))
+						for _, prefix := range []string{"", "data: {\"type\":\"response.output_text.delta\",\"delta\":\"delivered\"}\n\n", "data: {\"type\":\"response.function_call_arguments.delta\",\"delta\":\"delivered\"}\n\n"} {
+							recorder := newOpenAIResponseFlushRecorder()
+							_, err := runOpenAIResponseFlushTestWithAccount(recorder, io.NopCloser(strings.NewReader(prefix+"data: "+payload+"\n\n")), config.GatewayConfig{}, &Account{ID: 1, Platform: PlatformOpenAI, Type: AccountTypeAPIKey})
+							require.Error(t, err)
+							var replay *UpstreamFailoverError
+							if prefix == "" {
+								require.ErrorAs(t, err, &replay)
+								require.True(t, replay.ShouldRetryNextAccount())
+								body, _ := recorder.snapshot()
+								require.Empty(t, body)
+							} else {
+								require.False(t, errors.As(err, &replay), "never replay delivered output")
+								body, _ := recorder.snapshot()
+								require.Contains(t, body, "delivered")
+							}
+						}
+					})
+				}
+			}
+		}
+	}
+}
+
+func TestOpenAIWrappedPaymentStatusDoesNotBypassRequestPolicy(t *testing.T) {
+	for _, event := range []string{"error", "response.failed"} {
+		for _, errType := range []string{"content_policy_error", "safety_error"} {
+			inner := fmt.Sprintf(`{"code":"upstream_error","status_code":402,"type":%q,"message":"request violates content policy"}`, errType)
+			payload := `{"type":"error","error":` + inner + `}`
+			if event == "response.failed" {
+				payload = `{"type":"response.failed","response":{"error":` + inner + `}}`
+			}
+			require.True(t, json.Valid([]byte(payload)), "fixture must be valid JSON: %s", payload)
+			require.False(t, openAIStreamFailedEventShouldFailover([]byte(payload), "request violates content policy"))
+			require.False(t, openAIStreamErrorEventShouldFailover([]byte(payload), "request violates content policy"))
+		}
+	}
+}
+
+func TestOpenAIWrappedPaymentUnknownMessageMatchesHTTPAccountPolicy(t *testing.T) {
+	svc := &OpenAIGatewayService{}
+	require.True(t, svc.shouldFailoverUpstreamError(http.StatusPaymentRequired))
+	for _, payload := range []string{
+		`{"type":"error","error":{"code":"upstream_error","status":402,"message":"unrecognized billing failure"}}`,
+		`{"type":"response.failed","response":{"error":{"code":"upstream_error","status":402,"message":"unrecognized billing failure"}}}`,
+	} {
+		require.True(t, json.Valid([]byte(payload)), "fixture must be valid JSON: %s", payload)
+		require.True(t, openAIStreamFailedEventShouldFailover([]byte(payload), "unrecognized billing failure"))
+		require.True(t, openAIStreamErrorEventShouldFailover([]byte(payload), "unrecognized billing failure"))
+	}
+}
+
+func TestOpenAIWrappedAccountStatusCannotReplayConcreteRequestRestrictions(t *testing.T) {
+	for _, status := range []int{402, 429} {
+		for _, message := range []string{"context_length_exceeded", "request violates content_policy", "high-risk cyber request"} {
+			inner := fmt.Sprintf(`{"code":"upstream_error","status_code":%d,"type":"invalid_request_error","message":%q}`, status, message)
+			for _, payload := range []string{`{"type":"error","error":` + inner + `}`, `{"type":"response.failed","response":{"error":` + inner + `}}`} {
+				require.True(t, json.Valid([]byte(payload)), "fixture must be valid JSON: %s", payload)
+				require.False(t, openAIStreamFailedEventShouldFailover([]byte(payload), message))
+				require.False(t, openAIStreamErrorEventShouldFailover([]byte(payload), message))
+			}
+		}
+	}
+}
+
+func TestOpenAIWrappedAccountPolicyWordingIsNotRequestPolicy(t *testing.T) {
+	for _, tc := range []struct {
+		status  int
+		message string
+	}{
+		{429, "rate limit policy exceeded"},
+		{402, "billing policy: insufficient balance"},
+		{429, "quota policy violation: requests not allowed until reset"},
+	} {
+		inner := fmt.Sprintf(`{"code":"upstream_error","status_code":%d,"type":"invalid_request_error","message":%q}`, tc.status, tc.message)
+		for _, payload := range []string{`{"type":"error","error":` + inner + `}`, `{"type":"response.failed","response":{"error":` + inner + `}}`} {
+			require.True(t, json.Valid([]byte(payload)), "fixture must be valid JSON: %s", payload)
+			require.Equal(t, tc.status, openAIStreamFailureStatus([]byte(payload), tc.message))
+			require.True(t, openAIStreamFailedEventShouldFailover([]byte(payload), tc.message))
+			require.True(t, openAIStreamErrorEventShouldFailover([]byte(payload), tc.message))
+		}
+	}
 }
