@@ -27,7 +27,23 @@ func TestOpenAIResponsesWebSocket_DuplicateIdenticalModelKeysRejected(t *testing
 }'''
 
 
+ROUTE_PATH = 'backend/internal/server/routes/gateway_model_allowlist_test.go'
+ROUTE_REPLACEMENTS = {
+    'gin.HandlerFunc(apiKeyAuth), groupModelAllowlist,':
+        ('gin.HandlerFunc(apiKeyAuth), modelUniqueness, groupModelAllowlist,', 2),
+    **{group + '.Use(groupModelAllowlist)':
+       (group + '.Use(modelUniqueness, groupModelAllowlist)', 1)
+       for group in ('gateway', 'gemini', 'antigravityV1', 'antigravityV1Beta')},
+}
+
+
 def adapt(path, text):
+    if path == ROUTE_PATH:
+        for old, (new, count) in ROUTE_REPLACEMENTS.items():
+            if text.count(old) != count:
+                raise ValueError('unreviewed route middleware assertion')
+            text = text.replace(old, new)
+        return text
     if path != PATH or text.count(OLD) != 1:
         raise ValueError('unreviewed model uniqueness fixture')
     text = text.replace(OLD, NEW)

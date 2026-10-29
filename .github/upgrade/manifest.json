@@ -618,6 +618,9 @@
     },
     "backend/internal/handler/openai_gateway_ws_model_allowlist_test.go": {
       "dece26153621959ccd7635814f4b2d08304e681a": "6b588c9343395aef29fc8275a8d88a939d26eeae0c6e06b8eefceeb16722dce2"
+    },
+    "backend/internal/server/routes/gateway_model_allowlist_test.go": {
+      "dece26153621959ccd7635814f4b2d08304e681a": "133457272c1d2a0170146a1ca64d8b5b16e1cb1a3789ab0a7c4180b8a07f0e21"
     }
   },
   "validation_support": {
