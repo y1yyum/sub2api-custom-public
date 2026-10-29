@@ -29,8 +29,10 @@ type Options struct {
 	AllowPrivate     bool
 	RequireAllowlist bool
 	AllowedHosts     []string
-	Resolver         Resolver
-	DialContext      func(context.Context, string, string) (net.Conn, error)
+	// TrustedOrigins are exact built-in HTTPS origins, not a DNS/IP exception.
+	TrustedOrigins []string
+	Resolver       Resolver
+	DialContext    func(context.Context, string, string) (net.Conn, error)
 }
 
 type Transport struct {
@@ -41,6 +43,7 @@ type Transport struct {
 
 func NewClient(options Options, proxyURL *url.URL, profile *tlsfingerprint.Profile) *http.Client {
 	options.AllowedHosts = append([]string(nil), options.AllowedHosts...)
+	options.TrustedOrigins = append([]string(nil), options.TrustedOrigins...)
 	if proxyURL != nil {
 		copyURL := *proxyURL
 		proxyURL = &copyURL
@@ -137,8 +140,20 @@ func ValidateURL(raw string, options Options) (string, error) {
 	if err != nil || parsed.User != nil || parsed.Opaque != "" || parsed.Fragment != "" {
 		return "", errors.New("invalid probe URL")
 	}
+	allowedHosts, requireAllowlist := options.AllowedHosts, options.RequireAllowlist
+	// Trust only the exact built-in HTTPS:443 origin. Never broaden a configured
+	// wildcard or turn this hostname exception into a private-address exception.
+	if strings.EqualFold(parsed.Scheme, "https") && effectivePort(parsed) == "443" {
+		for _, rawOrigin := range options.TrustedOrigins {
+			origin, parseErr := url.Parse(rawOrigin)
+			if parseErr == nil && sameOrigin(parsed, origin) {
+				allowedHosts, requireAllowlist = nil, false
+				break
+			}
+		}
+	}
 	if _, err := urlvalidator.ValidateHTTPURL(raw, options.AllowHTTP, urlvalidator.ValidationOptions{
-		RequireAllowlist: options.RequireAllowlist, AllowedHosts: options.AllowedHosts, AllowPrivate: options.AllowPrivate,
+		RequireAllowlist: requireAllowlist, AllowedHosts: allowedHosts, AllowPrivate: options.AllowPrivate,
 	}); err != nil {
 		return "", errors.New("probe URL policy rejected destination")
 	}
@@ -161,7 +176,11 @@ func (t *Transport) RoundTrip(req *http.Request) (*http.Response, error) {
 	if _, err := ValidateURL(req.URL.String(), t.options); err != nil {
 		return nil, err
 	}
-	ctx, cancel := context.WithTimeout(req.Context(), 10*time.Second)
+	establishmentDeadline := time.Now().Add(10 * time.Second)
+	if callerDeadline, ok := req.Context().Deadline(); ok && callerDeadline.Before(establishmentDeadline) {
+		establishmentDeadline = callerDeadline
+	}
+	ctx, cancel := context.WithDeadline(req.Context(), establishmentDeadline)
 	addresses, err := t.addresses(ctx, req.URL.Hostname())
 	cancel()
 	if err != nil {
@@ -177,20 +196,11 @@ func (t *Transport) RoundTrip(req *http.Request) (*http.Response, error) {
 		if splitErr != nil || !strings.EqualFold(requestedHost, host) || requestedPort != port {
 			return nil, errors.New("probe dial destination differs from validated URL")
 		}
-		var last error
-		for _, ip := range addresses {
-			// The network layer gets only an already-validated literal. No second
-			// DNS lookup, including at a configured proxy, can rebind the target.
-			conn, dialErr := dialViaProxy(ctx, network, net.JoinHostPort(ip.String(), port), t.proxy, baseDial)
-			if dialErr == nil {
-				return conn, nil
-			}
-			last = dialErr
-			if ctx.Err() != nil {
-				return nil, ctx.Err()
-			}
-		}
-		return nil, last
+		dialCtx, stopDial := context.WithCancel(ctx)
+		stopCaller := context.AfterFunc(req.Context(), stopDial)
+		defer stopCaller()
+		defer stopDial()
+		return dialVerifiedAddresses(dialCtx, establishmentDeadline, network, port, addresses, t.proxy, baseDial)
 	}
 	transport := &http.Transport{
 		DialContext: dial, TLSHandshakeTimeout: 10 * time.Second, ResponseHeaderTimeout: 5 * time.Minute,

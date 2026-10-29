@@ -618,6 +618,9 @@
     },
     "backend/internal/service/upstream_billing_probe_test.go": {
       "dece26153621959ccd7635814f4b2d08304e681a": "6e112f4ac172fede5bcef39c38928e501360e305ae807a22b5e35050ed9ebcab"
+    },
+    "backend/internal/service/content_moderation_test.go": {
+      "dece26153621959ccd7635814f4b2d08304e681a": "d84bdd8ef8eaa9964fca4b746bbd31220959194258a795753a06ccfa76fc3d17"
     }
   },
   "validation_support": {

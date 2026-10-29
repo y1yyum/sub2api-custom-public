@@ -87,7 +87,7 @@ def adapt(path, text):
     if path == 'backend/internal/service/channel_monitor_quota_mode_test.go':
         fixture = Path(__file__).with_name('adapt-validation-fixtures.py')
         return runpy.run_path(str(fixture))['adapt'](path, text)
-    if path in ('backend/internal/service/channel_monitor_checker_body_test.go', 'backend/internal/service/grok_free_quota_gate_test.go', 'backend/internal/service/usage_cleanup_service_test.go', 'backend/internal/service/auth_service_email_bind_test.go'):
+    if path in ('backend/internal/service/content_moderation_test.go', 'backend/internal/service/channel_monitor_checker_body_test.go', 'backend/internal/service/grok_free_quota_gate_test.go', 'backend/internal/service/usage_cleanup_service_test.go', 'backend/internal/service/auth_service_email_bind_test.go'):
         fixture = Path(__file__).with_name('adapt-service-race-fixtures.py')
         return runpy.run_path(str(fixture))['adapt'](path, text)
     if path in ('backend/internal/handler/payment_handler_resume_test.go', 'backend/internal/service/account_test_service_gemini_test.go', 'backend/internal/service/gateway_forward_as_chat_completions_test.go', 'backend/internal/service/gateway_forward_as_responses_test.go', 'backend/internal/service/openai_compat_model_test.go', 'backend/internal/service/openai_fast_service_tier_test.go', 'backend/internal/service/account_test_service_openai_test.go'):

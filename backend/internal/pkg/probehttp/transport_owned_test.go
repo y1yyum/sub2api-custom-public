@@ -7,6 +7,7 @@ import (
 	"context"
 	"crypto/tls"
 	"errors"
+	"fmt"
 	"io"
 	"net"
 	"net/http"
@@ -14,6 +15,7 @@ import (
 	"net/url"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -392,4 +394,183 @@ func TestProbeVerifiedAddressAttemptsShareFiniteDeadline(t *testing.T) {
 	for len(deadlines) > 0 {
 		require.Equal(t, first, <-deadlines, "per-address retries must not replenish their budget")
 	}
+}
+
+type deadlineProbeResolver struct{ deadline time.Time }
+
+func (r *deadlineProbeResolver) LookupNetIP(ctx context.Context, _, _ string) ([]netip.Addr, error) {
+	r.deadline, _ = ctx.Deadline()
+	return ipAnswers("203.0.113.1", "203.0.113.2"), nil
+}
+
+func TestProbeDNSAndAllDialsShareShortCallerDeadline(t *testing.T) {
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+	defer cancel()
+	resolver := &deadlineProbeResolver{}
+	deadlines := make(chan time.Time, 2)
+	dial := func(ctx context.Context, _, _ string) (net.Conn, error) {
+		d, _ := ctx.Deadline()
+		deadlines <- d
+		return nil, errors.New("fixture failure")
+	}
+	client := NewClient(Options{AllowHTTP: true, Resolver: resolver, DialContext: dial}, nil, nil)
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, "http://probe.example.test", nil)
+	require.NoError(t, err)
+	_, err = client.Do(req)
+	require.Error(t, err)
+	require.Len(t, deadlines, 2)
+	callerDeadline, _ := ctx.Deadline()
+	require.Equal(t, callerDeadline, resolver.deadline)
+	for len(deadlines) > 0 {
+		require.Equal(t, resolver.deadline, <-deadlines)
+	}
+}
+
+func TestProbeOfficialOriginExceptionNeverBypassesDNSOrRedirectPolicy(t *testing.T) {
+	options := Options{RequireAllowlist: true, AllowedHosts: []string{"configured.example.test"}, TrustedOrigins: []string{"https://chatgpt.com"}, Resolver: &fakeResolver{answers: ipAnswers("203.0.113.1", "127.0.0.1")}}
+	var calls int
+	options.DialContext = func(context.Context, string, string) (net.Conn, error) {
+		calls++
+		return nil, errors.New("must not dial")
+	}
+	_, err := NewClient(options, nil, nil).Get("https://chatgpt.com/backend-api/codex/responses")
+	require.Error(t, err)
+	require.Zero(t, calls)
+	_, err = ValidateURL("https://custom.example.test/v1", options)
+	require.Error(t, err)
+	client := NewClient(options, nil, nil)
+	from, _ := http.NewRequest(http.MethodGet, "https://chatgpt.com/a", nil)
+	to, _ := http.NewRequest(http.MethodGet, "https://configured.example.test/b", nil)
+	require.Error(t, client.CheckRedirect(to, []*http.Request{from}))
+}
+
+func TestProbeFallbackClosesLateSuccessfulLoser(t *testing.T) {
+	loserPeer := make(chan net.Conn, 1)
+	winnerPeer := make(chan net.Conn, 1)
+	dial := func(ctx context.Context, _, target string) (net.Conn, error) {
+		a, b := net.Pipe()
+		if target == "203.0.113.1:443" {
+			loserPeer <- b
+			<-ctx.Done()
+			return a, nil
+		}
+		winnerPeer <- b
+		return a, nil
+	}
+	winner, err := dialVerifiedAddresses(context.Background(), time.Now().Add(2*time.Second), "tcp", "443", ipAnswers("203.0.113.1", "203.0.113.2"), nil, dial)
+	require.NoError(t, err)
+	defer winner.Close()
+	peer := <-winnerPeer
+	defer peer.Close()
+	loser := <-loserPeer
+	defer loser.Close()
+	require.NoError(t, loser.SetReadDeadline(time.Now().Add(time.Second)))
+	_, err = loser.Read(make([]byte, 1))
+	require.ErrorIs(t, err, io.EOF, "late successful losing connection must close after winner cancellation")
+}
+
+func TestProbeEarlyFailureStartsNextWithoutFallbackDelay(t *testing.T) {
+	peer := make(chan net.Conn, 1)
+	dial := func(_ context.Context, _, target string) (net.Conn, error) {
+		if target == "203.0.113.1:443" {
+			return nil, errors.New("immediate fixture failure")
+		}
+		a, b := net.Pipe()
+		peer <- b
+		return a, nil
+	}
+	// Disable timer-driven advance for this scheduler test: only receipt of the
+	// first failure can start the second attempt within the generous watchdog.
+	conn, err := dialVerifiedAddressesWithDelay(context.Background(), time.Now().Add(2*time.Second), "tcp", "443", ipAnswers("203.0.113.1", "203.0.113.2"), nil, dial, time.Hour)
+	require.NoError(t, err)
+	defer conn.Close()
+	defer (<-peer).Close()
+}
+
+func TestProbeAllBlackholesShareBudgetAndCallerCancellation(t *testing.T) {
+	for _, explicitCancel := range []bool{false, true} {
+		t.Run(fmt.Sprint(explicitCancel), func(t *testing.T) {
+			ctx, cancel := context.WithCancel(context.Background())
+			defer cancel()
+			calls := make(chan time.Time, 2)
+			exits := make(chan struct{}, 2)
+			dial := func(ctx context.Context, _, _ string) (net.Conn, error) {
+				deadline, _ := ctx.Deadline()
+				calls <- deadline
+				<-ctx.Done()
+				exits <- struct{}{}
+				return nil, ctx.Err()
+			}
+			result := make(chan error, 1)
+			deadline := time.Now().Add(700 * time.Millisecond)
+			go func() {
+				conn, err := dialVerifiedAddresses(ctx, deadline, "tcp", "443", ipAnswers("203.0.113.1", "203.0.113.2"), nil, dial)
+				if conn != nil {
+					_ = conn.Close()
+				}
+				result <- err
+			}()
+			for i := 0; i < 2; i++ {
+				select {
+				case d := <-calls:
+					require.Equal(t, deadline, d)
+				case <-time.After(2 * time.Second):
+					t.Fatal("missing bounded fallback attempt")
+				}
+			}
+			if explicitCancel {
+				cancel()
+			}
+			select {
+			case err := <-result:
+				if explicitCancel {
+					require.ErrorIs(t, err, context.Canceled)
+				} else {
+					require.ErrorIs(t, err, context.DeadlineExceeded)
+				}
+			case <-time.After(2 * time.Second):
+				t.Fatal("shared budget/cancellation not honored")
+			}
+			for i := 0; i < 2; i++ {
+				select {
+				case <-exits:
+				case <-time.After(time.Second):
+					t.Fatal("loser still pending")
+				}
+			}
+		})
+	}
+}
+
+func TestProbeConcurrentSuccessLeavesOnlyOneConnectionOpen(t *testing.T) {
+	peers := make(chan net.Conn, 2)
+	release := make(chan struct{})
+	var calls atomic.Int32
+	dial := func(context.Context, string, string) (net.Conn, error) {
+		a, b := net.Pipe()
+		peers <- b
+		if calls.Add(1) == 2 {
+			close(release)
+		}
+		<-release
+		return a, nil
+	}
+	winner, err := dialVerifiedAddresses(context.Background(), time.Now().Add(2*time.Second), "tcp", "443", ipAnswers("203.0.113.1", "203.0.113.2"), nil, dial)
+	require.NoError(t, err)
+	defer winner.Close()
+	eof := 0
+	for i := 0; i < 2; i++ {
+		peer := <-peers
+		defer peer.Close()
+		require.NoError(t, peer.SetReadDeadline(time.Now().Add(200*time.Millisecond)))
+		_, err := peer.Read(make([]byte, 1))
+		if errors.Is(err, io.EOF) {
+			eof++
+		} else {
+			var timeout net.Error
+			require.ErrorAs(t, err, &timeout)
+			require.True(t, timeout.Timeout())
+		}
+	}
+	require.Equal(t, 1, eof, "exactly one racing success must be closed as a loser")
 }
