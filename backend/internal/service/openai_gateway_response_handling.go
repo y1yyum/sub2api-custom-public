@@ -563,7 +563,11 @@ func (s *OpenAIGatewayService) handleStreamingResponseWithReasoning(ctx context.
 			}
 			observer.ObserveOpenAI(dataBytes, eventType)
 			// 初始上游 data 的 type 只解析一次：原始值保持终止事件的精确匹配，规范化值供后续分支复用。
-			if openAIStreamEventIsTerminalWithType(data, eventType) {
+			// A disconnected client's bare error is not authoritative usage.
+			// API-key streams, like Codex streams, may still send response.failed
+			// with final counters; keep the bounded drain alive for that frame.
+			drainBareError := clientDisconnected && eventType == "error"
+			if openAIStreamEventIsTerminalWithType(data, eventType) && !drainBareError {
 				sawTerminalEvent = true
 				terminalEventType = eventType
 				if strings.TrimSpace(data) == "[DONE]" {
@@ -668,7 +672,7 @@ func (s *OpenAIGatewayService) handleStreamingResponseWithReasoning(ctx context.
 				}
 				forceFlushFailedEvent = true
 				sawFailedEvent = true
-				terminalFailurePending = !codexFailureTerminal || eventType == "response.failed"
+				terminalFailurePending = !drainBareError && (!codexFailureTerminal || eventType == "response.failed")
 			}
 			if normalizedData, normalized := normalizeCompletedImageGenerationStatus(dataBytes); normalized {
 				dataBytes = normalizedData
