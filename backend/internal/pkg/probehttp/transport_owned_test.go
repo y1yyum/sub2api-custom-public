@@ -464,7 +464,11 @@ func TestProbeFallbackClosesLateSuccessfulLoser(t *testing.T) {
 	defer peer.Close()
 	loser := <-loserPeer
 	defer loser.Close()
-	require.NoError(t, loser.SetReadDeadline(time.Now().Add(time.Second)))
+	// net.Pipe reports ErrClosedPipe when the remote loser already closed.
+	// The following Read must still prove remote closure with EOF.
+	if err := loser.SetReadDeadline(time.Now().Add(time.Second)); err != nil {
+		require.ErrorIs(t, err, io.ErrClosedPipe)
+	}
 	_, err = loser.Read(make([]byte, 1))
 	require.ErrorIs(t, err, io.EOF, "late successful losing connection must close after winner cancellation")
 }
@@ -562,7 +566,11 @@ func TestProbeConcurrentSuccessLeavesOnlyOneConnectionOpen(t *testing.T) {
 	for i := 0; i < 2; i++ {
 		peer := <-peers
 		defer peer.Close()
-		require.NoError(t, peer.SetReadDeadline(time.Now().Add(200*time.Millisecond)))
+		// A closed remote pipe cannot accept a deadline; this is expected
+		// for an already-cleaned loser, not permission to ignore other errors.
+		if err := peer.SetReadDeadline(time.Now().Add(200 * time.Millisecond)); err != nil {
+			require.ErrorIs(t, err, io.ErrClosedPipe)
+		}
 		_, err := peer.Read(make([]byte, 1))
 		if errors.Is(err, io.EOF) {
 			eof++
