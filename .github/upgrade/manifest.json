@@ -624,6 +624,12 @@
     },
     "backend/internal/server/routes/gateway_model_allowlist_test.go": {
       "dece26153621959ccd7635814f4b2d08304e681a": "133457272c1d2a0170146a1ca64d8b5b16e1cb1a3789ab0a7c4180b8a07f0e21"
+    },
+    "backend/internal/service/content_moderation_test.go": {
+      "dece26153621959ccd7635814f4b2d08304e681a": "d84bdd8ef8eaa9964fca4b746bbd31220959194258a795753a06ccfa76fc3d17"
+    },
+    "backend/internal/service/oauth_refresh_api_test.go": {
+      "dece26153621959ccd7635814f4b2d08304e681a": "3be9fe6abad0467c3b8ccf6b33ed3bd4065dbe001656b838fb2c9edcdeea2177"
     }
   },
   "validation_support": {
@@ -800,6 +806,10 @@
     {
       "package": "github.com/Wei-Shaw/sub2api/internal/repository",
       "test": "TestCustomMigrationLedgerReadOnlyRole"
+    },
+    {
+      "package": "github.com/Wei-Shaw/sub2api/cmd/server",
+      "test": "TestCustomValidateAutoSetupStartupRejectsBeforeWrites"
     }
   ]
 }

@@ -267,3 +267,72 @@ func TestPassthroughTerminalUsageBeforeWriteFailureSurvivesQueuedEnding(t *testi
 		})
 	}
 }
+
+func TestPassthroughCanceledBareErrorDrainsAuthoritativeUsage(t *testing.T) {
+	for _, ending := range []string{"response.failed", "cyber_failed", "eof"} {
+		t.Run(ending, func(t *testing.T) {
+			ctx, cancel := context.WithCancel(context.Background())
+			cancel()
+			c, _ := gin.CreateTestContext(httptest.NewRecorder())
+			c.Request = httptest.NewRequest("POST", "/v1/responses", nil).WithContext(ctx)
+			payload := "data: {\"type\":\"response.in_progress\",\"response\":{\"usage\":{\"input_tokens\":3,\"output_tokens\":1}}}\n\n" +
+				"data: {\"type\":\"error\",\"error\":{\"code\":\"upstream_error\",\"message\":\"temporary error\"}}\n\n"
+			if ending == "eof" {
+				payload += "data: {\"type\":\"response.in_progress\",\"response\":{\"usage\":{\"input_tokens\":29,\"output_tokens\":7}}}\n\n"
+			} else {
+				code := "upstream_error"
+				if ending == "cyber_failed" {
+					code = "cyber_policy"
+				}
+				payload += "data: {\"type\":\"response.failed\",\"response\":{\"id\":\"resp_final\",\"error\":{\"code\":\"" + code + "\",\"message\":\"failed\"},\"usage\":{\"input_tokens\":29,\"output_tokens\":7}}}\n\n"
+			}
+			svc := &OpenAIGatewayService{}
+			result, err := svc.handleStreamingResponsePassthrough(context.Background(), &http.Response{Header: http.Header{}, Body: io.NopCloser(strings.NewReader(payload))}, c, &Account{ID: 1, Platform: PlatformOpenAI}, time.Now(), "gpt", "gpt")
+			require.Error(t, err)
+			require.NotNil(t, result)
+			require.True(t, result.clientDisconnect)
+			require.Equal(t, 29, result.usage.InputTokens, "bare error is not final usage")
+			require.Equal(t, 7, result.usage.OutputTokens)
+			var replay *UpstreamFailoverError
+			require.False(t, errors.As(err, &replay))
+			_, compact := asOpenAICompactFallbackSignal(err)
+			require.False(t, compact)
+			require.False(t, c.Writer.Written())
+			if ending == "cyber_failed" {
+				mark := GetOpsCyberPolicy(c)
+				require.NotNil(t, mark)
+				require.Equal(t, "cyber_policy", mark.Code)
+				require.Equal(t, 29, mark.UpstreamInTok)
+				require.Equal(t, 7, mark.UpstreamOutTok)
+			}
+		})
+	}
+}
+
+func TestPassthroughCanceledBareErrorWaitsOnlyTotalDrainBudget(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+	c, _ := gin.CreateTestContext(httptest.NewRecorder())
+	c.Request = httptest.NewRequest("POST", "/v1/responses", nil).WithContext(ctx)
+	reader, writer := io.Pipe()
+	defer reader.Close()
+	defer writer.Close()
+	go func() {
+		_, _ = io.WriteString(writer, "data: {\"type\":\"error\",\"error\":{\"code\":\"upstream_error\",\"message\":\"temporary error\"}}\n\n")
+	}()
+	svc := &OpenAIGatewayService{cfg: &config.Config{Gateway: config.GatewayConfig{StreamDataIntervalTimeout: 1}}}
+	done := make(chan error, 1)
+	go func() {
+		_, err := svc.handleStreamingResponsePassthrough(context.Background(), &http.Response{Header: http.Header{}, Body: reader}, c, &Account{ID: 1, Platform: PlatformOpenAI}, time.Now(), "gpt", "gpt")
+		done <- err
+	}()
+	select {
+	case err := <-done:
+		require.ErrorContains(t, err, "disconnect timeout", "bare error must not end drain early")
+	case <-time.After(3 * time.Second):
+		t.Fatal("bare error drain exceeded total budget")
+	}
+	require.False(t, c.Writer.Written())
+	_, err := writer.Write([]byte("late"))
+	require.Error(t, err, "upstream reader must close after drain budget")
+}

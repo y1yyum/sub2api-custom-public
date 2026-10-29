@@ -60,3 +60,34 @@ source/binary receipts, exhaustive service registry coverage and all29 mandatory
 DB contracts. No migration, credential, runtime OAuth, scoped-admin, refund247,
 image billing, UI or moderation behavior is replaced. No live account request,
 merge, deployment or release is part of this PR.
+
+## Review repair: enforce endpoint limits before preread
+
+The six existing text-only routes (`/v1/systemone`, `/v1/alpha/search`,
+`/v1/embeddings`, `/alpha/search`, `/embeddings`, and
+`/backend-api/codex/alpha/search`) previously applied their text cap after group
+middleware had already read and inspected the body. The guard now selects the
+minimum of that endpoint cap and the global cap using Gin's registered full
+route, before reading. It bounds raw bytes, decoded bytes, and normalized JSON.
+The per-route middleware remains as defense in depth. Other endpoints retain
+existing limits, and authentication still precedes the guard.
+
+The actual-router regression was committed independently before the fix. It
+counts underlying body bytes for known and unknown Content-Length, verifies
+rejection by cap+1 rather than scanning a late duplicate, and retains a global
+Responses-route control. Additional tests cover an accepted exact boundary,
+compressed expansion, all supported codec families, and checksum failures at
+and below the decoded boundary. Static checks require the cap map to match all
+six current text-limited registrations. Backend execution belongs exclusively
+to the network-isolated CI runner; source/static preparation is not a runtime
+pass.
+
+### Cumulative integration with PR #7
+
+The new endpoint-specific decoded reader uses the same checked MaxBytesReader
+pattern as PR #7, with a caller-supplied limit. This PR deliberately does not
+change the default behavior of unrelated callers. When combining the two PRs,
+retain PR #7's checked **default** decompression reader in the zero/custom-limit
+fallback, and retain this PR's selected endpoint limit for the new caller.
+Do not resolve the shared `body.go` hunk by overwriting either side: PR #7's
+oversize/checksum regressions and this PR's endpoint regressions must both run.

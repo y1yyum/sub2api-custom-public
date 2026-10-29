@@ -28,6 +28,21 @@ class RequiredIntegration(unittest.TestCase):
             with self.assertRaises(RuntimeError): host.required_integration_tests(malformed)
         self.assertEqual(host.audit_required_integration([], Counter(), 'unit')['status'], 'not_applicable')
 
+    def test_startup_package_exception_is_exact_and_cannot_skip(self):
+        package = 'github.com/Wei-Shaw/sub2api/cmd/server'
+        name = 'TestCustomValidateAutoSetupStartupRejectsBeforeWrites'
+        doc = {'required_integration_tests': [{'package': package, 'test': name}]}
+        self.assertEqual(host.required_integration_tests(doc), [(package, name)])
+        for invalid in [package + '/nested', package + 'extra', package + '/../other',
+                        'github.com/Wei-Shaw/sub2api/cmd/other',
+                        'github.com/Wei-Shaw/sub2api/internal/../cmd/server']:
+            with self.subTest(package=invalid), self.assertRaises(RuntimeError):
+                host.required_integration_tests({'required_integration_tests': [
+                    {'package': invalid, 'test': name}]})
+        self.assertEqual(host.audit_required_integration([(package, name)],
+            Counter({(package, name, 'run'): 1, (package, name, 'skip'): 1}),
+            'integration')['status'], 'failed')
+
 
 if __name__ == '__main__':
     unittest.main()

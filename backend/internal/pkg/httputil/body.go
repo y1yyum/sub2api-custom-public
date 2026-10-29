@@ -64,10 +64,27 @@ func (p *PrereadBody) Bytes() []byte {
 // 已由 PrereadBody 回填的请求体直接返回其完整切片（零拷贝），不检查内部
 // reader 是否已被消费——见 PrereadBody 的文档说明。
 func ReadRequestBodyWithPrealloc(req *http.Request) ([]byte, error) {
+	return readRequestBodyWithPrealloc(req, 0)
+}
+
+// ReadRequestBodyWithPreallocLimit bounds decoded bytes for an endpoint before
+// JSON scanning/normalization. The caller still applies its raw wire-body cap.
+// Existing callers retain their existing decompression policy.
+func ReadRequestBodyWithPreallocLimit(req *http.Request, maxDecodedBytes int64) ([]byte, error) {
+	if maxDecodedBytes <= 0 {
+		maxDecodedBytes = maxDecompressedBodySize
+	}
+	return readRequestBodyWithPrealloc(req, maxDecodedBytes)
+}
+
+func readRequestBodyWithPrealloc(req *http.Request, maxDecodedBytes int64) ([]byte, error) {
 	if req == nil || req.Body == nil {
 		return nil, nil
 	}
 	if preread, ok := req.Body.(*PrereadBody); ok {
+		if maxDecodedBytes > 0 && int64(len(preread.Bytes())) > maxDecodedBytes {
+			return nil, &http.MaxBytesError{Limit: maxDecodedBytes}
+		}
 		return preread.Bytes(), nil
 	}
 
@@ -90,10 +107,13 @@ func ReadRequestBodyWithPrealloc(req *http.Request) ([]byte, error) {
 
 	enc := strings.ToLower(strings.TrimSpace(req.Header.Get("Content-Encoding")))
 	if enc == "" || enc == "identity" {
+		if maxDecodedBytes > 0 && int64(len(raw)) > maxDecodedBytes {
+			return nil, &http.MaxBytesError{Limit: maxDecodedBytes}
+		}
 		return raw, nil
 	}
 
-	decoded, err := decompressRequestBody(enc, raw)
+	decoded, err := decompressRequestBodyWithLimit(enc, raw, maxDecodedBytes)
 	if err != nil {
 		return nil, fmt.Errorf("decode Content-Encoding %q: %w", enc, err)
 	}
@@ -166,6 +186,19 @@ func ReadLenientJSONRequestBodyWithPrealloc(req *http.Request, maxNormalizedByte
 }
 
 func decompressRequestBody(encoding string, raw []byte) ([]byte, error) {
+	return decompressRequestBodyWithLimit(encoding, raw, 0)
+}
+
+func decompressRequestBodyWithLimit(encoding string, raw []byte, maxDecodedBytes int64) ([]byte, error) {
+	readDecoded := func(reader io.Reader) ([]byte, error) {
+		if maxDecodedBytes > 0 {
+			// Retain the pre-existing global expansion ceiling for compressed
+			// inputs, without imposing it on uncompressed endpoint payloads.
+			limit := min(maxDecodedBytes, int64(maxDecompressedBodySize))
+			return readDecompressedRequestBodyWithLimit(reader, limit)
+		}
+		return readDecompressedRequestBody(reader)
+	}
 	switch encoding {
 	case "zstd":
 		dec, err := zstd.NewReader(bytes.NewReader(raw))
@@ -173,32 +206,36 @@ func decompressRequestBody(encoding string, raw []byte) ([]byte, error) {
 			return nil, err
 		}
 		defer dec.Close()
-		return readDecompressedRequestBody(dec)
+		return readDecoded(dec)
 	case "gzip", "x-gzip":
 		gr, err := gzip.NewReader(bytes.NewReader(raw))
 		if err != nil {
 			return nil, err
 		}
 		defer func() { _ = gr.Close() }()
-		return readDecompressedRequestBody(gr)
+		return readDecoded(gr)
 	case "deflate":
 		zr, err := zlib.NewReader(bytes.NewReader(raw))
 		if err != nil {
 			return nil, err
 		}
 		defer func() { _ = zr.Close() }()
-		return readDecompressedRequestBody(zr)
+		return readDecoded(zr)
 	default:
 		return nil, errors.New("unsupported Content-Encoding")
 	}
 }
 
-// readDecompressedRequestBody probes beyond the decoded limit instead of
-// treating an artificial LimitReader EOF as a complete stream. At the exact
-// boundary this still consumes the real EOF/trailer, so checksum errors surface.
+// Retain PR #7's strict default expansion bound for callers without an
+// endpoint-specific limit, including real EOF/checksum validation at the cap.
 func readDecompressedRequestBody(reader io.Reader) ([]byte, error) {
-	bounded := http.MaxBytesReader(nil, io.NopCloser(reader), maxDecompressedBodySize)
-	return io.ReadAll(bounded)
+	return readDecompressedRequestBodyWithLimit(reader, maxDecompressedBodySize)
+}
+
+// The extra byte detects expansion past the endpoint cap; an exact-sized
+// stream still reaches its real EOF/trailer so checksum errors are not hidden.
+func readDecompressedRequestBodyWithLimit(reader io.Reader, limit int64) ([]byte, error) {
+	return io.ReadAll(http.MaxBytesReader(nil, io.NopCloser(reader), limit))
 }
 
 // NormalizeLenientJSONRequestBody escapes raw control bytes that broken

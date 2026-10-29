@@ -8,6 +8,7 @@ import (
 	"github.com/Wei-Shaw/sub2api/internal/config"
 	"github.com/Wei-Shaw/sub2api/internal/pkg/probehttp"
 	"github.com/Wei-Shaw/sub2api/internal/pkg/tlsfingerprint"
+	"github.com/Wei-Shaw/sub2api/internal/pkg/xai"
 )
 
 type accountProbePolicyContextKey struct{}
@@ -21,6 +22,7 @@ func accountProbeOptions(cfg *config.Config) probehttp.Options {
 		AllowHTTP:        !policy.Enabled && policy.AllowInsecureHTTP,
 		AllowPrivate:     cfg.Security.AccountProbe.AllowPrivateHosts,
 		RequireAllowlist: policy.Enabled,
+		TrustedOrigins:   []string{chatgptCodexAPIURL, xai.DefaultBaseURL, xai.DefaultCLIBaseURL, xai.DefaultUSEast1BaseURL, xai.DefaultUSWest2BaseURL, xai.DefaultEUWest1BaseURL},
 	}
 	if policy.Enabled {
 		options.AllowedHosts = append([]string(nil), policy.UpstreamHosts...)
@@ -43,6 +45,7 @@ func HTTPUpstreamAccountProbeOptions(ctx context.Context) (probehttp.Options, bo
 	}
 	options, ok := ctx.Value(accountProbePolicyContextKey{}).(probehttp.Options)
 	options.AllowedHosts = append([]string(nil), options.AllowedHosts...)
+	options.TrustedOrigins = append([]string(nil), options.TrustedOrigins...)
 	return options, ok
 }
 

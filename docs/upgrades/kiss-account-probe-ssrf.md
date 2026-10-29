@@ -62,3 +62,30 @@ and loopback URL. Its sole adaptation explicitly sets the new private-probe opti
 in that fixture's configuration; all payloads/assertions/test bodies are unchanged.
 New owned tests separately assert the default-deny behavior and blocked metadata
 even under private opt-in. No production-global escape is introduced.
+
+## Review repair: official origins and connection establishment
+
+Built-in probe destinations retain an exact-origin host-allowlist exception:
+`https://chatgpt.com:443`, `https://api.x.ai:443`,
+`https://cli-chat-proxy.grok.com:443`, and the existing US East 1, US West 2,
+and EU West 1 `api.x.ai` regional constants. No wildcard, arbitrary subdomain,
+HTTP origin, or alternate port is added. Configured non-official destinations
+still require the configured host policy. This exception applies only to probe
+options; it never exempts an origin from full DNS answer/IP validation, private
+opt-in policy, original Host/SNI binding, or same-origin redirect restrictions.
+
+Connection establishment now has a single absolute ten-second deadline starting
+before DNS resolution, shortened by any caller deadline. Every verified literal
+address and proxy handshake shares that deadline. A failed attempt advances
+immediately; a still-pending attempt starts a fallback after 300 ms. At most the
+already validated 64-address answer cap can be in flight. Cancellation and a
+winning connection cancel pending attempts; late successful losers are closed.
+Only the winning connection carries the provider HTTP request.
+
+The cited [Go 1.27.3 net/dial.go](https://github.com/golang/go/blob/go1.27.3/src/net/dial.go)
+was inspected: `Dialer.FallbackDelay` defaults to 300 ms for alternate address
+families, and the original dialer shares/partitions a total deadline across
+addresses. The probe implementation retains literal IP binding rather than
+handing the hostname back to that resolver. Its bounded staggering also covers
+same-family answers; it does not claim to copy Go's two-family scheduling exactly.
+Regression tests use injected DNS/dials and `net.Pipe`, not external endpoints.

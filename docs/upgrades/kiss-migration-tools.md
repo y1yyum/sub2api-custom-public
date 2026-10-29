@@ -54,3 +54,33 @@ read-only mode, proves writes are denied, then checks the real API and startup
 mode dispatch. Cleanup removes the private schema and role. No operator DSN,
 live service, host socket or privileged test container is used. The prior 29
 mandatory integration contracts remain, with this test added as contract 30.
+
+## Review repair: auto-setup cannot bypass validate
+
+Ordinary startup now rejects `AUTO_SETUP=true`/`1`/`yes` together with effective
+`database.migration_mode: validate` **before** calling `NeedsSetup`. This also
+precedes its data-directory writability probe, database creation, DDL, admin
+bootstrap, config/installation-marker creation and application logger files.
+The policy reader uses the normal config-source search (`CONFIG_FILE`, otherwise
+`DATA_DIR`, `/app/data`, current directory, `./config`, `/etc/sub2api`) and normal
+environment-over-file precedence. Invalid policy/config reads fail closed with
+redacted errors, without loading unrelated settings or generating secrets.
+
+This deliberately rejects the combination even when setup markers already exist:
+finish any authorized initial setup with the default `apply` mode, then disable
+`AUTO_SETUP` before selecting `validate`. No setting is silently rewritten.
+Default/empty `apply` and explicit `--setup`, `--migrate-only`,
+`--check-migrations`, `--version` precedence are unchanged. Validation still only
+makes the migration phase read-only; ordinary later application writes are not
+prohibited.
+
+The added mandatory startup contract invokes the actual `main` from its compiled
+integration-test subprocess in the reviewed network-none namespace. It supplies
+only synthetic loopback fixture credentials, a bounded deadline, an absent
+synthetic database, and an empty data directory. Assertions require the explicit
+rejection, no created database, no config/marker/other data files, and no password
+in diagnostics. It covers environment and external config-file policy and checks
+that explicit read-only CLI dispatch still takes precedence. The original
+read-only-role ledger contract remains mandatory. The standalone PR now has 31
+mandatory contracts; union with the independent #10 contract has 32 (not a silent
+replacement of the previously reviewed 31-contract union).

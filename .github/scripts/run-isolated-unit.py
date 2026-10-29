@@ -140,7 +140,9 @@ def required_integration_tests(manifest):
     for item in manifest.get('required_integration_tests', []):
         expected.append((item['package'], item['test']))
     if len(expected) != len(set(expected)) or any(
-            not package.startswith('github.com/Wei-Shaw/sub2api/internal/') or
+            not (package.startswith('github.com/Wei-Shaw/sub2api/internal/') or
+                 package == 'github.com/Wei-Shaw/sub2api/cmd/server') or
+            '..' in package.split('/') or
             not name.startswith('Test') or '/' in name for package, name in expected):
         raise RuntimeError('invalid or duplicate required integration test identity')
     return expected

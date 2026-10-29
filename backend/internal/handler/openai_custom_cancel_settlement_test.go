@@ -43,7 +43,7 @@ func (u *customCanceledUsageHTTP) Do(_ *http.Request, _ string, _ int64, _ int) 
 }
 
 func TestCustomCanceledResponsesRecordsObservedUsageExactlyOnce(t *testing.T) {
-	for _, event := range []string{"response.completed", "response.failed"} {
+	for _, event := range []string{"response.completed", "response.failed", "bare_error_then_failed"} {
 		t.Run(event, func(t *testing.T) {
 			ctx, cancel := context.WithCancel(context.Background())
 			defer cancel()
@@ -56,6 +56,13 @@ func TestCustomCanceledResponsesRecordsObservedUsageExactlyOnce(t *testing.T) {
 			accounts := &openAIWSFailoverHandlerAccountRepoStub{accounts: []service.Account{account}}
 			logs := &openAIWSUsageHandlerUsageLogRepoStub{created: make(chan *service.UsageLog, 4)}
 			upstream := &customCanceledUsageHTTP{cancel: cancel, terminal: "data: {\"type\":\"" + event + "\",\"response\":{\"id\":\"resp_cancel\",\"error\":{\"code\":\"upstream_error\",\"message\":\"temporary error\"},\"usage\":{\"input_tokens\":13,\"output_tokens\":4}}}\n\n"}
+			wantInput, wantOutput := 13, 4
+			if event == "bare_error_then_failed" {
+				wantInput, wantOutput = 29, 7
+				upstream.terminal = "data: {\"type\":\"error\",\"error\":{\"code\":\"upstream_error\",\"message\":\"temporary error\"}}\n\n" +
+					"data: {\"type\":\"response.failed\",\"response\":{\"id\":\"resp_cancel\",\"error\":{\"code\":\"upstream_error\",\"message\":\"failed\"},\"usage\":{\"input_tokens\":29,\"output_tokens\":7}}}\n\n"
+			}
+
 			billing := service.NewBillingCacheService(nil, nil, nil, nil, nil, nil, cfg, nil)
 			t.Cleanup(billing.Stop)
 			svc := service.NewOpenAIGatewayService(accounts, logs, nil, nil, nil, nil, nil, cfg, nil, nil, service.NewBillingService(cfg, nil), nil, billing, upstream, &service.DeferredService{}, nil, nil, nil, nil, nil, nil, nil)
@@ -73,8 +80,8 @@ func TestCustomCanceledResponsesRecordsObservedUsageExactlyOnce(t *testing.T) {
 			require.Equal(t, 1, calls, "cancellation must not call another upstream")
 			require.Len(t, logs.created, 1, "actual usage repository must receive exactly one settlement record")
 			recorded := <-logs.created
-			require.Equal(t, 13, recorded.InputTokens)
-			require.Equal(t, 4, recorded.OutputTokens)
+			require.Equal(t, wantInput, recorded.InputTokens)
+			require.Equal(t, wantOutput, recorded.OutputTokens)
 			require.Empty(t, recorder.Body.String(), "canceled client must not receive replay/error frames")
 		})
 	}

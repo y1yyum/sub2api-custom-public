@@ -9,6 +9,12 @@ def once(text, old, new):
 
 
 def adapt(path, text):
+    if path == 'backend/internal/service/content_moderation_test.go':
+        # A background service worker can log while the test reads the global
+        # logger capture. Lock only the capture, not service/test execution.
+        anchor = 'func TestContentModerationAutoBanSkipsAdminAccount(t *testing.T) {\n\tvar slogOutput bytes.Buffer'
+        text = once(text, anchor, anchor.replace('bytes.Buffer', 'contentModerationLockedLogBuffer'))
+        return text + CONTENT_MODERATION_LOG_BUFFER
     if path.endswith('/channel_monitor_checker_body_test.go'):
         text = once(text, '\t"strings"\n', '\t"strings"\n\t"sync"\n')
         for typ in ('captureHandler', 'openAICaptureHandler'):
@@ -170,3 +176,25 @@ func resetGrokQuotaFixtureCache(t *testing.T, cache *sync.Map) {
 }
 '''
     raise ValueError('unreviewed service race fixture path: '+path)
+
+
+CONTENT_MODERATION_LOG_BUFFER = """
+// contentModerationLockedLogBuffer synchronizes asynchronous slog writes and
+// assertion snapshots; it never exposes the backing byte slice.
+type contentModerationLockedLogBuffer struct {
+	mu sync.Mutex
+	buffer bytes.Buffer
+}
+
+func (b *contentModerationLockedLogBuffer) Write(p []byte) (int, error) {
+	b.mu.Lock()
+	defer b.mu.Unlock()
+	return b.buffer.Write(p)
+}
+
+func (b *contentModerationLockedLogBuffer) String() string {
+	b.mu.Lock()
+	defer b.mu.Unlock()
+	return b.buffer.String()
+}
+"""

@@ -5,6 +5,8 @@ package main
 import (
 	"context"
 	"errors"
+	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 	"time"
@@ -59,5 +61,29 @@ func TestCustomMigrationCLIIsBoundedAndRedactsErrors(t *testing.T) {
 		if err == nil || strings.Contains(err.Error(), secret) {
 			t.Fatalf("migration error not safely contained: %v", err)
 		}
+	}
+}
+
+func TestCustomAutoSetupMigrationModePreflight(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "config.yaml")
+	if err := os.WriteFile(path, []byte("database:\n  migration_mode: apply\n"), 0600); err != nil {
+		t.Fatal(err)
+	}
+	t.Setenv("CONFIG_FILE", path)
+	for _, tc := range []struct {
+		auto, mode string
+		reject     bool
+	}{
+		{"true", "validate", true}, {"1", " Validate ", true}, {"yes", "validate", true},
+		{"true", "apply", false}, {"true", "", false}, {"true", "skip", true},
+		{"false", "validate", false}, {"", "validate", false},
+	} {
+		t.Run(tc.auto+"_"+tc.mode, func(t *testing.T) {
+			t.Setenv("AUTO_SETUP", tc.auto)
+			t.Setenv("DATABASE_MIGRATION_MODE", tc.mode)
+			if err := validateAutoSetupMigrationMode(); (err != nil) != tc.reject {
+				t.Fatalf("rejection=%v err=%v", tc.reject, err)
+			}
+		})
 	}
 }

@@ -8,6 +8,7 @@ import (
 
 	"github.com/Wei-Shaw/sub2api/internal/config"
 	"github.com/Wei-Shaw/sub2api/internal/repository"
+	"github.com/Wei-Shaw/sub2api/internal/setup"
 )
 
 func validateServerModeFlags(setup, version, migrate, check bool) error {
@@ -49,6 +50,23 @@ func executeMigrationCommand(validateOnly bool, load func() (*config.Config, err
 			return errors.New("migration ledger check failed: verify connectivity, read permissions and missing/pending/incompatible ledger entries")
 		}
 		return errors.New("migration apply failed: verify connectivity, migration permissions and database migration state")
+	}
+	return nil
+}
+
+// Explicit CLI operations are dispatched before this startup-only guard. Reject
+// the combination even for installed deployments: auto-setup is a write-capable
+// policy and must not silently override a requested validation-only migration.
+func validateAutoSetupMigrationMode() error {
+	if !setup.AutoSetupEnabled() {
+		return nil
+	}
+	mode, err := config.LoadDatabaseMigrationMode()
+	if err != nil {
+		return err
+	}
+	if mode == config.DatabaseMigrationModeValidate {
+		return errors.New("AUTO_SETUP is incompatible with DATABASE_MIGRATION_MODE=validate; finish setup in apply mode, then disable AUTO_SETUP before selecting validate")
 	}
 	return nil
 }

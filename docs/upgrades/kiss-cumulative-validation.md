@@ -1,5 +1,9 @@
 # Cumulative validation only — not an additional production change set
 
+The original composition below is historical. The current review-repair
+composition and its additional startup contract are recorded in
+`kiss-cumulative-review-repairs.md`; its mandatory total is 32, not 31.
+
 This temporary Draft PR combines the exact reviewed heads below to execute full
 interaction CI. Do not merge it in addition to PRs #7–#13: that would duplicate
 the review/integration path. No PR merge, release or deployment is performed.

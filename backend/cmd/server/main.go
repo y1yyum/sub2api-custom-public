@@ -85,6 +85,12 @@ func main() {
 		return
 	}
 
+	// Reject incompatible startup policies before NeedsSetup: its fallback
+	// data-directory probe can itself write a temporary file.
+	if err := validateAutoSetupMigrationMode(); err != nil {
+		log.Fatal(err)
+	}
+
 	// Check if setup is needed
 	if setup.NeedsSetup() {
 		// Check if auto-setup is enabled (for Docker deployment)
