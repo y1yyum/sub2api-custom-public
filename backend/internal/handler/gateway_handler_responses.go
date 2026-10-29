@@ -173,9 +173,10 @@ func (h *GatewayHandler) Responses(c *gin.Context) {
 
 	// Parse request for session hash
 	bodyRef := service.NewRequestBodyRef(body)
-	parsedReq, _ := service.ParseGatewayRequest(bodyRef, "responses")
-	if parsedReq == nil {
-		parsedReq = &service.ParsedRequest{Model: reqModel, Stream: reqStream, Body: bodyRef}
+	parsedReq, parseErr := service.ParseGatewayRequest(bodyRef, "responses")
+	if parseErr != nil {
+		h.responsesErrorResponse(c, http.StatusBadRequest, "invalid_request_error", parseErr.Error())
+		return
 	}
 	parsedReq.SessionContext = &service.SessionContext{
 		ClientIP:  ip.GetClientIP(c),

@@ -16,6 +16,9 @@ def replace_once(text, pattern, replacement):
 
 
 def adapt(path, text):
+    if path == 'backend/internal/handler/openai_gateway_ws_model_allowlist_test.go':
+        fixture = Path(__file__).with_name('adapt-model-uniqueness.py')
+        return runpy.run_path(str(fixture))['adapt'](path, text)
     if path == 'backend/internal/pkg/antigravity/oauth_test.go':
         start = text.index('func TestConstants_')
         before, section = text[:start], text[start:]

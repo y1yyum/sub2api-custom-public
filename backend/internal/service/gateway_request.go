@@ -15,9 +15,13 @@ import (
 	"github.com/Wei-Shaw/sub2api/internal/pkg/antigravity"
 	"github.com/Wei-Shaw/sub2api/internal/pkg/claude"
 	"github.com/Wei-Shaw/sub2api/internal/pkg/logger"
+	"github.com/Wei-Shaw/sub2api/internal/pkg/requestmodel"
 	"github.com/tidwall/gjson"
 	"github.com/tidwall/sjson"
 )
+
+// ErrDuplicateModelField is shared with HTTP and WebSocket admission.
+var ErrDuplicateModelField = requestmodel.ErrDuplicateModelField
 
 var (
 	// 这些字节模式用于 fast-path 判断，避免每次 []byte("...") 产生临时分配。
@@ -184,6 +188,10 @@ func parseGatewayRequestCurrentBody(parsed *ParsedRequest, protocol string) erro
 	bodyBytes := parsed.Body.Bytes()
 	if !gjson.ValidBytes(bodyBytes) {
 		return DescribeInvalidJSON(bodyBytes)
+	}
+
+	if requestmodel.HasDuplicateTopLevelModel(bodyBytes) {
+		return ErrDuplicateModelField
 	}
 
 	// 只在当前函数内零拷贝读取 JSON 字段；ReplaceBody 后必须重新进入本函数刷新派生状态。
