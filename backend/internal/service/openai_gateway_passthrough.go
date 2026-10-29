@@ -1660,8 +1660,23 @@ func openAIStreamErrorEventShouldFailover(payload []byte, message string) bool {
 	if isOpenAIUpstreamAccessStateError(message, payload) {
 		return true
 	}
+	// Only an untyped relay wrapper inherits response.failed retry policy.
+	// Explicit bare-error types keep their existing event-specific semantics.
+	errType := strings.ToLower(strings.TrimSpace(gjson.GetBytes(payload, "response.error.type").String()))
+	if errType == "" {
+		errType = strings.ToLower(strings.TrimSpace(gjson.GetBytes(payload, "error.type").String()))
+	}
 	if openAIStreamFailedEventErrorCode(payload) == "upstream_error" {
-		return openAIStreamFailedEventShouldFailover(payload, message)
+		if strings.Contains(errType, "content_policy") || strings.Contains(errType, "policy") || strings.Contains(errType, "safety") || strings.Contains(errType, "invalid_request") {
+			return false
+		}
+		if errType == "" || errType == "upstream_error" {
+			return openAIStreamFailedEventShouldFailover(payload, message)
+		}
+		// Explicit request errors outrank retry-looking wrapper message text.
+		if openAIStreamFailedEventSemanticStatus(payload, message) == http.StatusBadRequest {
+			return false
+		}
 	}
 	switch openAIStreamFailedEventSemanticStatus(payload, message) {
 	case http.StatusForbidden:

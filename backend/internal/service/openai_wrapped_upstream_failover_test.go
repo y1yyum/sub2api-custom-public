@@ -3,14 +3,18 @@
 package service
 
 import (
+	"bytes"
+	"context"
 	"errors"
 	"fmt"
 	"io"
 	"net/http"
+	"net/http/httptest"
 	"strings"
 	"testing"
 
 	"github.com/Wei-Shaw/sub2api/internal/config"
+	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/require"
 )
 
@@ -95,6 +99,8 @@ func TestOpenAIWrappedUpstreamExplicitTypeKeepsItsPolicy(t *testing.T) {
 		{"authentication_error", http.StatusUnauthorized, true},
 		{"permission_error", http.StatusForbidden, false},
 		{"invalid_request_error", http.StatusBadRequest, false},
+		{"content_policy_error", http.StatusBadGateway, false},
+		{"safety_error", http.StatusBadGateway, false},
 	} {
 		payload := []byte(fmt.Sprintf(`{"type":"error","error":{"code":"upstream_error","type":%q,"message":"temporary gateway failure"}}`, tc.errType))
 		message := extractOpenAISSEErrorMessage(payload)
@@ -102,4 +108,29 @@ func TestOpenAIWrappedUpstreamExplicitTypeKeepsItsPolicy(t *testing.T) {
 		require.Equal(t, tc.retry, openAIStreamFailedEventShouldFailover(payload, message))
 		require.Equal(t, tc.retry, openAIStreamErrorEventShouldFailover(payload, message))
 	}
+}
+
+// An explicit generic bare server_error is not an untyped relay wrapper.
+// Preserve the pre-existing visibility/no-replay contract used by Messages.
+func TestOpenAIWrappedUpstreamBareServerTypeKeepsVisibleErrorPolicy(t *testing.T) {
+	payload := []byte(`{"type":"error","error":{"type":"server_error","code":"upstream_error","message":"mixed tools failed"}}`)
+	require.False(t, openAIStreamErrorEventShouldFailover(payload, "mixed tools failed"))
+	require.True(t, openAIStreamFailedEventShouldFailover(payload, "mixed tools failed"), "response.failed retains its distinct pre-existing policy")
+}
+
+func TestOpenAIWrappedUpstreamBareServerErrorRemainsVisibleWithoutReplay(t *testing.T) {
+	body := []byte(`{"model":"gpt-5.4","max_tokens":32,"messages":[{"role":"user","content":"hello"}],"stream":true}`)
+	rec := httptest.NewRecorder()
+	c, _ := gin.CreateTestContext(rec)
+	c.Request = httptest.NewRequest(http.MethodPost, "/v1/messages", bytes.NewReader(body))
+	c.Request.Header.Set("Content-Type", "application/json")
+	payload := "event: error\n" + `data: {"type":"error","error":{"type":"server_error","code":"upstream_error","message":"mixed tools failed"}}` + "\n\ndata: [DONE]\n\n"
+	upstream := &httpUpstreamRecorder{resp: &http.Response{StatusCode: http.StatusOK, Header: http.Header{"Content-Type": []string{"text/event-stream"}}, Body: io.NopCloser(strings.NewReader(payload))}}
+	svc := &OpenAIGatewayService{cfg: rawChatCompletionsTestConfig(), httpUpstream: upstream}
+	_, err := svc.ForwardAsAnthropic(context.Background(), c, rawChatCompletionsTestAccount(), body, "", "")
+	require.Error(t, err)
+	var retry *UpstreamFailoverError
+	require.False(t, errors.As(err, &retry))
+	require.Contains(t, rec.Body.String(), "mixed tools failed")
+	require.Len(t, upstream.requests, 1)
 }
