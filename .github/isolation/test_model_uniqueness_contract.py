@@ -1,6 +1,7 @@
 """Pure pinned adaptation/wiring proof; never invokes Go or tests outside isolation."""
 import hashlib
 import json
+import re
 from pathlib import Path
 import runpy
 import subprocess
@@ -70,6 +71,20 @@ class ModelUniquenessContract(unittest.TestCase):
             'backend/internal/server/middleware/gateway_model_uniqueness_test.go',
         ]:
             self.assertNotIn('//go:build', (ROOT / path).read_text())
+
+    def test_preread_caps_match_every_registered_text_limited_route(self):
+        source = (ROOT / 'backend/internal/server/routes/gateway.go').read_text()
+        registered = set()
+        for group, path in re.findall(r'(gateway|codexDirect)\.POST\("([^"\n]+)", textBodyLimit,', source):
+            registered.add({'gateway': '/v1', 'codexDirect': '/backend-api/codex'}[group] + path)
+        registered.update(re.findall(r'rootRoute\(http.MethodPost, "([^"\n]+)", textBodyLimit,', source))
+        cap_section = source.split('GatewayJSONModelUniquenessWithEndpointLimits', 1)[1].split('})', 1)[0]
+        capped = set(re.findall(r'"([^"\n]+)":\s+cfg.Gateway.TextMaxBodySize', cap_section))
+        self.assertEqual(len(registered), 6)
+        self.assertEqual(capped, registered)
+        middleware = (ROOT / 'backend/internal/server/middleware/gateway_model_uniqueness.go').read_text()
+        self.assertLess(middleware.index('http.MaxBytesReader'), middleware.index('ReadRequestBodyWithPrealloc'))
+        self.assertIn('NormalizeLenientJSONRequestBody(body, limit)', middleware)
 
     def test_every_http_chain_has_guard_before_allowlist(self):
         source = (ROOT / 'backend/internal/server/routes/gateway.go').read_text()

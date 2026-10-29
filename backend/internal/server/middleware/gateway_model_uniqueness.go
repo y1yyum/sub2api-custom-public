@@ -16,12 +16,36 @@ import (
 // not depend on an allowlist being enabled. WebSocket frames are checked by the
 // Responses handler; multipart/session model semantics remain unchanged.
 func GatewayJSONModelUniqueness(maxNormalizedBytes int64) gin.HandlerFunc {
+	return GatewayJSONModelUniquenessWithEndpointLimits(maxNormalizedBytes, nil)
+}
+
+// GatewayJSONModelUniquenessWithEndpointLimits applies narrower route limits
+// before the first read, not only when the endpoint handler runs later. Keys are
+// Gin's registered full paths, so query strings and untrusted path aliases cannot
+// change the selected policy. The existing outer global limit remains in place.
+func GatewayJSONModelUniquenessWithEndpointLimits(maxNormalizedBytes int64, endpointLimits map[string]int64) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		if c.Request == nil || (c.Request.Method != http.MethodPost && c.Request.Method != http.MethodPut && c.Request.Method != http.MethodPatch) {
 			c.Next()
 			return
 		}
-		body, err := httputil.ReadRequestBodyWithPrealloc(c.Request)
+		limit := maxNormalizedBytes
+		_, endpointLimited := endpointLimits[c.FullPath()]
+		if endpointLimit, ok := endpointLimits[c.FullPath()]; ok {
+			if endpointLimit < limit {
+				limit = endpointLimit
+			}
+			if c.Request.Body != nil {
+				c.Request.Body = http.MaxBytesReader(c.Writer, c.Request.Body, limit)
+			}
+		}
+		var body []byte
+		var err error
+		if endpointLimited {
+			body, err = httputil.ReadRequestBodyWithPreallocLimit(c.Request, limit)
+		} else {
+			body, err = httputil.ReadRequestBodyWithPrealloc(c.Request)
+		}
 		if err == nil {
 			requestmodel.ResetRequestBody(c.Request, body)
 			// Lenient handlers accept BOM/raw control bytes. Check the same
@@ -32,7 +56,7 @@ func GatewayJSONModelUniqueness(maxNormalizedBytes int64) gin.HandlerFunc {
 			// JSON-shaped bodies regardless of a spoofed Content-Type header.
 			if len(candidate) > 0 && candidate[0] == '{' {
 				var normalized []byte
-				normalized, err = httputil.NormalizeLenientJSONRequestBody(body, maxNormalizedBytes)
+				normalized, err = httputil.NormalizeLenientJSONRequestBody(body, limit)
 				if err == nil && requestmodel.HasDuplicateTopLevelModel(normalized) {
 					err = requestmodel.ErrDuplicateModelField
 				}

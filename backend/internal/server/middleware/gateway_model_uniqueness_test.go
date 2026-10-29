@@ -1,6 +1,8 @@
 package middleware
 
 import (
+	"bytes"
+	"compress/gzip"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -86,5 +88,52 @@ func TestGatewayModelUniquenessDoesNotNormalizeBinaryOrMultipart(t *testing.T) {
 		if w.Code != http.StatusNoContent {
 			t.Fatalf("non-JSON body rejected: %d", w.Code)
 		}
+	}
+}
+
+func TestGatewayModelUniquenessEndpointExactBoundary(t *testing.T) {
+	for _, extra := range []string{"", " "} {
+		body := `{"model":"a","padding":"` + strings.Repeat("x", 38) + `"}`
+		limit := int64(len(body))
+		body += extra
+		r := gin.New()
+		r.POST("/text", GatewayJSONModelUniquenessWithEndpointLimits(4096, map[string]int64{"/text": limit}), func(c *gin.Context) {
+			raw, err := io.ReadAll(c.Request.Body)
+			if err != nil || string(raw) != body {
+				t.Fatalf("accepted body changed: %q %v", raw, err)
+			}
+			c.Status(http.StatusNoContent)
+		})
+		w := httptest.NewRecorder()
+		r.ServeHTTP(w, httptest.NewRequest(http.MethodPost, "/text", strings.NewReader(body)))
+		want := http.StatusNoContent
+		if extra != "" {
+			want = http.StatusRequestEntityTooLarge
+		}
+		if w.Code != want {
+			t.Fatalf("extra %q: status=%d want=%d", extra, w.Code, want)
+		}
+	}
+}
+
+func TestGatewayModelUniquenessEndpointCompressedExpansion(t *testing.T) {
+	payload := `{"padding":"` + strings.Repeat("x", 4096) + `","model":"a","model":"b"}`
+	var compressed bytes.Buffer
+	zip := gzip.NewWriter(&compressed)
+	_, _ = zip.Write([]byte(payload))
+	if err := zip.Close(); err != nil {
+		t.Fatal(err)
+	}
+	if compressed.Len() >= 256 {
+		t.Fatal("fixture wire must fit endpoint cap")
+	}
+	r := gin.New()
+	r.POST("/text", GatewayJSONModelUniquenessWithEndpointLimits(8192, map[string]int64{"/text": 256}), func(c *gin.Context) { t.Fatal("oversized decoded body reached handler") })
+	w := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodPost, "/text", bytes.NewReader(compressed.Bytes()))
+	req.Header.Set("Content-Encoding", "gzip")
+	r.ServeHTTP(w, req)
+	if w.Code != http.StatusRequestEntityTooLarge || strings.Contains(w.Body.String(), "duplicate model field") {
+		t.Fatalf("decoded cap must precede scan: %d %s", w.Code, w.Body.String())
 	}
 }
