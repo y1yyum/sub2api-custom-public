@@ -5,6 +5,7 @@ package service
 import (
 	"bytes"
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
@@ -145,11 +146,15 @@ func TestOpenAIWrappedUpstreamAccountStatusPriorityAcrossEvents(t *testing.T) {
 						if status == http.StatusTooManyRequests {
 							message = "upstream rate limit exceeded"
 						}
-						inner := fmt.Sprintf(`{"code":"upstream_error","%q:%d,"type":%q,"message":%q}`, statusField, status, errType, message)
+						inner := fmt.Sprintf(`{"code":"upstream_error",%q:%d,"type":%q,"message":%q}`, statusField, status, errType, message)
 						payload := `{"type":"error","error":` + inner + `}`
 						if event == "response.failed" {
 							payload = `{"type":"response.failed","response":{"error":` + inner + `}}`
 						}
+						require.True(t, json.Valid([]byte(payload)), "account status fixture must be valid JSON: %s", payload)
+						var decoded map[string]any
+						require.NoError(t, json.Unmarshal([]byte(inner), &decoded))
+						require.Equal(t, float64(status), decoded[statusField], "fixture must carry the selected explicit status field")
 						require.Equal(t, status, openAIStreamFailureStatus([]byte(payload), message))
 						require.True(t, openAIStreamFailedEventShouldFailover([]byte(payload), message))
 						require.True(t, openAIStreamErrorEventShouldFailover([]byte(payload), message))
@@ -184,6 +189,7 @@ func TestOpenAIWrappedPaymentStatusDoesNotBypassRequestPolicy(t *testing.T) {
 			if event == "response.failed" {
 				payload = `{"type":"response.failed","response":{"error":` + inner + `}}`
 			}
+			require.True(t, json.Valid([]byte(payload)), "fixture must be valid JSON: %s", payload)
 			require.False(t, openAIStreamFailedEventShouldFailover([]byte(payload), "request violates content policy"))
 			require.False(t, openAIStreamErrorEventShouldFailover([]byte(payload), "request violates content policy"))
 		}
@@ -197,6 +203,7 @@ func TestOpenAIWrappedPaymentUnknownMessageMatchesHTTPAccountPolicy(t *testing.T
 		`{"type":"error","error":{"code":"upstream_error","status":402,"message":"unrecognized billing failure"}}`,
 		`{"type":"response.failed","response":{"error":{"code":"upstream_error","status":402,"message":"unrecognized billing failure"}}}`,
 	} {
+		require.True(t, json.Valid([]byte(payload)), "fixture must be valid JSON: %s", payload)
 		require.True(t, openAIStreamFailedEventShouldFailover([]byte(payload), "unrecognized billing failure"))
 		require.True(t, openAIStreamErrorEventShouldFailover([]byte(payload), "unrecognized billing failure"))
 	}
@@ -207,6 +214,7 @@ func TestOpenAIWrappedAccountStatusCannotReplayConcreteRequestRestrictions(t *te
 		for _, message := range []string{"context_length_exceeded", "request violates content_policy", "high-risk cyber request"} {
 			inner := fmt.Sprintf(`{"code":"upstream_error","status_code":%d,"type":"invalid_request_error","message":%q}`, status, message)
 			for _, payload := range []string{`{"type":"error","error":` + inner + `}`, `{"type":"response.failed","response":{"error":` + inner + `}}`} {
+				require.True(t, json.Valid([]byte(payload)), "fixture must be valid JSON: %s", payload)
 				require.False(t, openAIStreamFailedEventShouldFailover([]byte(payload), message))
 				require.False(t, openAIStreamErrorEventShouldFailover([]byte(payload), message))
 			}
