@@ -135,6 +135,7 @@ func TestOpenAIStreamingResponse_GrokWrappedBodyClosesOnTerminalOrCancel(t *test
 				errCh <- err
 			}()
 			waitOpenAIResponseFlushCount(t, recorder, 1)
+			bodyBeforeCancel, _ := recorder.snapshot()
 			if cancelClient {
 				cancel()
 			} else {
@@ -148,7 +149,17 @@ func TestOpenAIStreamingResponse_GrokWrappedBodyClosesOnTerminalOrCancel(t *test
 			}
 			err = <-errCh
 			if cancelClient {
-				require.ErrorContains(t, err, "disconnect timeout")
+				// Both independent one-second budgets are valid: upstream idle
+				// starts before cancellation, while total drain starts at cancel.
+				// Assert the exact allowed outcomes, not scheduler timer order.
+				require.Error(t, err)
+				require.Contains(t, []string{"stream usage incomplete after timeout", "stream usage incomplete after disconnect timeout"}, err.Error())
+				require.NotNil(t, result)
+				require.True(t, result.clientDisconnect)
+				var failover *UpstreamFailoverError
+				require.False(t, errors.As(err, &failover), "cancellation must not request replay")
+				bodyAfterCancel, _ := recorder.snapshot()
+				require.Equal(t, bodyBeforeCancel, bodyAfterCancel, "cancellation must not emit replay/error bytes")
 			} else {
 				require.NoError(t, err)
 				require.Equal(t, 13, result.usage.InputTokens)

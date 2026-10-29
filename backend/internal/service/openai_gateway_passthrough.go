@@ -1675,8 +1675,23 @@ func openAIStreamErrorEventShouldFailover(payload []byte, message string) bool {
 	if isOpenAIUpstreamAccessStateError(message, payload) {
 		return true
 	}
+	// Only an untyped relay wrapper inherits response.failed retry policy.
+	// Explicit bare-error types keep their existing event-specific semantics.
+	errType := strings.ToLower(strings.TrimSpace(gjson.GetBytes(payload, "response.error.type").String()))
+	if errType == "" {
+		errType = strings.ToLower(strings.TrimSpace(gjson.GetBytes(payload, "error.type").String()))
+	}
 	if openAIStreamFailedEventErrorCode(payload) == "upstream_error" {
-		return openAIStreamFailedEventShouldFailover(payload, message)
+		if strings.Contains(errType, "content_policy") || strings.Contains(errType, "policy") || strings.Contains(errType, "safety") || strings.Contains(errType, "invalid_request") {
+			return false
+		}
+		if errType == "" || errType == "upstream_error" {
+			return openAIStreamFailedEventShouldFailover(payload, message)
+		}
+		// Explicit request errors outrank retry-looking wrapper message text.
+		if openAIStreamFailedEventSemanticStatus(payload, message) == http.StatusBadRequest {
+			return false
+		}
 	}
 	switch openAIStreamFailedEventSemanticStatus(payload, message) {
 	case http.StatusForbidden:
@@ -2187,6 +2202,8 @@ scanLoop:
 			if clientDisconnected {
 				s.parseSSEUsageBytesWithType(dataBytes, rawEventType, usage)
 				if rawEventType == "error" || rawEventType == "response.failed" {
+					sawFailedEvent = true
+					failedMessage = extractOpenAISSEErrorMessage(dataBytes)
 					// Cancellation suppresses replay/output, not the existing billing audit marker.
 					markOpenAICyberPolicyEvent(c, dataBytes, http.StatusOK, usage)
 				}
@@ -2195,7 +2212,13 @@ scanLoop:
 					responseID = extractOpenAIResponseIDFromJSONBytes(dataBytes)
 				}
 				if trimmedData == "[DONE]" || openAIStreamEventIsTerminalWithType(trimmedData, rawEventType) {
-					return resultWithUsage(), errors.New("client disconnected after upstream terminal event")
+					if sawFailedEvent {
+						return resultWithUsage(), fmt.Errorf("upstream response failed after client disconnect: %s", failedMessage)
+					}
+					// Successful terminal usage is still a completed upstream request,
+					// even when the client can no longer receive the response.
+					s.clearOpenAIProxyStreamDisconnect(account)
+					return resultWithUsage(), nil
 				}
 				continue
 			}
@@ -2415,6 +2438,12 @@ scanLoop:
 	}
 	observeClientCancellation()
 	if clientDisconnected {
+		// The terminal may have been parsed before a downstream blank-line
+		// write failed. A later queued EOF/read error cannot undo completion.
+		if (sawDone || sawTerminalEvent) && !sawFailedEvent {
+			s.clearOpenAIProxyStreamDisconnect(account)
+			return resultWithUsage(), nil
+		}
 		if scanErr != nil {
 			return resultWithUsage(), fmt.Errorf("stream usage incomplete after disconnect: %w", scanErr)
 		}

@@ -871,6 +871,10 @@ func (s *OpenAIGatewayService) handleStreamingResponseWithReasoning(ctx context.
 
 	// Always select cancellation/drain alongside scanner events, including
 	// contexts without Done(): downstream write failures must still be bounded.
+	// The former synchronous no-timer path flushed each complete event. Keep
+	// that wire contract even when scanner read-ahead has queued later lines;
+	// timer-enabled streams retain their existing queue-drain burst batching.
+	flushEachEvent := streamInterval <= 0 && keepaliveInterval <= 0 && firstOutputTimeout <= 0
 
 	type scanEvent struct {
 		line      string
@@ -948,7 +952,7 @@ func (s *OpenAIGatewayService) handleStreamingResponseWithReasoning(ctx context.
 				markEventProcessed(ev)
 				return result, err
 			}
-			processSSELine(ev.line, len(events) == 0)
+			processSSELine(ev.line, flushEachEvent || len(events) == 0)
 			markEventProcessed(ev)
 			if streamEarlyErr != nil {
 				return resultWithUsage(), streamEarlyErr

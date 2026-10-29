@@ -36,7 +36,12 @@ func TestPassthroughCanceledReadyEventsNeverReplay(t *testing.T) {
 			}
 			svc := &OpenAIGatewayService{}
 			result, err := svc.handleStreamingResponsePassthrough(context.Background(), &http.Response{Header: http.Header{}, Body: io.NopCloser(reader)}, c, &Account{ID: 1, Platform: PlatformOpenAI}, time.Now(), "gpt", "gpt")
-			require.Error(t, err)
+			if ending == "completed" {
+				// Preserve the pre-existing successful-terminal contract after disconnect.
+				require.NoError(t, err)
+			} else {
+				require.Error(t, err)
+			}
 			var replay *UpstreamFailoverError
 			require.False(t, errors.As(err, &replay))
 			_, compact := asOpenAICompactFallbackSignal(err)
@@ -238,4 +243,27 @@ func TestPassthroughCanceledCyberFailurePreservesUsageAudit(t *testing.T) {
 	var replay *UpstreamFailoverError
 	require.False(t, errors.As(err, &replay))
 	require.False(t, c.Writer.Written())
+}
+
+func TestPassthroughTerminalUsageBeforeWriteFailureSurvivesQueuedEnding(t *testing.T) {
+	for _, ending := range []string{"blank", "eof", "read_error"} {
+		t.Run(ending, func(t *testing.T) {
+			payload := `data: {"type":"response.completed","response":{"id":"completed_before_write","usage":{"input_tokens":13,"output_tokens":4}}}` + "\n"
+			var reader io.Reader = strings.NewReader(payload)
+			if ending == "blank" {
+				reader = strings.NewReader(payload + "\n")
+			} else if ending == "read_error" {
+				reader = io.MultiReader(reader, passthroughCancelErrorReader{})
+			}
+			c, _ := gin.CreateTestContext(passthroughCancelFailWriter{httptest.NewRecorder()})
+			c.Request = httptest.NewRequest("POST", "/v1/responses", nil)
+			svc := &OpenAIGatewayService{}
+			result, err := svc.handleStreamingResponsePassthrough(context.Background(), &http.Response{Header: http.Header{}, Body: io.NopCloser(reader)}, c, &Account{ID: 1, Platform: PlatformOpenAI}, time.Now(), "gpt", "gpt")
+			require.NoError(t, err)
+			require.NotNil(t, result)
+			require.True(t, result.clientDisconnect)
+			require.Equal(t, 13, result.usage.InputTokens)
+			require.Equal(t, 4, result.usage.OutputTokens)
+		})
+	}
 }
