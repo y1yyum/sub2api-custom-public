@@ -90,3 +90,22 @@ func TestAccountProbeWrapperMarksHTTPAndTLSWithoutMutatingCaller(t *testing.T) {
 	require.False(t, marked)
 	require.Nil(t, newAccountProbeHTTPUpstream(nil, cfg))
 }
+
+// Read-only diagnostics may show a redacted URL; they must neither perform a
+// request nor turn that redacted view into permission to probe the original.
+func TestAccountProbeDiagnosticsRedactWithoutAuthorizingCredentialURL(t *testing.T) {
+	cfg := &config.Config{}
+	capture := &probePolicyCapture{}
+	svc := &AccountTestService{cfg: cfg, httpUpstream: newAccountProbeHTTPUpstream(capture, cfg)}
+	original := "https://user:synthetic-secret@relay.example.com/v1?access_token=synthetic-query#private-fragment"
+	account := &Account{ID: 25, Platform: PlatformGrok, Type: AccountTypeAPIKey, Credentials: map[string]any{"api_key": "synthetic-key", "base_url": original}}
+	diagnostic := svc.GetGrokModelDiagnostics(context.Background(), account)
+	require.Equal(t, "https://relay.example.com/v1/models", diagnostic.Endpoint)
+	require.Empty(t, capture.options, "diagnostics must never call the injected upstream")
+	_, err := svc.validateUpstreamBaseURL(original)
+	require.Error(t, err, "the original URL remains forbidden for actual probes")
+	require.Equal(t, original, account.GetCredential("base_url"), "redaction must not rewrite stored credentials")
+	cfg.Security.URLAllowlist.Enabled = true
+	cfg.Security.URLAllowlist.UpstreamHosts = []string{"approved.example.test"}
+	require.Empty(t, svc.GetGrokModelDiagnostics(context.Background(), account).Endpoint, "redaction must not bypass host policy")
+}
