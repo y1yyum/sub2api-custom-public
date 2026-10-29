@@ -1556,6 +1556,8 @@ type DatabaseConfig struct {
 	Password string `mapstructure:"password"`
 	DBName   string `mapstructure:"dbname"`
 	SSLMode  string `mapstructure:"sslmode"`
+	// MigrationMode controls only the startup migration phase; default remains apply.
+	MigrationMode string `mapstructure:"migration_mode"`
 	// 连接池配置（性能优化：可配置化连接池参数）
 	// MaxOpenConns: 最大打开连接数，控制数据库连接上限，防止资源耗尽
 	MaxOpenConns int `mapstructure:"max_open_conns"`
@@ -2223,6 +2225,7 @@ func setDefaults() {
 	viper.SetDefault("database.password", "postgres")
 	viper.SetDefault("database.dbname", "sub2api")
 	viper.SetDefault("database.sslmode", "prefer")
+	viper.SetDefault("database.migration_mode", DatabaseMigrationModeApply)
 	viper.SetDefault("database.max_open_conns", 256)
 	viper.SetDefault("database.max_idle_conns", 128)
 	viper.SetDefault("database.conn_max_lifetime_minutes", 30)
@@ -3128,6 +3131,11 @@ func (c *Config) Validate() error {
 		c.Billing.InflightReservation.MaxReservationUSD < 0 {
 		return fmt.Errorf("billing.inflight_reservation values must be non-negative")
 	}
+	migrationMode, migrationModeErr := c.Database.EffectiveMigrationMode()
+	if migrationModeErr != nil {
+		return migrationModeErr
+	}
+	c.Database.MigrationMode = migrationMode
 	if c.Database.MaxOpenConns <= 0 {
 		return fmt.Errorf("database.max_open_conns must be positive")
 	}

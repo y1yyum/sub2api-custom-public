@@ -783,6 +783,10 @@
     {
       "package": "github.com/Wei-Shaw/sub2api/internal/repository",
       "test": "TestPaymentAuditLogRefundRetryConstraints"
+    },
+    {
+      "package": "github.com/Wei-Shaw/sub2api/internal/repository",
+      "test": "TestCustomMigrationLedgerReadOnlyRole"
     }
   ]
 }

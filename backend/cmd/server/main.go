@@ -59,7 +59,18 @@ func main() {
 	// Parse command line flags
 	setupMode := flag.Bool("setup", false, "Run setup wizard in CLI mode")
 	showVersion := flag.Bool("version", false, "Show version information")
+	migrateOnly := flag.Bool("migrate-only", false, "Apply database migrations and exit without starting the application")
+	checkMigrations := flag.Bool("check-migrations", false, "Read-only migration ledger check and exit (not a schema audit)")
 	flag.Parse()
+	if err := validateServerModeFlags(*setupMode, *showVersion, *migrateOnly, *checkMigrations); err != nil {
+		log.Fatal(err)
+	}
+	if *migrateOnly || *checkMigrations {
+		if err := runMigrationCommand(*checkMigrations); err != nil {
+			log.Fatal(err)
+		}
+		return
+	}
 
 	if *showVersion {
 		log.Printf("Sub2API %s (commit: %s, built: %s)\n", Version, Commit, Date)
