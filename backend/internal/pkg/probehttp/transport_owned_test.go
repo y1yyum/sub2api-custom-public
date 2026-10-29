@@ -342,3 +342,54 @@ func TestProbePrivateExceptionDoesNotAllowSpecialAddresses(t *testing.T) {
 		require.Error(t, err, ip)
 	}
 }
+
+func TestProbeVerifiedAddressFallbackBeatsBlackholedFirstAddress(t *testing.T) {
+	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+	defer cancel()
+	firstCanceled := make(chan struct{})
+	working, records := responseDialer(t, "HTTP/1.1 200 OK\r\nContent-Length: 2\r\n\r\nok")
+	dial := func(ctx context.Context, network, target string) (net.Conn, error) {
+		if target == "203.0.113.1:80" {
+			<-ctx.Done()
+			close(firstCanceled)
+			return nil, ctx.Err()
+		}
+		return working(ctx, network, target)
+	}
+	client := NewClient(Options{AllowHTTP: true, Resolver: &fakeResolver{answers: ipAnswers("203.0.113.1", "203.0.113.2")}, DialContext: dial}, nil, nil)
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, "http://probe.example.test/usage", nil)
+	require.NoError(t, err)
+	start := time.Now()
+	resp, err := client.Do(req)
+	require.NoError(t, err)
+	_ = resp.Body.Close()
+	require.Less(t, time.Since(start), 1500*time.Millisecond, "fallback must start before the first address consumes the request budget")
+	require.Equal(t, "203.0.113.2:80", (<-records).destination)
+	select {
+	case <-firstCanceled:
+	case <-time.After(time.Second):
+		t.Fatal("losing dial was not canceled")
+	}
+}
+
+func TestProbeVerifiedAddressAttemptsShareFiniteDeadline(t *testing.T) {
+	deadlines := make(chan time.Time, 3)
+	start := time.Now()
+	dial := func(ctx context.Context, _, _ string) (net.Conn, error) {
+		deadline, ok := ctx.Deadline()
+		if !ok {
+			return nil, errors.New("missing shared deadline")
+		}
+		deadlines <- deadline
+		return nil, errors.New("synthetic connection failure")
+	}
+	client := NewClient(Options{AllowHTTP: true, Resolver: &fakeResolver{answers: ipAnswers("203.0.113.1", "203.0.113.2", "203.0.113.3")}, DialContext: dial}, nil, nil)
+	_, err := client.Get("http://probe.example.test/usage")
+	require.Error(t, err)
+	require.Len(t, deadlines, 3)
+	first := <-deadlines
+	require.LessOrEqual(t, first.Sub(start), 11*time.Second)
+	for len(deadlines) > 0 {
+		require.Equal(t, first, <-deadlines, "per-address retries must not replenish their budget")
+	}
+}

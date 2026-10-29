@@ -109,3 +109,23 @@ func TestAccountProbeDiagnosticsRedactWithoutAuthorizingCredentialURL(t *testing
 	cfg.Security.URLAllowlist.UpstreamHosts = []string{"approved.example.test"}
 	require.Empty(t, svc.GetGrokModelDiagnostics(context.Background(), account).Endpoint, "redaction must not bypass host policy")
 }
+
+func TestAccountProbeDefaultAllowlistPreservesExactOfficialOrigins(t *testing.T) {
+	cfg := &config.Config{}
+	cfg.Security.URLAllowlist.Enabled = true
+	cfg.Security.URLAllowlist.UpstreamHosts = []string{"api.openai.com", "api.anthropic.com", "generativelanguage.googleapis.com"}
+	options := accountProbeOptions(cfg)
+	for _, host := range []string{"chatgpt.com", "api.x.ai", "cli-chat-proxy.grok.com", "us-east-1.api.x.ai", "us-west-2.api.x.ai", "eu-west-1.api.x.ai"} {
+		_, err := probehttp.ValidateURL("https://"+host+"/v1/models", options)
+		require.NoError(t, err, host)
+		for _, raw := range []string{"http://" + host + "/v1/models", "https://" + host + ":8443/v1/models", "https://" + host + ".evil.test/v1/models"} {
+			_, err := probehttp.ValidateURL(raw, options)
+			require.Error(t, err, raw)
+		}
+	}
+	for _, raw := range []string{"https://unlisted.api.x.ai/v1/models", "https://127.0.0.1/v1/models", "https://169.254.169.254/metadata"} {
+		_, err := probehttp.ValidateURL(raw, options)
+		require.Error(t, err, raw)
+	}
+	require.False(t, options.AllowPrivate)
+}
