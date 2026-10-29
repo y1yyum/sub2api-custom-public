@@ -1406,7 +1406,27 @@ var openAIStreamErrorStatusPaths = []string{
 	"status",
 }
 
+// openAIWrappedUpstreamClientStatus keeps explicit request failures authoritative
+// when a relay labels them upstream_error. Credential, permission, timeout and
+// rate-limit statuses retain their existing dedicated account/retry policies.
+func openAIWrappedUpstreamClientStatus(payload []byte) int {
+	if !gjson.ValidBytes(payload) || openAIStreamFailedEventErrorCode(payload) != "upstream_error" {
+		return 0
+	}
+	for _, path := range openAIStreamErrorStatusPaths {
+		status := int(gjson.GetBytes(payload, path).Int())
+		if status >= 400 && status < 500 && status != http.StatusUnauthorized &&
+			status != http.StatusForbidden && status != http.StatusRequestTimeout && status != http.StatusTooManyRequests {
+			return status
+		}
+	}
+	return 0
+}
+
 func openAIStreamFailedEventSemanticStatus(payload []byte, message string) int {
+	if status := openAIWrappedUpstreamClientStatus(payload); status != 0 {
+		return status
+	}
 	if isOpenAIContextWindowError(message, payload) {
 		return http.StatusBadRequest
 	}
@@ -1422,6 +1442,12 @@ func openAIStreamFailedEventSemanticStatus(payload []byte, message string) int {
 			status == http.StatusForbidden || status == http.StatusTooManyRequests || status == 529 {
 			return status
 		}
+	}
+	// A relay's structured upstream_error is a gateway failure, not a client
+	// permission denial merely because its message includes "forbidden".
+	// Explicit statuses above and explicit request/auth types remain authoritative.
+	if code == "upstream_error" && (errType == "" || errType == "upstream_error") {
+		return http.StatusBadGateway
 	}
 	switch {
 	case strings.Contains(combined, "rate_limit"):
@@ -1442,6 +1468,9 @@ func openAIStreamFailedEventSemanticStatus(payload []byte, message string) int {
 }
 
 func openAIStreamFailureStatus(payload []byte, message string) int {
+	if status := openAIWrappedUpstreamClientStatus(payload); status != 0 {
+		return status
+	}
 	if len(bytes.TrimSpace(payload)) == 0 || !gjson.ValidBytes(payload) {
 		return http.StatusBadGateway
 	}
@@ -1564,6 +1593,9 @@ func applyOpenAIStreamFailedErrorPassthroughRule(
 }
 
 func openAIStreamFailedEventShouldFailover(payload []byte, message string) bool {
+	if openAIWrappedUpstreamClientStatus(payload) != 0 {
+		return false
+	}
 	if hit, _, _ := detectOpenAICyberPolicy(payload); hit {
 		return false
 	}
@@ -1616,6 +1648,9 @@ func openAIStreamFailedEventShouldFailover(payload []byte, message string) bool 
 }
 
 func openAIStreamErrorEventShouldFailover(payload []byte, message string) bool {
+	if openAIWrappedUpstreamClientStatus(payload) != 0 {
+		return false
+	}
 	if hit, _, _ := detectOpenAICyberPolicy(payload); hit {
 		return false
 	}
@@ -1624,6 +1659,9 @@ func openAIStreamErrorEventShouldFailover(payload []byte, message string) bool {
 	}
 	if isOpenAIUpstreamAccessStateError(message, payload) {
 		return true
+	}
+	if openAIStreamFailedEventErrorCode(payload) == "upstream_error" {
+		return openAIStreamFailedEventShouldFailover(payload, message)
 	}
 	switch openAIStreamFailedEventSemanticStatus(payload, message) {
 	case http.StatusForbidden:
