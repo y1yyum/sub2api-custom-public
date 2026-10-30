@@ -7,6 +7,8 @@ BEFORE = '''\trefresher := &poolHealthRefresher{
 \t}
 '''
 AFTER = '\trefresher := &poolHealthLateSuccessRefresher{}\n'
+CONSTRUCTOR_BEFORE = '\tsvc := newPoolHealthService(repo, refresher, config.TokenRefreshConfig{MaxRetries: 1})'
+CONSTRUCTOR_AFTER = '\tsvc := newPoolHealthService(repo, &refresher.poolHealthRefresher, config.TokenRefreshConfig{MaxRetries: 1})'
 HELPER = '''// This fixture must return success after the attempt context is actually done,
 // not race two timer callbacks under a loaded race-test runner.
 type poolHealthLateSuccessRefresher struct {
@@ -27,7 +29,7 @@ def adapt(path, text):
     start = text.index(TARGET)
     end = text.index('\nfunc ', start + len(TARGET))
     section = text[start:end]
-    if section.count(BEFORE) != 1:
+    if section.count(BEFORE) != 1 or section.count(CONSTRUCTOR_BEFORE) != 1:
         raise ValueError('pool deadline fixture setup must occur exactly once')
-    section = section.replace(BEFORE, AFTER, 1)
+    section = section.replace(BEFORE, AFTER, 1).replace(CONSTRUCTOR_BEFORE, CONSTRUCTOR_AFTER, 1)
     return text[:start] + HELPER + section + text[end:]

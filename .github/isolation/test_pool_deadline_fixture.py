@@ -20,7 +20,7 @@ class PoolDeadlineFixture(unittest.TestCase):
         before = raw.decode()
         after = runpy.run_path(str(ROOT / '.github/upgrade/adapt-tests.py'))['adapt'](path, before)
         self.assertEqual(after.count(FIXTURE['HELPER']), 1)
-        restored = after.replace(FIXTURE['HELPER'], '', 1).replace(FIXTURE['AFTER'], FIXTURE['BEFORE'], 1)
+        restored = after.replace(FIXTURE['HELPER'], '', 1).replace(FIXTURE['AFTER'], FIXTURE['BEFORE'], 1).replace(FIXTURE['CONSTRUCTOR_AFTER'], FIXTURE['CONSTRUCTOR_BEFORE'], 1)
         self.assertEqual(restored, before, 'all other fixtures, mock methods and assertions must remain byte-identical')
         for token in ('func Test', 'require.', 't.Parallel()', 't.Skip(', 'time.Sleep('):
             self.assertEqual(before.count(token), after.count(token))
@@ -34,6 +34,13 @@ class PoolDeadlineFixture(unittest.TestCase):
         self.assertIn('<-ctx.Done()', FIXTURE['HELPER'])
         self.assertIn('return r.poolHealthRefresher.Refresh(ctx, account)', FIXTURE['HELPER'])
         self.assertEqual(after.count('&poolHealthLateSuccessRefresher{}'), 1)
+        # The constructor takes a concrete *poolHealthRefresher, not an interface.
+        # Its registration stores the embedded mock; this direct-attempt fixture
+        # must pass the context-ordering wrapper to refreshWithRetry itself.
+        self.assertIn('func newPoolHealthService(repo *poolHealthAccountRepo, refresher *poolHealthRefresher,', after)
+        self.assertEqual(test.count(FIXTURE['CONSTRUCTOR_AFTER']), 1)
+        self.assertNotIn(FIXTURE['CONSTRUCTOR_BEFORE'], test)
+        self.assertIn('err := svc.refreshWithRetry(context.Background(), &account, refresher, nil, time.Hour)', test)
 
     def test_changed_setup_fails_closed(self):
         raw = subprocess.check_output(['git', '-C', str(ROOT), 'show',
@@ -42,6 +49,10 @@ class PoolDeadlineFixture(unittest.TestCase):
             FIXTURE['adapt'](FIXTURE['PATH'], raw.replace(FIXTURE['BEFORE'], '\trefresher := changed\n', 1))
         with self.assertRaises(ValueError):
             FIXTURE['adapt']('backend/unreviewed_test.go', raw)
+        start = raw.index(FIXTURE['TARGET'])
+        changed = raw[:start] + raw[start:].replace(FIXTURE['CONSTRUCTOR_BEFORE'], 'changedConstructor()', 1)
+        with self.assertRaises(ValueError):
+            FIXTURE['adapt'](FIXTURE['PATH'], changed)
 
 
 if __name__ == '__main__':
