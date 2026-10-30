@@ -15,6 +15,7 @@ import (
 	"time"
 
 	"github.com/Wei-Shaw/sub2api/internal/pkg/apicompat"
+	"github.com/Wei-Shaw/sub2api/internal/pkg/httpresponse"
 	"github.com/Wei-Shaw/sub2api/internal/pkg/logger"
 	"github.com/Wei-Shaw/sub2api/internal/pkg/xai"
 	"github.com/Wei-Shaw/sub2api/internal/util/responseheaders"
@@ -111,10 +112,11 @@ func (s *OpenAIGatewayService) handleStreamingResponseWithReasoning(ctx context.
 	}
 
 	w := c.Writer
-	flusher, ok := w.(http.Flusher)
+	_, ok := w.(http.Flusher)
 	if !ok {
 		return nil, errors.New("streaming not supported")
 	}
+	flushDownstream := func() error { return httpresponse.Flush(w) }
 	maxLineSize := defaultMaxLineSize
 	if s.cfg != nil && s.cfg.Gateway.MaxLineSize > 0 {
 		maxLineSize = s.cfg.Gateway.MaxLineSize
@@ -154,8 +156,7 @@ func (s *OpenAIGatewayService) handleStreamingResponseWithReasoning(ctx context.
 				return err
 			}
 		}
-		flusher.Flush()
-		return nil
+		return flushDownstream()
 	}
 
 	usage := &OpenAIUsage{}
@@ -260,11 +261,25 @@ func (s *OpenAIGatewayService) handleStreamingResponseWithReasoning(ctx context.
 	if s.cfg != nil && s.cfg.Gateway.StreamDataIntervalTimeout > 0 {
 		drainTimeout = time.Duration(s.cfg.Gateway.StreamDataIntervalTimeout) * time.Second
 	}
+	sawTerminalEvent := false
+	terminalEventType := ""
+	terminalFailurePending := false
+	failureDelivered := false
 	startDisconnectDrain := func() {
 		if clientDisconnected {
 			return
 		}
 		clientDisconnected = true
+		// A bare error may have been classified while still connected. If its
+		// write/flush discovers the disconnect, revoke that provisional terminal
+		// state before the event-boundary/failure-delivery checks can close the
+		// upstream. Only a later authoritative terminal or the drain budget ends it.
+		if terminalEventType == "error" {
+			sawTerminalEvent = false
+			terminalEventType = ""
+			terminalFailurePending = false
+			failureDelivered = false
+		}
 		// Total budget from disconnect; incoming data never refreshes it.
 		drainTimer = time.NewTimer(drainTimeout)
 		drainCh = drainTimer.C
@@ -288,11 +303,9 @@ func (s *OpenAIGatewayService) handleStreamingResponseWithReasoning(ctx context.
 			}
 		}
 	}()
-	sawTerminalEvent := false
 	sawFailedEvent := false
 	sawBareError := false
 	sawResponseFailed := false
-	terminalEventType := ""
 	responsesSemanticOutputSeen := false
 	capacityFailoverSuppressedLogged := false
 	failedMessage := ""
@@ -300,8 +313,6 @@ func (s *OpenAIGatewayService) handleStreamingResponseWithReasoning(ctx context.
 	codexFailureTerminal := account != nil && account.IsOpenAIOAuthLike()
 	upstreamRequestID := strings.TrimSpace(resp.Header.Get("x-request-id"))
 	var streamEarlyErr error
-	terminalFailurePending := false
-	failureDelivered := false
 	suppressCurrentEvent := false
 	var bareErrorPayload []byte
 	bareErrorAccountSideEffectsPending := false
@@ -1049,7 +1060,10 @@ func (s *OpenAIGatewayService) handleStreamingResponseWithReasoning(ctx context.
 					logger.LegacyPrintf("service.openai_gateway", "Client disconnected during streaming, continuing to drain upstream for billing")
 					continue
 				}
-				flusher.Flush()
+				if err := flushDownstream(); err != nil {
+					startDisconnectDrain()
+					continue
+				}
 				lastDownstreamWriteAt = time.Now()
 				continue
 			}
