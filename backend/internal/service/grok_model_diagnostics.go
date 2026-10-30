@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"net/url"
 	"sort"
 	"strings"
 	"time"
@@ -109,7 +110,20 @@ func (s *AccountTestService) grokModelDiagnosticsBaseURL(ctx context.Context, ac
 		if baseURL == "" {
 			baseURL = "https://api.x.ai"
 		}
-		return s.validateUpstreamBaseURL(baseURL)
+		// Diagnostics are read-only: retain the existing sanitized endpoint view
+		// without treating embedded credentials/query data as probe permission.
+		// Actual probe execution validates the original URL and still rejects
+		// userinfo; only this display-only path removes sensitive components.
+		parsed, err := url.Parse(baseURL)
+		if err != nil {
+			return "", errGrokCatalogInvalidModelsURL
+		}
+		parsed.User = nil
+		parsed.RawQuery = ""
+		parsed.ForceQuery = false
+		parsed.Fragment = ""
+		parsed.RawFragment = ""
+		return s.validateUpstreamBaseURL(parsed.String())
 	case AccountTypeOAuth:
 		validator, err := grokBaseURLValidator(account, s.cfg)
 		if err != nil {

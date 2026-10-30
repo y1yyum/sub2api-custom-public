@@ -801,7 +801,11 @@ func (h *OpenAIGatewayHandler) Responses(c *gin.Context) {
 		if service.GetOpsCyberPolicy(c) != nil {
 			cyberBlockBodyHTTP = sessionHashBody
 		}
-		h.recordCyberPolicyIfMarked(c, apiKey, account, subscription, reqModel, err != nil, cyberBlockBodyHTTP, clientRequestedUsageFields(c, channelMapping, reqModel, ""), service.HashUsageRequestPayload(body))
+		// A disconnected result is settled below with its complete observed usage.
+		// Keep cyber audit/session handling, but do not also enqueue the fallback
+		// cyber billing row for the same attempt.
+		cyberUsageNeedsFallback := err != nil && !(result != nil && result.ClientDisconnect)
+		h.recordCyberPolicyIfMarked(c, apiKey, account, subscription, reqModel, cyberUsageNeedsFallback, cyberBlockBodyHTTP, clientRequestedUsageFields(c, channelMapping, reqModel, ""), service.HashUsageRequestPayload(body))
 		forwardDurationMs := time.Since(forwardStart).Milliseconds()
 		upstreamLatencyMs, _ := getContextInt64(c, service.OpsUpstreamLatencyMsKey)
 		responseLatencyMs := forwardDurationMs
@@ -2515,6 +2519,10 @@ func (h *OpenAIGatewayHandler) ResponsesWebSocket(c *gin.Context) {
 		closeOpenAIClientWS(wsConn, coderws.StatusPolicyViolation, "invalid JSON payload")
 		return
 	}
+	if requestmodel.HasDuplicateTopLevelModel(firstMessage) {
+		closeOpenAIClientWS(wsConn, coderws.StatusPolicyViolation, service.ErrDuplicateModelField.Error())
+		return
+	}
 	reqModel := strings.TrimSpace(gjson.GetBytes(firstMessage, "model").String())
 	if reqModel == "" {
 		closeOpenAIClientWS(wsConn, coderws.StatusPolicyViolation, "model is required in first response.create payload")
@@ -2988,6 +2996,9 @@ func (h *OpenAIGatewayHandler) ResponsesWebSocket(c *gin.Context) {
 				}
 				if !gjson.ValidBytes(payload) {
 					return service.NewOpenAIWSClientCloseError(coderws.StatusPolicyViolation, "invalid websocket request payload", errors.New("invalid json"))
+				}
+				if requestmodel.HasDuplicateTopLevelModel(payload) {
+					return service.NewOpenAIWSClientCloseError(coderws.StatusPolicyViolation, service.ErrDuplicateModelField.Error(), service.ErrDuplicateModelField)
 				}
 				model := strings.TrimSpace(originalModel)
 				if model == "" {

@@ -16,6 +16,18 @@ def replace_once(text, pattern, replacement):
 
 
 def adapt(path, text):
+    if path in {'backend/internal/handler/openai_gateway_ws_model_allowlist_test.go',
+                'backend/internal/server/routes/gateway_model_allowlist_test.go'}:
+        fixture = Path(__file__).with_name('adapt-model-uniqueness.py')
+        return runpy.run_path(str(fixture))['adapt'](path, text)
+    if path == 'backend/internal/service/upstream_billing_probe_test.go':
+        # Cadence/concurrency fixtures intentionally use loopback URLs with a
+        # fake HTTPUpstream. Retain every assertion; opt in via the same explicit
+        # per-config private-service setting available to operators.
+        anchor = '\taccountTestService := &AccountTestService{accountRepo: repo, httpUpstream: upstream, cfg: cfg}'
+        if text.count(anchor) != 1:
+            raise ValueError('billing probe fixture helper changed')
+        return text.replace(anchor, '\tcfg.Security.AccountProbe.AllowPrivateHosts = true\n' + anchor)
     if path == 'backend/internal/pkg/antigravity/oauth_test.go':
         start = text.index('func TestConstants_')
         before, section = text[:start], text[start:]
@@ -79,7 +91,7 @@ def adapt(path, text):
     if path == 'backend/internal/service/channel_monitor_quota_mode_test.go':
         fixture = Path(__file__).with_name('adapt-validation-fixtures.py')
         return runpy.run_path(str(fixture))['adapt'](path, text)
-    if path in ('backend/internal/service/channel_monitor_checker_body_test.go', 'backend/internal/service/grok_free_quota_gate_test.go', 'backend/internal/service/usage_cleanup_service_test.go', 'backend/internal/service/auth_service_email_bind_test.go'):
+    if path in ('backend/internal/service/content_moderation_test.go', 'backend/internal/service/channel_monitor_checker_body_test.go', 'backend/internal/service/grok_free_quota_gate_test.go', 'backend/internal/service/usage_cleanup_service_test.go', 'backend/internal/service/auth_service_email_bind_test.go'):
         fixture = Path(__file__).with_name('adapt-service-race-fixtures.py')
         return runpy.run_path(str(fixture))['adapt'](path, text)
     if path in ('backend/internal/handler/payment_handler_resume_test.go', 'backend/internal/service/account_test_service_gemini_test.go', 'backend/internal/service/gateway_forward_as_chat_completions_test.go', 'backend/internal/service/gateway_forward_as_responses_test.go', 'backend/internal/service/openai_compat_model_test.go', 'backend/internal/service/openai_fast_service_tier_test.go', 'backend/internal/service/account_test_service_openai_test.go'):
@@ -94,6 +106,12 @@ def adapt(path, text):
     scoped = runpy.run_path(str(Path(__file__).with_name('adapt-scoped-admin-fixtures.py')))
     if path in scoped['SPEC']['paths']:
         return scoped['adapt'](path, text)
+    if path == 'backend/internal/service/oauth_refresh_api_test.go':
+        fixture = Path(__file__).with_name('adapt-oauth-deadline-fixture.py')
+        return runpy.run_path(str(fixture))['adapt'](path, text)
+    if path == 'backend/internal/service/token_refresh_pool_health_test.go':
+        fixture = Path(__file__).with_name('adapt-pool-deadline-fixture.py')
+        return runpy.run_path(str(fixture))['adapt'](path, text)
     if path.startswith('frontend/'):
         frontend = Path(__file__).with_name('adapt-frontend-tests.py')
         return runpy.run_path(str(frontend))['adapt'](path, text)

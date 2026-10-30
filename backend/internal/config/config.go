@@ -732,12 +732,18 @@ type ForwardedClientIPSettings struct {
 	Headers          []string
 }
 
+type AccountProbeSecurityConfig struct {
+	// Explicitly permit RFC1918/ULA and loopback model services for probes only.
+	AllowPrivateHosts bool `mapstructure:"allow_private_hosts"`
+}
+
 type SecurityConfig struct {
-	URLAllowlist    URLAllowlistConfig   `mapstructure:"url_allowlist"`
-	ResponseHeaders ResponseHeaderConfig `mapstructure:"response_headers"`
-	CSP             CSPConfig            `mapstructure:"csp"`
-	ProxyFallback   ProxyFallbackConfig  `mapstructure:"proxy_fallback"`
-	ProxyProbe      ProxyProbeConfig     `mapstructure:"proxy_probe"`
+	AccountProbe    AccountProbeSecurityConfig `mapstructure:"account_probe"`
+	URLAllowlist    URLAllowlistConfig         `mapstructure:"url_allowlist"`
+	ResponseHeaders ResponseHeaderConfig       `mapstructure:"response_headers"`
+	CSP             CSPConfig                  `mapstructure:"csp"`
+	ProxyFallback   ProxyFallbackConfig        `mapstructure:"proxy_fallback"`
+	ProxyProbe      ProxyProbeConfig           `mapstructure:"proxy_probe"`
 	// TrustForwardedIPForAPIKeyACL enables legacy raw forwarded-header takeover.
 	// When disabled, server.trusted_proxies is authoritative for all client-IP consumers.
 	TrustForwardedIPForAPIKeyACL  bool                                       `mapstructure:"trust_forwarded_ip_for_api_key_acl"`
@@ -1556,6 +1562,8 @@ type DatabaseConfig struct {
 	Password string `mapstructure:"password"`
 	DBName   string `mapstructure:"dbname"`
 	SSLMode  string `mapstructure:"sslmode"`
+	// MigrationMode controls only the startup migration phase; default remains apply.
+	MigrationMode string `mapstructure:"migration_mode"`
 	// 连接池配置（性能优化：可配置化连接池参数）
 	// MaxOpenConns: 最大打开连接数，控制数据库连接上限，防止资源耗尽
 	MaxOpenConns int `mapstructure:"max_open_conns"`
@@ -2114,6 +2122,7 @@ func setDefaults() {
 	})
 	viper.SetDefault("security.url_allowlist.crs_hosts", []string{})
 	viper.SetDefault("security.url_allowlist.allow_private_hosts", true)
+	viper.SetDefault("security.account_probe.allow_private_hosts", false)
 	viper.SetDefault("security.url_allowlist.allow_insecure_http", true)
 	viper.SetDefault("security.response_headers.enabled", true)
 	viper.SetDefault("security.response_headers.additional_allowed", []string{})
@@ -2223,6 +2232,7 @@ func setDefaults() {
 	viper.SetDefault("database.password", "postgres")
 	viper.SetDefault("database.dbname", "sub2api")
 	viper.SetDefault("database.sslmode", "prefer")
+	viper.SetDefault("database.migration_mode", DatabaseMigrationModeApply)
 	viper.SetDefault("database.max_open_conns", 256)
 	viper.SetDefault("database.max_idle_conns", 128)
 	viper.SetDefault("database.conn_max_lifetime_minutes", 30)
@@ -3128,6 +3138,11 @@ func (c *Config) Validate() error {
 		c.Billing.InflightReservation.MaxReservationUSD < 0 {
 		return fmt.Errorf("billing.inflight_reservation values must be non-negative")
 	}
+	migrationMode, migrationModeErr := c.Database.EffectiveMigrationMode()
+	if migrationModeErr != nil {
+		return migrationModeErr
+	}
+	c.Database.MigrationMode = migrationMode
 	if c.Database.MaxOpenConns <= 0 {
 		return fmt.Errorf("database.max_open_conns must be positive")
 	}

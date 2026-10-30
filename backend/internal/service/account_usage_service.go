@@ -1794,3 +1794,44 @@ func buildGeminiUsageProgress(used, limit int64, resetAt time.Time, tokens int64
 func (s *AccountUsageService) GetAccountWindowStats(ctx context.Context, accountID int64, startTime time.Time) (*usagestats.AccountStats, error) {
 	return s.usageLogRepo.GetAccountWindowStats(ctx, accountID, startTime)
 }
+
+// MaxAccountWindowStatsBatchSize matches the existing admin pagination limit.
+// This bounds one VALUES query to at most 2000 parameter bindings.
+const MaxAccountWindowStatsBatchSize = 1000
+
+// windowStatsByStartRepository is implemented by repositories that can answer
+// per-account window aggregates in one query. Kept as a narrow interface so the
+// main UsageLogRepository (and its many test stubs) stays unchanged.
+type windowStatsByStartRepository interface {
+	GetAccountWindowStatsByStart(ctx context.Context, starts map[int64]time.Time) (map[int64]*usagestats.AccountStats, error)
+}
+
+// GetAccountWindowStatsBatchByStart returns per-account window statistics for
+// accounts whose window start times differ. Falls back to per-account queries
+// when the repository does not implement the batch path.
+func (s *AccountUsageService) GetAccountWindowStatsBatchByStart(ctx context.Context, starts map[int64]time.Time) (map[int64]*usagestats.AccountStats, error) {
+	if len(starts) > MaxAccountWindowStatsBatchSize {
+		return nil, fmt.Errorf("account window stats batch exceeds %d accounts", MaxAccountWindowStatsBatchSize)
+	}
+	result := make(map[int64]*usagestats.AccountStats, len(starts))
+	if len(starts) == 0 {
+		return result, nil
+	}
+	if err := ctx.Err(); err != nil {
+		return nil, err
+	}
+	if batch, ok := s.usageLogRepo.(windowStatsByStartRepository); ok {
+		return batch.GetAccountWindowStatsByStart(ctx, starts)
+	}
+	for accountID, start := range starts {
+		if err := ctx.Err(); err != nil {
+			return result, err
+		}
+		stats, err := s.GetAccountWindowStats(ctx, accountID, start)
+		if err != nil || stats == nil {
+			continue
+		}
+		result[accountID] = stats
+	}
+	return result, nil
+}

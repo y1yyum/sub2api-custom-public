@@ -26,6 +26,32 @@ import (
 	"github.com/tidwall/gjson"
 )
 
+// ErrDuplicateModelField rejects ambiguous routing/billing input. Even identical
+// values are rejected: key multiplicity, not the values, is the wire contract.
+var ErrDuplicateModelField = errors.New("duplicate model field in request body")
+
+// HasDuplicateTopLevelModel counts decoded, case-insensitive JSON object keys.
+// Values of every type count, including empty/null values. Nested model fields
+// are legal. Malformed JSON is left to the existing protocol parser; multipart
+// and session.model semantics are deliberately outside this JSON-only contract.
+func HasDuplicateTopLevelModel(body []byte) bool {
+	if !gjson.ValidBytes(body) {
+		return false
+	}
+	root := gjson.ParseBytes(body)
+	if !root.IsObject() {
+		return false
+	}
+	count := 0
+	root.ForEach(func(key, _ gjson.Result) bool {
+		if strings.EqualFold(key.String(), "model") {
+			count++
+		}
+		return count < 2
+	})
+	return count > 1
+}
+
 // liveRequestRoutes 是模型位于 session.model（而非顶层 model）的入口，
 // 与 Live handler 的解析保持一致。
 var liveRequestRoutes = map[string]bool{
