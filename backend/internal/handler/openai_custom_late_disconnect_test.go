@@ -168,7 +168,15 @@ func TestCustomLateBareErrorDisconnectSettlesFinalUsageExactlyOnce(t *testing.T)
 			c.Request.Header.Set("Content-Type", "application/json")
 			c.Set(string(middleware.ContextKeyAPIKey), &service.APIKey{ID: 1806, GroupID: &groupID, User: &service.User{ID: 1706, Status: service.StatusActive}, Group: &service.Group{ID: groupID, Platform: service.PlatformOpenAI, Status: service.StatusActive, Hydrated: true}})
 			c.Set(string(middleware.ContextKeyUser), middleware.AuthSubject{UserID: 1706, Concurrency: 0})
+			// Use the same pooled capture wrapper as OpsErrorLoggerMiddleware;
+			// its delegated-call lifetime must not hide transport flush errors.
+			originalWriter := c.Writer
+			capture := acquireOpsCaptureWriter(originalWriter)
+			capture.setContext(c)
+			c.Writer = capture
 			h.Responses(c)
+			c.Writer = originalWriter
+			releaseOpsCaptureWriter(capture)
 			select {
 			case <-upstream.done:
 			case <-time.After(time.Second):
