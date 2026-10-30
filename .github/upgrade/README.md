@@ -190,3 +190,16 @@ checks for this stage; earlier baseline/core results are not a substitute.
 PR4/5 retain the historical isolation development/evidence; once this harness is
 forward-integrated, they are not extra production merge steps. All remain Draft
 until the user decides otherwise; no merge or deployment is performed.
+
+## Deterministic pool late-success fixture
+
+The pinned `.19` `TestTokenRefreshService_LateSuccessPastAttemptDeadlineIsRejected`
+previously raced a 30ms mock sleep against a 10ms attempt-context timer. A loaded
+race runner can resume the sleep before the deadline callback runs. Its
+single-test wrapper now waits for the actual attempt context to finish, then
+delegates to the unchanged mock to return the same successful credentials.
+The original 10ms deadline, timeout-error type, no-persistence and account-state
+assertions remain unchanged. Other pool fixtures and production refresh logic
+are untouched. The adapter is hash-pinned, fails on changed setup anchors and
+has a whole-file reverse-transformation proof; actual runtime validation is
+still required. This is fixture ordering repair, not a production OAuth change.

@@ -109,6 +109,9 @@ def adapt(path, text):
     if path == 'backend/internal/service/oauth_refresh_api_test.go':
         fixture = Path(__file__).with_name('adapt-oauth-deadline-fixture.py')
         return runpy.run_path(str(fixture))['adapt'](path, text)
+    if path == 'backend/internal/service/token_refresh_pool_health_test.go':
+        fixture = Path(__file__).with_name('adapt-pool-deadline-fixture.py')
+        return runpy.run_path(str(fixture))['adapt'](path, text)
     if path.startswith('frontend/'):
         frontend = Path(__file__).with_name('adapt-frontend-tests.py')
         return runpy.run_path(str(frontend))['adapt'](path, text)

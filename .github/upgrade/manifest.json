@@ -630,6 +630,9 @@
     },
     "backend/internal/service/oauth_refresh_api_test.go": {
       "dece26153621959ccd7635814f4b2d08304e681a": "3be9fe6abad0467c3b8ccf6b33ed3bd4065dbe001656b838fb2c9edcdeea2177"
+    },
+    "backend/internal/service/token_refresh_pool_health_test.go": {
+      "dece26153621959ccd7635814f4b2d08304e681a": "361b3cde30aa5bbb5213b5db029816b64c1209139defa23570b8d0315608284a"
     }
   },
   "validation_support": {
