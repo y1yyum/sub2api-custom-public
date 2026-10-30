@@ -6,6 +6,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/Wei-Shaw/sub2api/internal/pkg/httpresponse"
 	"github.com/Wei-Shaw/sub2api/internal/pkg/servertiming"
 	"github.com/gin-gonic/gin"
 )
@@ -72,6 +73,11 @@ func (w *serverTimingResponseWriter) WriteString(data string) (int, error) {
 func (w *serverTimingResponseWriter) Flush() {
 	w.finalize()
 	w.ResponseWriter.Flush()
+}
+
+func (w *serverTimingResponseWriter) FlushError() error {
+	w.finalize()
+	return httpresponse.Flush(w.ResponseWriter)
 }
 
 func (w *serverTimingResponseWriter) finalize() {
