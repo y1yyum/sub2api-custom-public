@@ -201,6 +201,14 @@ func runLateDisconnectSettlement(t *testing.T, mode, ending string) {
 	t.Cleanup(billing.Stop)
 	svc := service.NewOpenAIGatewayService(accounts, logs, nil, nil, nil, nil, nil, cfg, nil, nil, service.NewBillingService(cfg, nil), nil, billing, upstream, &service.DeferredService{}, nil, nil, nil, nil, nil, nil, nil)
 	h := NewOpenAIGatewayHandler(svc, service.NewConcurrencyService(nil), billing, service.NewAPIKeyService(nil, nil, nil, nil, nil, nil, cfg), nil, nil, nil, nil, cfg)
+	if ending == "cyber" {
+		// The audit enqueue happens AFTER optional fallback cyber billing in
+		// recordCyberPolicyIfMarked. Receiving it is a deterministic barrier:
+		// a duplicate asynchronous billing row cannot arrive after our count.
+		setupOpsErrorLogTestQueue(t, 4)
+		t.Cleanup(func() { resetOpsErrorLoggerStateForTest(t) })
+		h.opsService = &service.OpsService{}
+	}
 	c, _ := gin.CreateTestContext(writer)
 	// Verify this is Gin's genuine transport wrapper, not a synthetic
 	// replacement exposing an interface absent from the real route.
@@ -253,11 +261,28 @@ func runLateDisconnectSettlement(t *testing.T, mode, ending string) {
 		t.Fatal("upstream body was not closed")
 	}
 	require.Equal(t, 1, upstream.calls, "late disconnect must never replay")
+	if mode == "connected" {
+		// Existing connected, non-cyber terminal errors return without partial
+		// settlement. This is a preservation control, not a new billing policy.
+		require.Empty(t, logs.created)
+		return
+	}
+	if ending == "cyber" {
+		select {
+		case audit := <-opsErrorLogQueue:
+			require.Equal(t, "cyber_policy", audit.entry.ErrorType)
+			require.NotNil(t, audit.entry.RequestType)
+			require.Equal(t, int16(service.RequestTypeCyberBlocked), *audit.entry.RequestType)
+		case <-time.After(3 * time.Second):
+			t.Fatal("cyber audit did not complete after the usage task")
+		}
+	}
 	require.Len(t, logs.created, 1, "actual repository must receive exactly one settlement")
 	recorded := <-logs.created
 	require.Equal(t, wantInput, recorded.InputTokens)
 	require.Equal(t, wantOutput, recorded.OutputTokens)
 	if ending == "cyber" {
+		require.Equal(t, service.RequestTypeCyberBlocked, recorded.RequestType)
 		mark := service.GetOpsCyberPolicy(c)
 		require.NotNil(t, mark)
 		require.Equal(t, 29, mark.UpstreamInTok)
