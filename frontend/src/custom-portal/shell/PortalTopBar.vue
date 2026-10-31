@@ -6,8 +6,11 @@
     <div class="flex h-16 items-center justify-between gap-2 px-3 sm:px-4 md:px-6">
       <div class="flex min-w-0 items-center gap-3">
         <router-link to="/dashboard" class="flex shrink-0 items-center gap-2" data-testid="portal-brand">
-          <span class="flex h-8 w-8 items-center justify-center overflow-hidden rounded-lg bg-gray-900 dark:bg-white">
-            <img :src="siteLogo || '/logo.svg'" :alt="siteName" class="h-full w-full object-contain" />
+          <span
+            class="flex h-8 w-8 items-center justify-center overflow-hidden rounded-lg"
+            :class="siteLogo ? 'bg-gray-900 dark:bg-white' : 'pixel-logo'"
+          >
+            <img :src="siteLogo || PIXEL_LOGO_DATA_URI" :alt="siteName" class="h-full w-full object-contain" />
           </span>
           <span class="hidden text-sm font-semibold text-gray-900 dark:text-white sm:inline">{{ siteName }}</span>
         </router-link>
@@ -25,15 +28,15 @@
           test-id="portal-docs-trigger"
         >
           <template #trigger>
-            <Icon name="book" size="sm" />
+            <PixelIcon name="book" size="sm" />
             <span class="hidden sm:inline">{{ pt('shell.topbar.docs') }}</span>
           </template>
           <a v-if="docUrl" :href="docUrl" target="_blank" rel="noopener noreferrer" role="menuitem" class="dropdown-item">
-            <Icon name="externalLink" size="sm" />
+            <PixelIcon name="externalLink" size="sm" />
             {{ pt('shell.links.docs') }}
           </a>
           <router-link v-for="link in docs" :key="link.id" :to="link.path" role="menuitem" class="dropdown-item">
-            <Icon :name="link.icon" size="sm" />
+            <PixelIcon :name="link.icon" size="sm" />
             {{ pt(`shell.links.${link.id}`) }}
           </router-link>
         </PortalDropdown>
@@ -45,7 +48,7 @@
           test-id="portal-more-trigger"
         >
           <template #trigger>
-            <Icon name="more" size="sm" />
+            <PixelIcon name="more" size="sm" />
             <span class="hidden sm:inline">{{ pt('shell.topbar.more') }}</span>
           </template>
           <router-link
@@ -72,7 +75,7 @@
           :aria-label="pt('shell.topbar.adminTitle')"
           data-testid="portal-admin-entry"
         >
-          <Icon name="shield" size="sm" />
+          <PixelIcon name="shield" size="sm" />
           <span class="hidden sm:inline">{{ pt('shell.topbar.admin') }}</span>
         </router-link>
 
@@ -88,7 +91,7 @@
           :aria-label="pt('shell.topbar.balance')"
           data-testid="portal-balance"
         >
-          <Icon name="dollar" size="sm" class="hidden sm:block" />
+          <PixelIcon name="dollar" size="sm" class="hidden sm:block" />
           {{ balance }}
           <span
             v-if="frozenBalance > 0"
@@ -111,7 +114,7 @@ import { useRoute } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import AnnouncementBell from '@/components/common/AnnouncementBell.vue'
 import SubscriptionProgressMini from '@/components/common/SubscriptionProgressMini.vue'
-import Icon from '@/components/icons/Icon.vue'
+import PixelIcon from '../components/common/PixelIcon.vue'
 import { PURCHASE_ROUTE_NAME, resolveRouteMetaKeys } from '@/router/title'
 import { useAppStore } from '@/stores/app'
 import { useAuthStore } from '@/stores/auth'
@@ -120,6 +123,7 @@ import { sanitizeUrl } from '@/utils/url'
 import { FeatureFlags, isFeatureFlagEnabled } from '@/utils/featureFlags'
 import { resolveSiteBillingMode } from '@/utils/siteBillingMode'
 import { usePortalI18n } from '../i18n'
+import { PIXEL_LOGO_DATA_URI } from '../theme/pixelLogo'
 import { MODELS_ROUTE_NAME, portalModelsPageActive, portalPagesActive } from '../pageRoutes'
 import { CUSTOM_PAGE_PREFIX, type PortalNavLink, type ResolvedDockEntry } from './nav'
 import PortalAvatarMenu from './PortalAvatarMenu.vue'
@@ -171,6 +175,29 @@ const pageTitle = computed(() => {
 </script>
 
 <style scoped>
+/* The bottom edge is the frame's three 1px rules; only the bottom slice is drawn. */
+header {
+  border-bottom-width: 5px;
+  border-color: var(--pp-edge);
+  border-image: var(--pp-frame) 5 / 0 0 5px 0;
+}
+
+/* The balance is a square mint control framed by two rules. */
+[data-testid='portal-balance'] {
+  border: 3px double currentColor;
+}
+
+@media (forced-colors: active) {
+  header {
+    border-image-source: none;
+  }
+}
+
+/* 32px pixel logo at 1:1; its stepped corners are part of the art, so the tile has no background. */
+.pixel-logo img {
+  image-rendering: pixelated;
+}
+
 h1 {
   font-family: var(--pp-font-pixel);
   font-size: 12px;

@@ -119,6 +119,13 @@ defineExpose({ load })
 <style scoped>
 .model-status {
   padding: 14px;
+  /* 16×16 pixel icons in the light tones (theme/pixelIcons.ts, kept equal by rhineHome.spec.ts). */
+  --rp-cube: url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' width='16' height='16' shape-rendering='crispEdges'><path fill='%232c2e33' d='M7 1h2v1h-2zM5 2h2v1h-2zM9 2h2v1h-2zM3 3h2v1h-2zM11 3h2v1h-2zM1 4h2v1h-2zM13 4h2v1h-2zM1 5h1v1h-1zM3 5h2v1h-2zM11 5h2v1h-2zM14 5h1v1h-1zM1 6h1v1h-1zM5 6h2v1h-2zM9 6h2v1h-2zM14 6h1v1h-1zM1 7h1v1h-1zM7 7h2v1h-2zM14 7h1v1h-1zM1 8h1v1h-1zM8 8h1v1h-1zM14 8h1v1h-1zM1 9h1v1h-1zM8 9h1v1h-1zM14 9h1v1h-1zM1 10h1v1h-1zM8 10h1v1h-1zM14 10h1v1h-1zM1 11h2v1h-2zM8 11h1v1h-1zM13 11h2v1h-2zM3 12h2v1h-2zM8 12h1v1h-1zM11 12h2v1h-2zM5 13h2v1h-2zM8 13h1v1h-1zM10 13h1v1h-1zM7 14h3v1h-3z'/><path fill='%23f7ece8' d='M7 2h2v1h-2zM5 3h6v1h-6zM3 4h10v1h-10zM5 5h6v1h-6zM7 6h2v1h-2z'/><path fill='%23522b22' d='M2 5h1v1h-1zM2 6h3v1h-3zM2 7h5v1h-5zM2 8h6v1h-6zM2 9h6v1h-6zM2 10h6v1h-6zM3 11h5v1h-5zM5 12h3v1h-3zM7 13h1v1h-1z'/><path fill='%23e8b4a6' d='M13 5h1v1h-1zM11 6h3v1h-3zM9 7h5v1h-5zM9 8h5v1h-5zM9 9h5v1h-5zM9 10h5v1h-5zM9 11h4v1h-4zM9 12h2v1h-2zM9 13h1v1h-1z'/></svg>");
+  --rp-shield: url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' width='16' height='16' shape-rendering='crispEdges'><path fill='%232c2e33' d='M7 1h2v1h-2zM5 2h2v1h-2zM9 2h2v1h-2zM2 3h3v1h-3zM11 3h3v1h-3zM2 4h1v1h-1zM13 4h1v1h-1zM2 5h1v1h-1zM13 5h1v1h-1zM2 6h1v1h-1zM13 6h1v1h-1zM2 7h1v1h-1zM13 7h1v1h-1zM2 8h1v1h-1zM13 8h1v1h-1zM2 9h1v1h-1zM13 9h1v1h-1zM3 10h1v1h-1zM12 10h1v1h-1zM4 11h1v1h-1zM11 11h1v1h-1zM5 12h1v1h-1zM10 12h1v1h-1zM6 13h1v1h-1zM9 13h1v1h-1zM7 14h2v1h-2z'/><path fill='%23e8f2e8' d='M7 2h1v1h-1zM5 3h3v1h-3zM3 4h5v1h-5zM3 5h5v1h-5zM3 6h5v1h-5zM3 7h5v1h-5zM3 8h5v1h-5zM3 9h5v1h-5zM4 10h4v1h-4zM5 11h3v1h-3zM6 12h2v1h-2zM7 13h1v1h-1z'/><path fill='%23a8cba6' d='M8 2h1v1h-1zM8 3h3v1h-3zM8 4h5v1h-5zM8 5h5v1h-5zM8 6h5v1h-5zM8 7h5v1h-5zM8 8h5v1h-5zM8 9h5v1h-5zM8 10h4v1h-4zM8 11h3v1h-3zM8 12h2v1h-2zM8 13h1v1h-1z'/></svg>");
+  --rp-inbox: url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' width='16' height='16' shape-rendering='crispEdges'><path fill='%232c2e33' d='M3 2h10v1h-10zM3 3h1v1h-1zM12 3h1v1h-1zM2 4h1v1h-1zM13 4h1v1h-1zM2 5h1v1h-1zM13 5h1v1h-1zM1 6h1v1h-1zM14 6h1v1h-1zM1 7h1v1h-1zM14 7h1v1h-1zM0 8h16v1h-16zM0 9h1v1h-1zM5 9h1v1h-1zM10 9h1v1h-1zM15 9h1v1h-1zM0 10h1v1h-1zM6 10h4v1h-4zM15 10h1v1h-1zM0 11h1v1h-1zM15 11h1v1h-1zM0 12h1v1h-1zM15 12h1v1h-1zM0 13h16v1h-16z'/><path fill='%23ffffff' d='M4 3h8v1h-8zM3 4h10v1h-10zM3 5h10v1h-10zM2 6h12v1h-12zM2 7h12v1h-12z'/><path fill='%23d4c5b0' d='M1 9h4v1h-4zM11 9h4v1h-4zM1 10h5v1h-5zM10 10h5v1h-5zM1 11h14v1h-14zM1 12h14v1h-14z'/></svg>");
+  /* 2px square dots on a 6px grid, and 4px stair-stepped stripes on an 8px tile. */
+  --rp-dots: url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' width='6' height='6' shape-rendering='crispEdges'><path fill='%232c2e33' fill-opacity='0.12' d='M0 0h2v2H0z'/></svg>");
+  --rp-stripes: url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' width='8' height='8' shape-rendering='crispEdges'><path fill='%232c2e33' d='M0 0h4v1H0zM7 1h1v1H7zM0 1h3v1H0zM6 2h2v1H6zM0 2h2v1H0zM5 3h3v1H5zM0 3h1v1H0zM4 4h4v1H4zM3 5h4v1H3zM2 6h4v1H2zM1 7h4v1H1z'/></svg>");
 }
 
 .model-columns,
@@ -225,26 +232,22 @@ defineExpose({ load })
   font-family: var(--pp-font-pixel);
   padding: 1px 5px;
   line-height: 1.2;
-  border: 2px solid var(--rh-ink);
+  border: 3px double var(--rh-ink);
   border-radius: 0;
   color: var(--rh-ink);
   background: #f8f7f2;
-  box-shadow: 1px 1px 0 var(--rh-ink);
   cursor: pointer;
-  transition: transform 0.08s steps(2), box-shadow 0.08s steps(2), background-color 0.15s steps(2);
-  border-image: var(--rh-notch-sm) 2 / 2px;
-  background-clip: padding-box;
+  transition: background-color 0.15s steps(2), color 0.15s steps(2);
+  background-clip: border-box;
 }
 
 .status-card-bottom button:hover:not(:disabled) {
   background-color: #e8ded2;
-  transform: translate(-1px, -1px);
-  box-shadow: 2px 2px 0 var(--rh-ink);
 }
 
 .status-card-bottom button:active:not(:disabled) {
-  transform: translate(1px, 1px);
-  box-shadow: 0 0 0 var(--rh-ink);
+  background-color: var(--rh-ink);
+  color: #f8f7f2;
 }
 
 .status-card-bottom button:disabled {
@@ -252,17 +255,59 @@ defineExpose({ load })
   cursor: wait;
 }
 
+/* Loading, unavailable and empty share one placeholder: a dotted field with a 48px pixel icon. */
 .status-empty {
+  --rp-icon: var(--rp-inbox);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
   margin: 1em 0;
+  padding: 24px 12px;
   font-size: 11px;
   line-height: 1.8;
+  text-align: center;
   color: #62695c;
+  background: var(--rp-dots) 0 0 / 6px 6px;
 }
 
-/* Forced colours repaint borders but not border images, which would keep the landing ink. */
-@media (forced-colors: active) {
-  .status-card-bottom button {
-    border-image-source: none;
+.status-empty::before {
+  content: '';
+  width: 48px;
+  height: 48px;
+  background: #f8f7f2 var(--rp-icon) center / 48px 48px no-repeat;
+  image-rendering: pixelated;
+}
+
+[data-state='loading'] .status-empty {
+  --rp-icon: var(--rp-cube);
+}
+
+[data-state='unavailable'] .status-empty {
+  --rp-icon: var(--rp-shield);
+}
+
+/* Only loading gets the bar: stair-stepped stripes inside two rules, moving 4px per step. */
+[data-state='loading'] .status-empty::after {
+  content: '';
+  width: 96px;
+  height: 12px;
+  border: 3px double var(--rh-ink, #2c2e33);
+  background: #f8f7f2 var(--rp-stripes) 0 0 / 8px 8px;
+  image-rendering: pixelated;
+  animation: rp-stripes 400ms steps(2) infinite;
+}
+
+@keyframes rp-stripes {
+  to {
+    background-position: 8px 0;
   }
 }
-</style>
+
+@media (prefers-reduced-motion: reduce) {
+  [data-state='loading'] .status-empty::after {
+    animation: none;
+  }
+}
+
+/* Forced colours repaint borders but not border images, which would keep the landing ink. */</style>

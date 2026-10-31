@@ -185,10 +185,6 @@ func ReadLenientJSONRequestBodyWithPrealloc(req *http.Request, maxNormalizedByte
 	return NormalizeLenientJSONRequestBody(body, maxNormalizedBytes)
 }
 
-func decompressRequestBody(encoding string, raw []byte) ([]byte, error) {
-	return decompressRequestBodyWithLimit(encoding, raw, 0)
-}
-
 func decompressRequestBodyWithLimit(encoding string, raw []byte, maxDecodedBytes int64) ([]byte, error) {
 	readDecoded := func(reader io.Reader) ([]byte, error) {
 		if maxDecodedBytes > 0 {

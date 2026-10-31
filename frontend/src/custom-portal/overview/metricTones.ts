@@ -14,9 +14,16 @@ export interface MetricTone {
   /** Translucent fill under the line (hex with alpha). */
   chartFill: string
   icon: MetricIcon
+  /** Card tint and frame rule colour, per colour mode (hexes, drawn by scoped CSS). */
+  surface: Readonly<Record<'light' | 'dark', MetricSurface>>
 }
 
-/** Names from the upstream `Icon` set. */
+export interface MetricSurface {
+  tint: string
+  rule: string
+}
+
+/** Names from the pixel icon set. */
 export type MetricIcon = 'cube' | 'swap' | 'dollar' | 'database'
 
 export type TokenSeries = 'input' | 'output' | 'cache_creation' | 'cache_read'
@@ -28,7 +35,8 @@ export const METRIC_TONES: Readonly<Record<OverviewMetric, MetricTone>> = {
     ring: 'ring-primary-500/40 border-primary-500',
     chart: '#8fa888',
     chartFill: '#8fa88820',
-    icon: 'cube'
+    icon: 'cube',
+    surface: { light: { tint: '#f1f5ef', rule: '#58724f' }, dark: { tint: '#233827', rule: '#8fa888' } }
   },
   requests: {
     text: 'text-blue-600 dark:text-blue-400',
@@ -36,7 +44,8 @@ export const METRIC_TONES: Readonly<Record<OverviewMetric, MetricTone>> = {
     ring: 'ring-blue-500/40 border-blue-500',
     chart: '#6a8fb0',
     chartFill: '#6a8fb020',
-    icon: 'swap'
+    icon: 'swap',
+    surface: { light: { tint: '#ebf1f6', rule: '#1e364a' }, dark: { tint: '#223342', rule: '#6a8fb0' } }
   },
   cost: {
     text: 'text-amber-600 dark:text-amber-400',
@@ -44,7 +53,8 @@ export const METRIC_TONES: Readonly<Record<OverviewMetric, MetricTone>> = {
     ring: 'ring-amber-500/40 border-amber-500',
     chart: '#b8945a',
     chartFill: '#b8945a20',
-    icon: 'dollar'
+    icon: 'dollar',
+    surface: { light: { tint: '#f6efe0', rule: '#5a4214' }, dark: { tint: '#363020', rule: '#b8945a' } }
   },
   cacheHitRate: {
     text: 'text-violet-600 dark:text-violet-400',
@@ -52,7 +62,8 @@ export const METRIC_TONES: Readonly<Record<OverviewMetric, MetricTone>> = {
     ring: 'ring-violet-500/40 border-violet-500',
     chart: '#9580b8',
     chartFill: '#9580b820',
-    icon: 'database'
+    icon: 'database',
+    surface: { light: { tint: '#f0ecf6', rule: '#3b2a52' }, dark: { tint: '#2f243d', rule: '#9580b8' } }
   }
 }
 

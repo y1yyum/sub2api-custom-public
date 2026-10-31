@@ -12,7 +12,7 @@
       :title="item.hint || undefined"
       :data-testid="`overview-live-${item.key}`"
     >
-      <Icon :name="item.icon" size="xs" :class="item.tone" aria-hidden="true" />
+      <PixelIcon :name="item.icon" size="xs" :class="item.tone" aria-hidden="true" />
       <span>{{ item.label }}</span>
       <span class="font-medium tabular-nums text-gray-900 dark:text-dark-100">{{ item.display }}</span>
     </span>
@@ -25,7 +25,7 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useDocumentVisibility } from '@vueuse/core'
-import Icon from '@/components/icons/Icon.vue'
+import PixelIcon from '../common/PixelIcon.vue'
 import { usageAPI, type UserDashboardStats } from '@/api/usage'
 import { usePortalI18n } from '../../i18n'
 import { METRIC_TONES } from '../../overview/metricTones'

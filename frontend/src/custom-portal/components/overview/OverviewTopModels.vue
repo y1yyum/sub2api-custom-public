@@ -8,7 +8,7 @@
     <div class="mb-4 flex min-h-7 items-center justify-between gap-2">
       <div class="flex min-w-0 items-baseline gap-2">
         <h2 :id="titleId" class="flex items-center gap-2 text-sm font-semibold text-gray-900 dark:text-white">
-          <Icon name="chartBar" size="sm" class="text-primary-600 dark:text-primary-500" aria-hidden="true" />
+          <PixelIcon name="chartBar" size="sm" class="text-primary-600 dark:text-primary-500" aria-hidden="true" />
           {{ pt('pages.overview.ranks.title') }}
         </h2>
         <span class="truncate text-xs text-gray-500 dark:text-dark-400" data-testid="overview-top-models-subtitle">
@@ -21,7 +21,7 @@
         data-testid="overview-top-models-all"
       >
         {{ pt('pages.overview.ranks.viewAll') }}
-        <Icon name="chevronRight" size="xs" aria-hidden="true" />
+        <PixelIcon name="chevronRight" size="xs" aria-hidden="true" />
       </router-link>
     </div>
 
@@ -38,7 +38,7 @@
       class="flex flex-1 flex-col items-center justify-center gap-2 py-8 text-sm text-gray-500 dark:text-dark-400"
       data-testid="overview-top-models-empty"
     >
-      <Icon name="cube" size="lg" class="text-gray-300 dark:text-dark-600" aria-hidden="true" />
+      <PixelIcon name="cube" size="lg" class="text-gray-300 dark:text-dark-600" aria-hidden="true" />
       {{ pt('pages.overview.ranks.empty') }}
     </div>
     <ol v-else class="flex flex-1 flex-col gap-1">
@@ -54,8 +54,8 @@
         >
           <span class="flex min-w-0 items-center gap-2">
             <span
-              class="w-4 shrink-0 text-center text-xs font-semibold tabular-nums"
-              :class="index === 0 ? 'text-primary-600 dark:text-primary-500' : 'text-gray-400 dark:text-dark-500'"
+              class="rank-index w-4 shrink-0 text-center text-xs tabular-nums"
+              :class="index === 0 ? 'rank-first text-gray-900 dark:text-white' : 'text-gray-400 dark:text-dark-500'"
             >
               {{ index + 1 }}
             </span>
@@ -69,9 +69,9 @@
             <span class="shrink-0 text-sm font-medium tabular-nums text-gray-900 dark:text-white">{{ row.value }}</span>
           </span>
           <span class="mt-2 flex items-center gap-2 pl-6">
-            <span class="h-1 flex-1 overflow-hidden rounded-full bg-gray-100 dark:bg-dark-800">
+            <span class="rank-track h-3 flex-1 overflow-hidden bg-white text-gray-400 dark:bg-dark-800 dark:text-dark-500">
               <span
-                class="block h-full rounded-full bg-primary-500 transition-[width] duration-500 motion-reduce:transition-none"
+                class="rank-fill block h-full bg-primary-300 transition-[width] duration-500 motion-reduce:transition-none dark:bg-primary-600"
                 :style="{ width: `${row.share * 100}%`, opacity: barOpacity(index) }"
               ></span>
             </span>
@@ -94,7 +94,7 @@
 <script setup lang="ts">
 import { computed, useId } from 'vue'
 import ModelIcon from '@/components/common/ModelIcon.vue'
-import Icon from '@/components/icons/Icon.vue'
+import PixelIcon from '../common/PixelIcon.vue'
 import { formatCompactNumber } from '@/utils/format'
 import { usePortalI18n } from '../../i18n'
 import { injectOverviewState } from '../../overview/usageChartState'
@@ -141,3 +141,26 @@ const others = computed(() => {
   }
 })
 </script>
+
+<style scoped>
+.rank-index {
+  font-family: var(--pp-font-pixel);
+  font-synthesis: none;
+}
+
+/* The leader's number sits on butter, the one warm accent in the ranking. */
+.rank-first {
+  background-color: var(--pp-tone-butter-mid);
+}
+
+/* Two rules around the track; the fill is inset 1px inside them and dithered. */
+.rank-track {
+  border: 3px double currentColor;
+  padding: 1px;
+}
+
+.rank-fill {
+  background-image: repeating-conic-gradient(rgba(44, 46, 51, 0.18) 0 25%, transparent 0 50%);
+  background-size: 2px 2px;
+}
+</style>
