@@ -840,7 +840,7 @@ func (s *TokenRefreshService) refreshWithRetryWithRateGate(
 	maxRetries := s.maxRetries()
 
 	for attempt := 1; attempt <= maxRetries; attempt++ {
-		if err := ctx.Err(); err != nil {
+		if err := refreshContextErr(ctx); err != nil {
 			return err
 		}
 		releaseAttempt := func() {}
@@ -904,8 +904,13 @@ func (s *TokenRefreshService) refreshWithRetryWithRateGate(
 			if releaseRate != nil {
 				releaseRate()
 			}
-			attemptTimedOut := errors.Is(attemptCtx.Err(), context.DeadlineExceeded) && ctx.Err() == nil
-			if err == nil && newCredentials != nil && !attemptTimedOut {
+			if err == nil {
+				err = refreshContextErr(ctx)
+			}
+			if err == nil {
+				err = refreshContextErr(attemptCtx)
+			}
+			if err == nil && newCredentials != nil {
 				newCredentials["_token_version"] = time.Now().UnixMilli()
 				if saveErr := persistAccountCredentials(attemptCtx, s.accountRepo, account, newCredentials); saveErr != nil {
 					err = fmt.Errorf("failed to save credentials: %w", saveErr)
@@ -914,9 +919,15 @@ func (s *TokenRefreshService) refreshWithRetryWithRateGate(
 				}
 			}
 		}
-		attemptTimedOut := errors.Is(attemptCtx.Err(), context.DeadlineExceeded) && ctx.Err() == nil
+		attemptTimedOut := errors.Is(refreshContextErr(attemptCtx), context.DeadlineExceeded)
 		cancelAttempt()
 		releaseAttempt()
+		if ctxErr := refreshContextErr(ctx); ctxErr != nil {
+			if credentialsPersisted {
+				s.postRefreshStateSyncWithCleanup(ctx, account)
+			}
+			return ctxErr
+		}
 		persistedAfterAttemptDeadline := attemptTimedOut && credentialsPersisted && err == nil
 		if attemptTimedOut && !persistedAfterAttemptDeadline && !isProviderScopedTerminalRefreshError(err) {
 			cause := err
@@ -934,7 +945,7 @@ func (s *TokenRefreshService) refreshWithRetryWithRateGate(
 		}
 
 		if err == nil {
-			if ctxErr := ctx.Err(); ctxErr != nil {
+			if ctxErr := refreshContextErr(ctx); ctxErr != nil {
 				if credentialsPersisted {
 					s.postRefreshStateSyncWithCleanup(ctx, account)
 				}
@@ -946,12 +957,12 @@ func (s *TokenRefreshService) refreshWithRetryWithRateGate(
 				// completed; do not convert that success into retry/cooldown/breaker
 				// evidence. Publish cache state with a fresh cleanup context and stop.
 				s.postRefreshStateSyncWithCleanup(ctx, account)
-				return nil
+				return refreshContextErr(ctx)
 			}
 			s.postRefreshActions(ctx, account)
 			return nil
 		}
-		if ctxErr := ctx.Err(); ctxErr != nil {
+		if ctxErr := refreshContextErr(ctx); ctxErr != nil {
 			if credentialsPersisted {
 				s.postRefreshStateSyncWithCleanup(ctx, account)
 			}
@@ -1063,13 +1074,13 @@ func (s *TokenRefreshService) refreshWithRetryWithRateGate(
 				select {
 				case <-ctx.Done():
 					timer.Stop()
-					return ctx.Err()
+					return refreshContextErr(ctx)
 				case <-timer.C:
 				}
 			}
 		}
 	}
-	if err := ctx.Err(); err != nil {
+	if err := refreshContextErr(ctx); err != nil {
 		return err
 	}
 
