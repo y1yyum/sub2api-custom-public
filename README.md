@@ -1,120 +1,209 @@
+<div align="center">
+
 # Sub2API Custom Public
 
-Sub2API Custom Public 是基于 [Wei-Shaw/sub2api](https://github.com/Wei-Shaw/sub2api) 的二开版本，提供统一的 AI API 网关、账号管理、渠道调度、用量统计和管理后台。
+[![Release](https://img.shields.io/badge/Release-v0.4.0-blue.svg)](https://github.com/y1yyum/sub2api-custom-public/releases)
+[![Go Version](https://img.shields.io/badge/Go-1.27.3-00ADD8.svg)](https://golang.org/)
+[![Vue Version](https://img.shields.io/badge/Vue-3.4+-4FC08D.svg)](https://vuejs.org/)
+[![Docker Multi-Arch](https://img.shields.io/badge/Docker-amd64%20%7C%20arm64-2496ED.svg)](https://github.com/y1yyum/sub2api-custom-public/pkgs/container/sub2api-custom-public)
+[![Sigstore Cosign](https://img.shields.io/badge/Signature-Sigstore%20Signed-green.svg)](https://github.com/sigstore/cosign)
+[![License: LGPL v3](https://img.shields.io/badge/License-LGPL%20v3-blue.svg)](LICENSE)
 
-本仓库面向实机 Docker 部署。当前预发布目标为 **v0.4.0-rc.1**（产物状态以 [Releases](https://github.com/y1yyum/sub2api-custom-public/releases) 为准）；本仓库不携带生产凭据，CI 只构建、测试和发布镜像，不连接任何服务器。
+**面向高可用实机生产环境的 AI API 聚合网关与订阅分发平台（基于 [Wei-Shaw/sub2api](https://github.com/Wei-Shaw/sub2api) 二开强化版）**
 
-## 本次预发布
+[快速部署](#-快速实机部署) • [v0.4.0 核心特性](#-v040-核心特性与二开增强) • [数据库迁移](#-数据库迁移规范与双-247-兼容) • [升级与运维](#-升级与运维指南) • [供应链安全](#-供应链安全与可验证交付)
 
-`v0.4.0-rc.1` 在公开 `v0.3.1` 基础上整合上游 `v0.2.18`、`v0.2.19` 的已审查内容，以及请求读取限制、流式结算、账号用量批量统计、迁移工具、OAuth 刷新截止时间处理和门户界面更新。公开仓库是源码快照，上游提交不是二开的真实 Git 祖先，按固定内容移植。
+</div>
 
-本次新增图片开关、支付退款审计重试、Scoped 管理员密钥和按图片数量计费相关迁移。升级前阅读 [v0.4.0-rc.1 发行说明](docs/releases/v0.4.0-rc.1.md)。预发布不更新 `latest`；存量库迁移、图片禁用策略、支付逐单对账和真实硬件验收仍须在部署前独立完成。
+---
 
-## Docker Compose 部署
+## 📖 项目简介
 
-要求：Docker Engine、Docker Compose 插件和可用的 Linux 主机目录权限。
+**Sub2API Custom Public** 是专为实机 Docker 生产环境打造的不可变 AI API 网关与配额管理平台。当前最新公开发行版本为 **v0.4.0**。
+
+在官方 Sub2API 核心能力的基础上，`v0.4.0` 完整吸收并审查了上游 `v0.2.18` 与 `v0.2.19` 的核心特性，深入解决了高并发流式计费丢失、OAuth 凭据刷新悬挂、SSRF 探测逃逸及顶层模型混淆注入等关键生产缺陷，并提供专属的莱茵实验室风格（Rhine Lab）主题门户与像素艺术（Pixel Art）界面。
+
+本仓库为完全开源的公开交付版本，剥离了内部私有直充与运维专有探针模块，**不包含任何生产凭据或私有环境依赖**，所有构建产物均支持无外网依赖的端到端单体验证。
+
+---
+
+## 🚀 v0.4.0 核心特性与二开增强
+
+### 1. 🎨 莱茵生命主题门户与前端交互增强 (Custom Portal)
+- **全新极客像素风格**：基于 `frontend/src/custom-portal/` 重构的 Rhine Lab 风格视觉体系，内嵌像素艺术图标系统（Pixel Art Icons）、定制线框与高对比度状态面板。
+- **实时用量与健康监控大屏**：
+  - **Metric Cards**：实时请求量、Token 吞吐、错误率与通道延迟状态码感知。
+  - **Usage Sparkline**：轻量级实时火花线趋势图，零冗余图表依赖。
+  - **Top 模型排行榜**：一览集群热门模型调用与计费分布。
+  - **模型与渠道（Models & Channels）**：提供公开的模型目录、状态与实时费率速查看板。
+- **无障碍访问性（A11y）**：Dock 导航栏全面适配键盘焦点捕捉与辅助导航。
+
+### 2. 🛡️ 网关流式计费与异常断连零漂移保障 (Stream & Billing Hardening)
+- **客户端断连单归属结算（Settle-Once）**：解决客户端过早中断（Late Disconnect）与写时网络中断下的账单归属冲突，杜绝 Token 用量丢失或重复扣款。
+- **裸错误流（Bare SSE Errors）终止保护**：在上游返回裸错误或连接异常中止时，强制执行最终 Authoritative Usage 的 Drain 与落库，保障用量数据完整。
+- **顶层模型字段唯一性强校验（P0 Model Uniqueness Guard）**：网关在路由和计费前置校验，严格拒绝在请求体中混入重复顶层 `model` 字段的畸形 JSON，从协议层杜绝参数混淆与计费穿透漏洞。
+- **报文防解压炸弹与截断过滤**：严格限制解压后请求体物理尺寸，杜绝超大载荷或损坏格式消耗网关资源。
+- **端点预算前置裁决**：在载荷反序列化与模型预读前，率先执行租户与端点限额预算检查。
+
+### 3. ⚡ 服务调度与安全隔离优化 (Scheduling & Token Management)
+- **OAuth 凭据刷新截止期管控（Refresh Deadline Boundaries）**：
+  - 刷新逻辑严格约束于调用方截止期，防止父上下文超时时依然盲目等待上游，避免采纳过期凭据或迟到 Token 覆盖有效缓存。
+  - 明确隔离内部超时与供应商故障，持久化已成功的凭据始终安全同步至内存缓存。
+- **SSRF 探针硬化（SSRF-Safe Account Probes）**：
+  - 账户可用性探测严格绑定经校验的解析目标，对私网 IP、链路本地及本地回环地址进行安全阻断，仅在显式受信配置下放行。
+- **账户用量窗口化批量查询（Account Window Batching）**：
+  - 优化高并发下基于时间窗口的账户用量与限流统计 SQL，大幅减轻高频调用下的 PostgreSQL 事务锁竞争。
+
+### 4. 🧩 上游最新稳定功能对齐 (Upstream v0.2.18 / v0.2.19 Alignment)
+- **细粒度受限管理员 API 密钥（Scoped Admin API Keys）**：
+  - 支持按操作资源、分组、账户类型、IP/CIDR 掩码及过期时间配置的受限运维 Token，密钥只哈希存盘且支持二次验证（Step-up Auth），详见 [受限管理员密钥指南](docs/admin-api-keys.md)。
+- **图像与绘图多模态计费**：
+  - 支持 OpenAI / 复合分组专有生图端点的按图计费开关（默认关闭，按需启用），修复 Gemini fileData 图像计费核算。
+- **全模型生态兼容**：
+  - 补齐 DeepSeek 缓存命中定价与 Developer Role 适配；完善 Grok 状态诊断及 Gemini 同账号重试调度策略。
+- **安全对齐的支付退款状态机**：
+  - 适配上游退款审计幂等重试机制，有效规避退款异常重试引发的余额多扣。
+
+---
+
+## 🗄️ 数据库迁移规范与双 247 兼容
+
+`v0.4.0` 相对 `v0.3.1` 引入了以下数据库向前迁移：
+- `246_enable_gemini_image_generation_groups.sql`
+- `247_payment_audit_refund_retry.sql`（二开退款重试部分唯一索引）
+- `247_scoped_admin_api_keys.sql`（上游 Scoped 管理员密钥）
+- `248_group_image_count_billing.sql`（生图计费分组）
+
+> [!IMPORTANT]
+> **双 247 迁移兼容性保障**：系统迁移引擎基于**完整文件名**与**文件校验和（Checksum）**排序，同编号不同文件名属于完全不同的迁移项。**严禁重命名或手动修改已执行的迁移文件**。`v0.4.0` 内置的迁移账本校验工具已通过真实回归演练，可平滑兼容既有数据库。
+
+---
+
+## 📦 架构与技术栈
+
+| 模块 | 技术选型 | 版本/说明 |
+| --- | --- | --- |
+| **Backend** | Go, Gin, Ent ORM | Go 1.27.3（修复依赖 CVE，静态编译） |
+| **Frontend** | Vue 3, Vite, TailwindCSS | Vue 3.4+, 集成自定义 Rhine 像素交互与 Vue-I18n 11 |
+| **Database** | PostgreSQL | 支持 PG 15+（容器内集成向前迁移引擎与双 247 兼容校验） |
+| **Cache** | Redis | Redis 7+（用于高并发流控、OAuth 缓存与黏性会话调度） |
+| **Deployment**| Docker, Docker Compose | 无 root 容器（UID 1000）、不可变 OCI 多架构镜像 |
+
+---
+
+## 🚢 快速实机部署
+
+本仓库专为实机 Docker 环境优化，部署前请确保宿主机已安装 **Docker Engine (24.0+)** 与 **Docker Compose 插件**。
+
+### 1. 获取源码与初始化环境
 
 ```bash
 git clone https://github.com/y1yyum/sub2api-custom-public.git
 cd sub2api-custom-public
+
+# 复制环境变量模板
 cp deploy/.env.example deploy/.env
 ```
 
-编辑 `deploy/.env`，至少设置数据库密码、固定的 `JWT_SECRET` 和 `TOTP_ENCRYPTION_KEY`。不要将 `deploy/.env` 提交到 Git。
+编辑 `deploy/.env`，设置安全的密码与加密盐（**切勿将 `.env` 提交到公开仓库**）：
+```ini
+# 必须配置项
+POSTGRES_PASSWORD=your_strong_db_password
+JWT_SECRET=generate_a_random_jwt_secret_at_least_32_chars
+TOTP_ENCRYPTION_KEY=generate_a_random_32_byte_base64_string
+```
 
+### 2. 使用官方预构建镜像运行（推荐）
+
+直接在 `deploy/.env` 中指定 `v0.4.0` 镜像版本即可跳过本地耗时编译：
+
+```ini
+SUB2API_IMAGE=ghcr.io/y1yyum/sub2api-custom-public:0.4.0
+```
+
+执行容器拉取与启动：
+```bash
+# 验证配置并启动服务
+docker compose -f deploy/docker-compose.local.yml pull sub2api
+docker compose -f deploy/docker-compose.local.yml up -d --no-build
+
+# 检查健康检查状态（正常应返回 200 HTTP OK）
+curl -f http://127.0.0.1:8080/health
+```
+
+服务默认监听 `0.0.0.0:8080`，可通过反向代理（Nginx/Caddy）配置 SSL 域名访问。所有业务持久化数据安全存放于 `deploy/data/`、`deploy/postgres_data/` 与 `deploy/redis_data/`。
+
+### 3. 本地构建并运行
+
+如需自行基于源码构建镜像：
 ```bash
 docker compose -f deploy/docker-compose.local.yml config
 docker compose -f deploy/docker-compose.local.yml up -d --build
-curl http://127.0.0.1:8080/health
 ```
 
-默认应用地址为 `http://127.0.0.1:8080`，容器监听 `0.0.0.0:8080`。数据写入 `deploy/data/`、`deploy/postgres_data/` 和 `deploy/redis_data/`，这些目录需要纳入备份范围。
+---
 
-### 使用预构建镜像
+## 🔄 升级与运维指南
 
-每个版本都会发布 `linux/amd64` 和 `linux/arm64` 镜像到 GHCR。在 `deploy/.env` 中设置 `SUB2API_IMAGE`，即可跳过本地构建：
+### 标准升级流程（从 v0.3.1 升至 v0.4.0）
 
-```bash
-SUB2API_IMAGE=ghcr.io/y1yyum/sub2api-custom-public:0.4.0-rc.1
-```
+升级前请务必完整备份 `deploy/` 下的持久化数据目录及 `.env` 配置文件：
 
 ```bash
+# 1. 备份数据与配置
+tar -czvf sub2api-backup-$(date +%F).tar.gz deploy/postgres_data deploy/data deploy/.env
+
+# 2. 拉取最新主分支代码
+git pull --ff-only origin main
+
+# 3. 更新镜像并启动（应用会自动安全执行向前迁移）
 docker compose -f deploy/docker-compose.local.yml pull sub2api
 docker compose -f deploy/docker-compose.local.yml up -d --no-build
-```
-
-生产环境建议按 Release 说明中的 `@sha256:` Digest 固定镜像。镜像使用 Sigstore 无密钥签名，并附带构建来源证明和 SBOM，验证命令见对应 Release 说明。无法访问 GHCR 时，可下载 Release 附件中的镜像包，用 `docker load` 导入。
-
-## 升级与回滚
-
-升级前先备份 `deploy/` 下的数据目录和 `.env`。源码部署使用以下流程：
-
-```bash
-git pull --ff-only origin main
-docker compose -f deploy/docker-compose.local.yml up -d --build
 docker compose -f deploy/docker-compose.local.yml ps
 ```
 
-应用启动时会执行向前数据库迁移。不要删除数据目录来解决迁移问题；出现异常时保留日志和备份，并按对应版本的发布说明处理。
+### 回滚防线与注意事项
 
-使用预构建镜像时，把 `SUB2API_IMAGE` 改为新版本，再执行 `pull` 和 `up -d --no-build`。回滚前必须单独确认旧镜像、数据库和配置兼容；不要无条件恢复数据库备份。
+1. **切勿单方面覆盖旧数据库或直接回退旧镜像**：
+   - `v0.4.0` 的退款挂起事务具备严格状态机。若盲目回退到旧版本 Worker，可能导致旧进程对挂起订单重复扣款。
+   - 若系统中已创建并启用了 Scoped Admin API Keys，旧版代码不具备受限鉴权逻辑，不得在存活受限密钥的情况下回退至旧版本 Auth 模块。
+2. **禁止删除数据目录**：绝不要试图通过删除 PostgreSQL 数据目录来「解决」迁移报错。如遇异常，先暂停 Worker 任务，并参考 [升级与退款放行说明](docs/upgrades/stable-0.2.18-payment.md)。
 
-**支付退款不能只换旧镜像或回灌旧数据库。** v0.2.18 同步后的 pending 退款会保留余额/订阅扣减，旧 worker 可能再次扣减；数据库恢复也不能撤销外部已发生的支付或退款。先停止相关处理和新旧 worker 混跑，保留审计并逐单对账，再决定前向修复或协调恢复。见[支付放行与回滚手册](docs/upgrades/stable-0.2.18-payment.md)及[图片分组禁用状态保留](docs/upgrades/stable-0.2.18-image-groups.md)。
+---
 
-更新器会查询 [公开仓库 Releases](https://github.com/y1yyum/sub2api-custom-public/releases)，但 Release 只提供容器镜像，不提供可在线替换的二进制包，因此管理后台的在线更新不可用，请按上面的镜像流程升级。
+## 🔐 供应链安全与可验证交付
 
-## CI 与发布
+为保障生产环境交付的不可篡改性，本仓库严格执行供应链安全透明化与隔离验证：
 
-- `.github/workflows/ci.yml`：推送到 `main` 和每个 Pull Request 时运行。内容包括：
-  - 后端：`go vet`、编译和 `govulncheck`
-  - 前端：类型检查与构建
-  - 镜像：构建后跑冒烟测试，覆盖迁移、登录、鉴权和重启后的数据持久化
-- `.github/workflows/release.yml`：推送 `vX.Y.Z` 标签时运行，流程如下：
-  1. 校验标签与 `backend/cmd/server/VERSION` 一致，且标签指向的提交在 `main` 上。
-  2. 跑完整 CI。
-  3. 构建双架构镜像，先按 Digest 推送到 GHCR。
-  4. 对该 Digest 跑冒烟测试，通过后才打 `X.Y.Z`、`X.Y` 和 `latest` 标签。
-  5. 签名镜像，生成构建来源证明和 SBOM，创建 GitHub Release。
+- **自动化 CI 门禁**：每个 PR 必须通过独立无外网提权的测试闭包，覆盖带大小限制的流式传输、双架构构建及全量数据持久化冒烟测试。
+- **Sigstore Cosign 无密钥镜像签名**：发布镜像与 GitHub Actions 强绑定。您可在生产部署前核验镜像签名：
+  ```bash
+  cosign verify ghcr.io/y1yyum/sub2api-custom-public:0.4.0 \
+    --certificate-identity-regexp "https://github.com/y1yyum/sub2api-custom-public" \
+    --certificate-oidc-issuer "https://token.actions.githubusercontent.com"
+  ```
+- **SBOM 与 SLSA 认证**：每个正式 Release 均同步输出 CycloneDX SBOM 清单与构建来源证明文件，所有组件依赖透明可追溯。无法直连 GHCR 时，可从 Release 下载离线镜像包使用 `docker load` 导入。
 
-  带预发布后缀的标签（如 `v0.4.0-rc.1`）发布为 Pre-release，不更新 `X.Y` 和 `latest`。也可以手动触发该工作流，为已存在的标签补发镜像；已存在的 Release 不会被覆盖。
+---
 
-发布新版本：
+## 📚 延伸文档导航
 
-```bash
-# 先在 main 上把 backend/cmd/server/VERSION 改为新版本并合并
-git tag v0.4.0-rc.1 origin/main
-git push origin v0.4.0-rc.1
-```
+- 支付渠道集成与费率配置：[PAYMENT.md](docs/PAYMENT.md) | [PAYMENT_CN.md](docs/PAYMENT_CN.md)
+- 受限管理员密钥规范：[admin-api-keys.md](docs/admin-api-keys.md)
+- 公开源码同步历史：[UPSTREAM_SYNC.md](docs/UPSTREAM_SYNC.md)
+- 合规承诺书：[管理员合规承诺 (中文)](docs/legal/admin-compliance.zh.md) | [Compliance Statement (EN)](docs/legal/admin-compliance.en.md)
+- v0.4.0 升级专项指南：
+  - [v0.4.0-rc.1 发行准备说明](docs/releases/v0.4.0-rc.1.md)
+  - [v0.2.19 内容兼容规范](docs/upgrades/stable-0.2.19.md)
+  - [图片分组策略与禁用保留](docs/upgrades/stable-0.2.18-image-groups.md)
+  - [支付状态机与回滚安全手册](docs/upgrades/stable-0.2.18-payment.md)
 
-## 版本号规则
+---
 
-项目使用纯数字 Semantic Versioning，Git 标签格式为 `vMAJOR.MINOR.PATCH`。
+## ⚖️ 许可证与免责声明
 
-| 变更类型 | 版本变化 |
-| --- | --- |
-| 向后兼容的缺陷或安全修复 | `PATCH`，例如 `0.3.0` → `0.3.1` |
-| 向后兼容的新功能、配置项或数据库迁移 | `MINOR`，例如 `0.3.1` → `0.4.0` |
-| 不兼容的 API、配置、数据迁移或运行行为 | `MAJOR`，例如 `0.4.0` → `1.0.0` |
-
-首个公开版本为 `v0.3.0`。每个版本标签只创建一次，不复用或移动已发布标签。发布构建、二进制版本、Release 资产和校验和必须来自同一个提交。无 Git 标签的源码构建使用 `backend/cmd/server/VERSION` 作为版本回退值。
-
-## 相关文件
-
-- [公开源码同步记录](docs/UPSTREAM_SYNC.md)
-- [Docker Compose 配置](deploy/docker-compose.local.yml)
-- [环境变量示例](deploy/.env.example)
-- [完整配置示例](deploy/config.example.yaml)
-- [支付配置说明](docs/PAYMENT.md)
-- [中文支付配置说明](docs/PAYMENT_CN.md)
-- [管理员合规承诺](docs/legal/admin-compliance.zh.md)
-- [许可证声明](NOTICE.md)
-
-## 许可证与归属
-
-项目主许可证为 [GNU LGPL v3.0](LICENSE)。`COPYING` 保留 LGPL v3 所引用的 GNU GPL v3 文本；`NOTICE.md` 和前端 `public/NOTICE-*.txt` 保留上游及第三方归属声明。第三方依赖、图标、页面参考实现和其他素材仍受各自许可证和权利范围约束。
-
-本项目是上游项目的二开版本，不是上游官方发行。上游 Go module/import 路径保持为 `github.com/Wei-Shaw/sub2api`，用于维护源码兼容性。
-
-## 安全
-
-不要在 Issue、Pull Request、日志或仓库中公开生产凭据、用户 Token、OAuth secret、数据库密码或 `.env` 文件。发现安全问题时，请使用仓库的私密漏洞报告入口；公开部署前还应自行审查主机、防火墙、反向代理和备份策略。
+1. **开源许可证**：本项目核心沿用 [GNU LGPL v3.0](LICENSE)；第三方组件及依赖项权利归各自作者所有，详见 [NOTICE.md](NOTICE.md)。
+2. **免责与合规声明**：
+   - 本项目为个人技术研究与接口中继实验项目，非 upstream 官方商业产品。
+   - 使用本项目需严格遵守各 AI 上游服务商（Anthropic、OpenAI、Google 等）的用户服务条款及所在地区的法律法规。
+   - 请勿在 Issue、PR、日志或公开代码中提交或泄露生产凭据、数据库密码或 API 密钥。发现安全隐患请通过 GitHub 提供的 [Private Vulnerability Reporting](https://github.com/y1yyum/sub2api-custom-public/security/advisories) 入口私密提交。
