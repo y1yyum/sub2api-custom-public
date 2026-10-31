@@ -331,7 +331,7 @@ jobs:
         with:
           python: 'true'
       # PyYAML (requirements-release.txt) is preinstalled in the job image.
-      - run: python3 -m unittest discover -s .github/release-tools -p 'test_release_matrix.py'
+      - run: python3 -m unittest discover -s .github/release-tools -p 'test_*.py'
       - run: bash -n .github/release-tools/release-images.sh
 
   # Jobs outside the change scope are skipped and count as passed; the scope
@@ -363,3 +363,29 @@ jobs:
           check release-helpers "success skipped" "${{ needs.release-helpers.result }}"
           test "$failed" -eq 0
           echo "Local CI passed for ${{ github.sha }}"
+      - name: Checkout CI receipt source
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 1
+          persist-credentials: false
+      - name: Record GitHub CI evidence
+        env:
+          CI_EVIDENCE_PATH: ${{ runner.temp }}/local-ci-evidence/ci-evidence.json
+          CI_SCOPE_UNIT: ${{ needs.changes.outputs.unit }}
+          CI_SCOPE_UNIT_SELECTED: ${{ needs.changes.outputs.unit_selected }}
+          CI_SCOPE_INTEGRATION: ${{ needs.changes.outputs.integration }}
+          CI_SCOPE_INTEGRATION_SELECTED: ${{ needs.changes.outputs.integration_selected }}
+          CI_SCOPE_LINT: ${{ needs.changes.outputs.lint }}
+          CI_SCOPE_FRONTEND: ${{ needs.changes.outputs.frontend }}
+          CI_SCOPE_SHELL: ${{ needs.changes.outputs.shell }}
+          CI_SCOPE_RELEASE: ${{ needs.changes.outputs.release }}
+          CI_RESULTS: '{"changes":"${{ needs.changes.result }}","unit":"${{ needs.unit.result }}","integration":"${{ needs.integration.result }}","golangci-lint":"${{ needs.golangci-lint.result }}","frontend":"${{ needs.frontend.result }}","security":"${{ needs.security.result }}","shell":"${{ needs.shell.result }}","release-helpers":"${{ needs.release-helpers.result }}"}'
+        run: python3 .github/release-tools/ci_evidence.py record --out "$CI_EVIDENCE_PATH"
+      - name: Upload GitHub CI evidence
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
+        with:
+          name: local-ci-evidence-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/local-ci-evidence/ci-evidence.json
+          if-no-files-found: error
+          retention-days: 30
