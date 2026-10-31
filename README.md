@@ -67,9 +67,10 @@ docker compose -f deploy/docker-compose.local.yml ps
 
 ## CI 与发布
 
-- `.github/workflows/ci.yml`：普通 PR 按差异选择关键回归，保留常驻安全门禁；手动运行执行完整测试。合入 main 不重复运行。
-  后端继续禁外网隔离执行，完整单元测试使用慢用例分片；前端快速通道为 Node 24，完整通道覆盖 Node 20/24。
-  发布标签通过 Release 调用完整 CI 并执行镜像冒烟，统一门禁名为 `CI gate`。范围、缓存及验证方式见[CI 说明](docs/CI_WORKFLOW.md)。
+- `.github/workflows/ci.yml`：推送到 `main` 和每个 Pull Request 时运行。内容包括：
+  - 后端：`go vet`、编译和 `govulncheck`
+  - 前端：类型检查与构建
+  - 镜像：构建后跑冒烟测试，覆盖迁移、登录、鉴权和重启后的数据持久化
 - `.github/workflows/release.yml`：推送 `vX.Y.Z` 标签时运行，流程如下：
   1. 校验标签与 `backend/cmd/server/VERSION` 一致，且标签指向的提交在 `main` 上。
   2. 跑完整 CI。

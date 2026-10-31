@@ -1,0 +1,33 @@
+{
+  "schema": 1,
+  "profile": "internal",
+  "preserved_tests": {
+    "backend/internal/server/api_contract_test.go": {
+      "sha256": "c8b3b81165e5fa46dbbafef977a159614404d5e7cac82777a614fbe6b2bb3fb5",
+      "reason": "内部已维护的 API 契约或前端权限/模式断言；保留原始字节，禁止应用公开副本 adapter。"
+    },
+    "frontend/src/router/__tests__/feature-access.spec.ts": {
+      "sha256": "f125696c3fd845854865aeb63b54e7da38bfe713735304d4406883227d66a5c9",
+      "reason": "内部已维护的 API 契约或前端权限/模式断言；保留原始字节，禁止应用公开副本 adapter。"
+    },
+    "frontend/src/views/user/__tests__/ChannelStatusView.mode.spec.ts": {
+      "sha256": "7c88cf504b8f63272be272f9d97fd9f93fc4c2f8504b3154e2ff80605f710f19",
+      "reason": "内部已维护的 API 契约或前端权限/模式断言；保留原始字节，禁止应用公开副本 adapter。"
+    }
+  },
+  "production_packages": {
+    "backend/cmd/cleanup-ingress-reject-logs": {
+      "files": {
+        "backend/cmd/cleanup-ingress-reject-logs/README.md": "89fd2a610915925760b14e58cb437ef7ee9d69d6df8057acfd4eab5d22507e05",
+        "backend/cmd/cleanup-ingress-reject-logs/main.go": "1bbaad2349b94ef86fe39f4c1fff79e4e7d05061c2748d510c1245bf753ce75c"
+      },
+      "reason": "该 CLI 在内部仓库有真实生产实现；固定全部生产文件清单及哈希，保留原测试进入编译与执行 registry。"
+    },
+    "backend/cmd/profit-preview": {
+      "files": {
+        "backend/cmd/profit-preview/main.go": "cd59aa964071daf98db39a23f6ec1d34103d6190817c1f59072ebe6a9b257859"
+      },
+      "reason": "该 CLI 在内部仓库有真实生产实现；固定全部生产文件清单及哈希，保留原测试进入编译与执行 registry。"
+    }
+  }
+}

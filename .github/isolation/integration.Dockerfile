@@ -19,8 +19,6 @@ COPY --from=go_toolchain /usr/local/go /usr/local/go
 COPY --from=redis_binary /usr/local/bin/redis-server /usr/local/bin/redis-server
 ENV PATH=/usr/local/go/bin:/usr/bin:/bin GOTOOLCHAIN=local GOMODCACHE=/opt/gomodcache
 WORKDIR /prepare
-RUN --network=none GOCACHE=/tmp/build-cache go build -race std \
-    && chown -R 65532:65532 /tmp/build-cache
 COPY backend/go.mod backend/go.sum ./
 RUN test "$(go version | awk '{print $3}')" = go1.27.3 \
     && go mod download && go mod verify \
@@ -42,7 +40,6 @@ COPY source-manifest.json /opt/isolation/source-manifest.json
 COPY isolated-unit-entrypoint.py /opt/isolation/isolated-unit-entrypoint.py
 COPY integration-bootstrap.py /opt/isolation/integration-bootstrap.py
 COPY compile-isolated-tests.py /opt/isolation/compile-isolated-tests.py
-COPY test-plan.py planned-tests.py /opt/isolation/
 ARG SOURCE_MANIFEST_SHA256
 RUN mkdir -p /opt/isolation/compiled && chown 65532:65532 /opt/isolation/compiled
 WORKDIR /src/backend

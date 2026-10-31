@@ -246,13 +246,7 @@ def verify_compiled(source, doc, expected_digest, suite, compiled=COMPILED_ROOT)
     flags = ['-p', '1', '-race', '-tags=' + suite, '-mod=readonly']
     require(receipt.get('build_flags') == flags and receipt.get('test_binaries_executed') is False and
             receipt.get('network_mode') == 'none_verified_loopback_only', 'compiled isolation or flags mismatch')
-    import runpy
-    plan_contract = runpy.run_path(str(Path(__file__).with_name('test-plan.py')))
-    plan = doc.get('ci_plan')
-    if plan is not None:
-        plan_contract['validate'](plan, suite, doc['source_commit'])
-    require(receipt.get('inventory_command') == [GO, 'list', '-json', '-race', '-tags=' + suite, '-mod=readonly',
-                                               *plan_contract['package_args'](plan)], 'package discovery flags differ from compilation')
+    require(receipt.get('inventory_command') == [GO, 'list', '-json', '-race', '-tags=' + suite, '-mod=readonly', './...'], 'package discovery flags differ from compilation')
     raw_inventory = inventory_path.read_bytes()
     require(digest(raw_inventory) == receipt.get('package_inventory_sha256'), 'package inventory checksum mismatch')
     inventory, records = json.loads(raw_inventory), receipt.get('packages')
@@ -298,14 +292,12 @@ def verify_compiled(source, doc, expected_digest, suite, compiled=COMPILED_ROOT)
         require(path.is_file(), 'compiled directory contains special file')
         actual.add(path.relative_to(compiled).as_posix())
     require(actual == expected_files, 'compiled file inventory mismatch')
-    if plan is not None and plan['mode'] == 'fast':
-        require(seen == set(plan['packages']), 'compiled packages differ from the source plan')
     return receipt, digest(raw)
 
 
 def binary_command(record):
     return [GO, 'tool', 'test2json', '-p', record['package'], '-t',
-            str(COMPILED_ROOT / record['binary']), *TEST_FLAGS, '-test.paniconexit0']
+            str(COMPILED_ROOT / record['binary']), *TEST_FLAGS]
 
 
 SERVICE_PACKAGE = 'github.com/Wei-Shaw/sub2api/internal/service'
@@ -442,12 +434,6 @@ def cleanup_test_caches(paths=(Path('/tmp/gocache'), Path('/tmp/gotmp'))):
 
 
 def execute_suite(source, doc, env, expected_digest, suite, execute, fixture=None):
-    if 'ci_plan' in doc:
-        import runpy
-        from types import SimpleNamespace
-        planned = runpy.run_path(str(Path(__file__).with_name('planned-tests.py')))
-        return planned['execute_suite'](SimpleNamespace(**globals()), source, doc, env,
-                                        expected_digest, suite, execute, fixture)
     compiled, compiled_digest = verify_compiled(source, doc, expected_digest, suite)
     for name in ('home', 'gopath', 'gocache', 'gotmp'):
         Path('/tmp', name).mkdir(mode=0o700, exist_ok=True)

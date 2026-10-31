@@ -1,5 +1,8 @@
-# Slow unit tests imported from the development CI profile.
-# Full runs partition these tests; every case still runs exactly once.
+# Slow unit tests: package, top-level test, seconds in the profiled run.
+# .gitea/unit-full.sh runs these in parallel shards beside the rest of their
+# package during full unit runs; nothing here is skipped. Regenerate with
+#   go test -tags=unit -json ./... | python3 ../.gitea/slow-unit-tests.py > ../.gitea/slow-unit-tests.txt
+# A renamed or deleted test simply runs with the rest of its package.
 
 internal/handler TestHandleFailoverError_SameAccountRetry 6.51
 internal/handler TestCustomLateDisconnectDrainControls 4.01

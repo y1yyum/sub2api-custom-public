@@ -11,7 +11,6 @@ import hashlib
 import json
 import os
 import re
-import runpy
 from pathlib import Path
 import shutil
 import subprocess
@@ -160,7 +159,7 @@ def audit_required_integration(expected, terminals, suite):
     return {'status': 'passed' if passed else 'failed', 'tests': results}
 
 
-def collect_stream(work, expected_commit, expected_manifest, suite='unit', expected_plan=None):
+def collect_stream(work, expected_commit, expected_manifest, suite='unit'):
     """Preserve streamed receipts even after tmpfs/container teardown."""
     receipts, counts, skipped = [], {'pass': 0, 'fail': 0, 'skip': 0}, []
     service_runs = Counter()
@@ -190,29 +189,10 @@ def collect_stream(work, expected_commit, expected_manifest, suite='unit', expec
     receipt['test_event_counts'] = counts
     receipt['skipped_tests'] = skipped
     receipt['streamed_receipt_count'] = len(receipts)
-    if expected_plan is None:
-        receipt['actual_service_coverage'] = audit_service_coverage(receipt, service_runs, suite)
-    else:
-        if receipt.get('ci_plan') != expected_plan:
-            raise RuntimeError('runtime plan differs from the source-bound plan')
-        contract = runpy.run_path(str(ROOT / '.github/scripts/test-plan.py'))
-        compiled_raw = (work / 'compile-receipt.json').read_bytes()
-        compiled = json.loads(compiled_raw)
-        if (hashlib.sha256(compiled_raw).hexdigest() != receipt.get('compile_receipt_sha256') or
-                compiled.get('source_manifest_sha256') != expected_manifest or
-                compiled.get('source_commit') != expected_commit):
-            raise RuntimeError('compiled plan provenance mismatch')
-        receipt['planned_coverage'] = contract['audit'](receipt, terminals, expected_plan, compiled)
+    receipt['actual_service_coverage'] = audit_service_coverage(receipt, service_runs, suite)
     manifest = json.loads((ROOT / '.github/upgrade/manifest.json').read_text())
-    required = required_integration_tests(manifest)
-    if expected_plan is not None and expected_plan['mode'] == 'fast':
-        selected = expected_plan['packages']
-        required = [(package, name) for package, name in required if package in selected and
-                    (selected[package] is None or name in selected[package])]
-    receipt['required_integration_coverage'] = (
-        {'status': 'not_applicable', 'tests': []}
-        if expected_plan is not None and expected_plan['mode'] == 'fast' and not required
-        else audit_required_integration(required, terminals, suite))
+    receipt['required_integration_coverage'] = audit_required_integration(
+        required_integration_tests(manifest), terminals, suite)
     (work / 'isolation-receipt.json').write_text(json.dumps(receipt, indent=2)+'\n')
     if (not receipts or any(r.get('source_commit') != expected_commit or
                              r.get('manifest_sha256') != expected_manifest or
@@ -224,10 +204,9 @@ def collect_stream(work, expected_commit, expected_manifest, suite='unit', expec
             receipt.get('suite') != suite or
             len(receipts) != 2 or receipt.get('test_exit_code') is None):
         raise RuntimeError('incomplete or mismatched runtime isolation evidence')
-    if expected_plan is None and receipt['actual_service_coverage']['status'] != 'passed':
+    if receipt['actual_service_coverage']['status'] != 'passed':
         raise RuntimeError('actual service partition coverage failed; see isolation-receipt.json')
-    accepted = {'passed', 'not_applicable'} if expected_plan is not None and expected_plan['mode'] == 'fast' else {'passed'}
-    if suite == 'integration' and receipt['required_integration_coverage']['status'] not in accepted:
+    if suite == 'integration' and receipt['required_integration_coverage']['status'] != 'passed':
         raise RuntimeError('mandatory integration tests missing, skipped, duplicated or failed')
     if suite == 'integration' and (receipt.get('fixture_receipt', {}).get('cleanup') not in {'stopped', 'stopped-immediate'} or
                                    not receipt.get('fixture_receipt', {}).get('postgres_ready')):
@@ -247,7 +226,7 @@ def allowed_support_path(path):
                       'backend/internal/service/isolated_scoped_admin_unit_test.go'}))
 
 
-def prepare_context(work, suite='unit', plan_path=None):
+def prepare_context(work, suite='unit'):
     if output(['git', '-C', str(ROOT), 'status', '--porcelain', '--untracked-files=no']):
         raise RuntimeError('commit the exact tracked source before preparing isolation')
     overlay, context = work / 'overlay', work / 'context'
@@ -295,20 +274,10 @@ def prepare_context(work, suite='unit', plan_path=None):
         files[path] = sha(dest)
     manifest = {'schema': 1, 'source_commit': receipt['tested_commit'],
                 'source_receipt_sha256': sha(context / 'validation-receipt.json'), 'files': files}
-    if plan_path is not None:
-        if plan_path.is_symlink():
-            raise RuntimeError('test plan symlink prohibited')
-        plan = json.loads(plan_path.read_text())
-        if plan.get('schema') != 1 or plan.get('source_commit') != receipt['tested_commit']:
-            raise RuntimeError('test plan source commit mismatch')
-        contract = runpy.run_path(str(ROOT / '.github/scripts/test-plan.py'))
-        manifest['ci_plan'] = contract['validate'](plan['suites'][suite], suite, receipt['tested_commit'])
     (context / 'source-manifest.json').write_text(json.dumps(manifest, sort_keys=True, indent=2)+'\n')
     shutil.copy2(ROOT / ('.github/isolation/'+suite+'.Dockerfile'), context / 'Dockerfile')
     shutil.copy2(ROOT / '.github/scripts/isolated-unit-entrypoint.py', context / 'isolated-unit-entrypoint.py')
     shutil.copy2(ROOT / '.github/scripts/compile-isolated-tests.py', context / 'compile-isolated-tests.py')
-    for helper in ('test-plan.py', 'planned-tests.py'):
-        shutil.copy2(ROOT / '.github/scripts' / helper, context / helper)
     if suite == 'integration':
         shutil.copy2(ROOT / '.github/scripts/integration-bootstrap.py', context / 'integration-bootstrap.py')
     return context, manifest
@@ -318,14 +287,12 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('output_directory', type=Path)
     parser.add_argument('--suite', choices=['unit', 'integration'], default='unit')
-    parser.add_argument('--plan', type=Path)
-    parser.add_argument('--build-cache', type=Path)
     args = parser.parse_args()
     work = args.output_directory.resolve()
     if work.exists() or work == ROOT or ROOT in work.parents:
         parser.error('use a fresh output directory outside the repository')
     work.mkdir(mode=0o700, parents=True)
-    context, source = prepare_context(work, args.suite, args.plan)
+    context, source = prepare_context(work, args.suite)
     run(['docker', 'info'], stdout=subprocess.DEVNULL)
     # Only public toolchain/modules/OS dependencies are fetched, never tests.
     images = {'GO_IMAGE': BASE_IMAGE}
@@ -351,16 +318,6 @@ def main():
                            if line.startswith(('MemTotal:', 'MemAvailable:', 'SwapTotal:'))}}
     (work / 'build-capacity.json').write_text(json.dumps(capacity, indent=2)+'\n')
     build = ['docker', 'build', '--progress=plain', '--build-arg', 'SOURCE_MANIFEST_SHA256='+manifest_sha]
-    cache_export = work / 'build-cache-export'
-    if args.build_cache is not None:
-        cache = args.build_cache.resolve()
-        if cache.parent != work.parent or cache.name != args.suite + '-build-cache':
-            parser.error('build cache must be the suite-named sibling of the output directory')
-        build = ['docker', 'buildx', 'build', '--load', '--progress=plain',
-                 '--build-arg', 'SOURCE_MANIFEST_SHA256='+manifest_sha,
-                 '--cache-to', 'type=local,dest=' + str(cache_export) + ',mode=max']
-        if (cache / 'index.json').is_file():
-            build += ['--cache-from', 'type=local,src=' + str(cache)]
     for argument, digest in resolved.items():
         build += ['--build-arg', argument+'='+digest]
     try:
@@ -369,10 +326,6 @@ def main():
                                        stdout=log, stderr=subprocess.STDOUT, timeout=2400)
         if completed.returncode:
             raise RuntimeError('offline compile/image build failed; inspect image-build.log (no tests executed)')
-        if args.build_cache is not None:
-            if cache.exists():
-                cache.rename(work / 'previous-build-cache')
-            cache_export.rename(cache)
     finally:
         capacity['after_build'] = dict(zip(('total', 'used', 'free'), shutil.disk_usage(docker_root)))
         (work / 'build-capacity.json').write_text(json.dumps(capacity, indent=2)+'\n')
@@ -422,7 +375,7 @@ def main():
         run(['docker', 'cp', cid+':/opt/isolation/compiled/compile-receipt.json', str(work / 'compile-receipt.json')])
         run(['docker', 'cp', cid+':/opt/isolation/modules.json', str(work / 'modules.json')])
         run(['docker', 'cp', cid+':/opt/isolation/os-packages.txt', str(work / 'os-packages.txt')])
-        runtime = collect_stream(work, source['source_commit'], manifest_sha, args.suite, source.get('ci_plan'))
+        runtime = collect_stream(work, source['source_commit'], manifest_sha, args.suite)
         if runtime['test_exit_code'] != state['ExitCode']:
             raise RuntimeError('test exit status does not match container status')
         raise SystemExit(exit_code)

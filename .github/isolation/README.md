@@ -1,9 +1,5 @@
 # Offline unit-test execution boundary
 
-> 2026-10-31：当前 CI 使用源码绑定的快速或完整计划，见 [CI 说明](../../docs/CI_WORKFLOW.md)。
-> 快速计划记录选中与未选中用例；完整计划保留全部覆盖并对预先列明的慢用例分片。
-> 未传计划时仍保留下文的历史完整执行路径。禁外网、非 root、只读根及证据校验边界保持。
-
 This changes the previously quarantined operation: **application/test code only
 executes in a Docker container with no external network interface**. It does not
 authorize real cloud requests and does not claim the old unrestricted suite is safe.
