@@ -415,7 +415,7 @@
     "backend/migrations/9001_relay_monitor.sql": "7dcd4c6882e6d0a6e739683960507f7075ee3da8e0eb2261f7b031f81cd96e9b",
     "backend/migrations/9002_relay_monitor_analytics_notifications.sql": "4d59c998261c6c369552572304bcacc0c215b86b423562e4ca3ccb6c04c0b3b9",
     "backend/migrations/9003_drop_relay_monitor.sql": "099a0d2b34d5366e72cf30847d5168ff97ea20e1d3f59f90aaf3896eb13fcfe7",
-    "backend/cmd/server/VERSION": "79e3f22ca37c7fdf4c29ae3648d6b008c3cb6547260a453409275470919dc674",
+    "backend/cmd/server/VERSION": "40b8eb4000a913a7791090535f291d3d369874162a89ef3c9e3d4e887a1b9e79",
     ".github/workflows/release.yml": "06b770b3acd11c04cbd8000e39bfc004f7f1edd1978f0c8e782885e7804986d1",
     "Dockerfile": "4de76915b6f9a13a7b8b3397805d660c3ce2c424f68505df4b63f186ba7844ba",
     "NOTICE.md": "a4eb3b38abf78fb14037c1ee720c48e395af0d68ee7e0f7dd9cbc00e20d8587a",
