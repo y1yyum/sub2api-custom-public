@@ -1,7 +1,7 @@
-# Release：推送 vX.Y.Z tag 后，跑完 CI，构建 linux/amd64 + linux/arm64 镜像推送到 GHCR，
+# rc.1 专用发行：核对已通过的完整 CI 与相同源码树，重新扫描漏洞后构建双架构镜像，
 # 冒烟测试通过后才打版本标签，签名并生成来源证明与 SBOM，最后创建 GitHub Release。
 # 手动触发可为已存在的 tag 补发镜像；Release 已存在时不覆盖其说明和附件。
-name: Release
+name: Release (reuse trusted CI)
 
 on:
   push:
@@ -66,11 +66,56 @@ jobs:
           } >> "$GITHUB_OUTPUT"
 
   ci:
-    name: CI
+    name: Verify trusted CI evidence
     needs: prepare
-    uses: ./.github/workflows/ci.yml
-    with:
-      ref: ${{ needs.prepare.outputs.commit }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      actions: read
+      pull-requests: read
+    outputs:
+      evidence: ${{ steps.evidence.outputs.evidence }}
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          ref: ${{ needs.prepare.outputs.commit }}
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Checkout receipt verifier
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          ref: ${{ github.sha }}
+          path: .release-tools
+          persist-credentials: false
+          sparse-checkout: |
+            scripts/verify-release-ci-evidence.py
+            scripts/test_verify_release_ci_evidence.py
+      - name: Check receipt rejection cases
+        run: python3 .release-tools/scripts/test_verify_release_ci_evidence.py
+      - uses: actions/setup-go@924ae3a1cded613372ab5595356fb5720e22ba16 # v6
+        with:
+          go-version-file: backend/go.mod
+          cache-dependency-path: backend/go.sum
+      - name: Refresh source vulnerability scan
+        working-directory: backend
+        run: |
+          set -euo pipefail
+          want="go$(awk '$1 == "go" {print $2}' go.mod)"
+          go version | grep -q "$want "
+          go mod verify
+          go install golang.org/x/vuln/cmd/govulncheck@v1.9.0
+          "$(go env GOPATH)/bin/govulncheck" ./...
+      - name: Verify complete trusted CI and identical source tree
+        id: evidence
+        env:
+          GH_TOKEN: ${{ github.token }}
+          SOURCE_TAG: ${{ needs.prepare.outputs.tag }}
+          SOURCE_COMMIT: ${{ needs.prepare.outputs.commit }}
+        run: |
+          python3 .release-tools/scripts/verify-release-ci-evidence.py \
+            --tag "$SOURCE_TAG" --source-commit "$SOURCE_COMMIT" \
+            --out release-ci-evidence.json
 
   image:
     name: Build and publish image
@@ -158,6 +203,27 @@ jobs:
       - uses: sigstore/cosign-installer@6f9f17788090df1f26f669e9d70d6ae9567deba6 # v4.1.2
       - name: Sign image
         run: cosign sign --yes "$IMAGE@${{ steps.build.outputs.digest }}"
+
+      - name: Bind released source and trusted CI to the image
+        env:
+          CI_EVIDENCE: ${{ needs.ci.outputs.evidence }}
+          IMAGE_DIGEST: ${{ steps.build.outputs.digest }}
+          SOURCE_COMMIT: ${{ needs.prepare.outputs.commit }}
+        run: |
+          mkdir -p dist
+          python3 - <<'PY'
+          import base64, json, os
+          from pathlib import Path
+          evidence = json.loads(base64.b64decode(os.environ['CI_EVIDENCE']))
+          assert evidence['source_commit'] == os.environ['SOURCE_COMMIT']
+          evidence['image_digest'] = os.environ['IMAGE_DIGEST']
+          evidence['security_refresh'] = {'tool': 'govulncheck', 'version': 'v1.9.0', 'conclusion': 'success'}
+          evidence['publisher_run_url'] = os.environ['GITHUB_SERVER_URL'] + '/' + os.environ['GITHUB_REPOSITORY'] + '/actions/runs/' + os.environ['GITHUB_RUN_ID']
+          Path('dist/release-ci-evidence.json').write_text(json.dumps(evidence, indent=2) + '\n')
+          PY
+          cosign attest --yes \
+            --type https://github.com/y1yyum/sub2api-custom-public/attestations/release-source/v1 \
+            --predicate dist/release-ci-evidence.json "$IMAGE@$IMAGE_DIGEST"
 
       - uses: actions/attest-build-provenance@e8998f949152b193b063cb0ec769d69d929409be # v2
         with:
@@ -253,7 +319,7 @@ jobs:
             echo
             echo "应用启动时自动执行向前数据库迁移，升级前务必备份数据目录与 \`.env\`。"
             if [ -n "$PREV" ]; then
-              MIGRATIONS="$(git diff --name-only --diff-filter=A "$PREV" "$COMMIT" -- backend/migrations | sed 's#.*/#- `#; s#$#`#')"
+              MIGRATIONS="$(git diff --name-only --diff-filter=A "$PREV" "$COMMIT" -- backend/migrations | awk -F/ '{printf "- \140%s\140\n", $NF}')"
               if [ -n "$MIGRATIONS" ]; then
                 echo
                 echo "相对 $PREV 新增的迁移："
