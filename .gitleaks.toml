@@ -1,0 +1,77 @@
+# =============================================================================
+# Gitleaks 配置 — sub2api-custom
+# =============================================================================
+# 策略：在 Gitleaks 默认规则基础上，仅对「上游已知的、刻意为假的测试夹具」
+# 做最小化白名单，避免噪音掩盖真实泄露。
+#
+# 红线：不得为了通过扫描而放宽真实密钥路径。
+# 新增白名单必须满足：
+#   1. 路径确实只包含刻意的假凭据；
+#   2. 在本文件注释中说明依据；
+#   3. 在 docs/SECURITY_REVIEW.md 中登记。
+# =============================================================================
+title = "sub2api-custom gitleaks config"
+
+[extend]
+# 使用 Gitleaks 内置默认规则集
+useDefault = true
+
+[allowlist]
+description = "上游测试夹具与示例配置中的刻意假凭据"
+
+# 仅白名单「具体路径」，不使用宽泛的 *_test.go 通配，
+# 以免掩盖真实密钥被误提交到测试文件的情况。
+paths = [
+  # 上游提供的配置模板：全部为占位值，非真实凭据
+  '''^deploy/config\.example\.yaml$''',
+  '''^deploy/\.env\.example$''',
+  # 部署脚本测试夹具：上游用假二进制与假凭据验证脚本逻辑
+  '''^deploy/tests/fixtures/''',
+  # 上游测试用固定假密钥/假令牌
+  '''^backend/internal/pkg/apicompat/testdata/''',
+  '''^backend/internal/service/testdata/''',
+]
+
+# 上游测试中大量使用明确的假值前缀，统一放行这些形状
+regexes = [
+  # 例如 sk-test-..., fake-..., dummy-..., placeholder
+  '''(?i)(fake|dummy|placeholder|example|sample|test)[-_]?(secret|token|key|password)''',
+  '''(?i)(secret|token|key|password)[-_]?(fake|dummy|placeholder|example|sample|test)''',
+  # 明显的零值/重复字符占位
+  '''(?i)^(0{16,}|1{16,}|a{16,}|x{16,})$''',
+]
+
+# 2026-10-28，Issue #119；owner: agent-coordinator；复核/到期：2026-11-28。
+# 仅豁免已逐项重算核验的 20 条真实文件 checksum，来源提交 5b12919213b5bf49865f6c6e6a2678c7edea5da0；不是凭据。
+# 固定 manifest 路径 AND 完整 JSON 行中的确切文件路径/固定 checksum；同内容合并提交兼容。
+# 任何文件路径或 hash 更新均须重新重算并独立审查，不得泛化；strict 绕过本例外。
+[[rules]]
+id = "generic-api-key"
+
+[[rules.allowlists]]
+description = "Issue #119：20 条已核验文件 checksum；owner agent-coordinator；到期 2026-11-28"
+condition = "AND"
+regexTarget = "line"
+paths = ['''^\.github/upgrade/manifest\.json$''']
+regexes = [
+    '''^\s*"backend/migrations/032_add_api_key_ip_restriction\.sql":\s*"c1b1646a92ba585adccdac8aea0e1a494d607bc1ac7c9a0486a3c8a02c40a599",?\s*$''',
+    '''^\s*"backend/migrations/036_ops_error_logs_add_is_count_tokens\.sql":\s*"75864a7d7aec575a52e9de32a1f408852e66ce854a5eee3ceb68fd7fec170b12",?\s*$''',
+    '''^\s*"backend/migrations/045_add_api_key_quota\.sql":\s*"4716568dedd30a541cf5a82e5a3c8cf29c6fee4a185c95c90567dfefb30c93bd",?\s*$''',
+    '''^\s*"backend/migrations/052_migrate_upstream_to_apikey\.sql":\s*"5e838f5eb02a494d88469b59d10acb0e1b44c2c50e0d97f3bead27206ff1ef9b",?\s*$''',
+    '''^\s*"backend/migrations/053_add_security_secrets\.sql":\s*"52bbd85fe71db38c9b2a8344165a79bdc44f5fabcf1c191339f718c6555f0ab4",?\s*$''',
+    '''^\s*"backend/migrations/056_add_api_key_last_used_at\.sql":\s*"e7a12c8e58980f7701ad8c5b89a12577fdb3c5a57f68dcac89e896ee950ba3da",?\s*$''',
+    '''^\s*"backend/migrations/064_add_api_key_rate_limits\.sql":\s*"157995dec8113b922e7fd33410df3717f5e9a0647453762be089a9a2e6e7fcf6",?\s*$''',
+    '''^\s*"backend/migrations/089_usage_log_image_output_tokens\.sql":\s*"36d70ff87a62a08137b4ef98f2ba10013982dd4f358b2d5cacb2eb8768c01c16",?\s*$''',
+    '''^\s*"backend/migrations/112_add_payment_order_provider_key_snapshot\.sql":\s*"b75f8f56d39455682787696a3d92ad25b055444ca328fb7fca9a460a15d68d99",?\s*$''',
+    '''^\s*"backend/migrations/113_normalize_legacy_wechat_provider_key\.sql":\s*"9025c2b21e211375018d65c1a03b43ef4e97715fe4afab0ba4929d576efc4092",?\s*$''',
+    '''^\s*"backend/migrations/118_wechat_dual_mode_and_auth_source_defaults\.sql":\s*"b54194d7a3e4fbf710e0a3590d22a2fe7966804c487052a356e0b55f53ef96b0",?\s*$''',
+    '''^\s*"backend/migrations/122_pending_auth_completion_token_cleanup\.sql":\s*"f36fd5f5ed86c77878d1f21c9e204b427e12db0ad5d19329d7c99cb1d1bfea00",?\s*$''',
+    '''^\s*"backend/migrations/135_allow_email_oauth_provider_types\.sql":\s*"e6dc442bb1f70caed3d4bc72540ffd28688fa3359a64d52634103357dcbc80dd",?\s*$''',
+    '''^\s*"backend/migrations/138_channel_monitor_openai_api_mode\.sql":\s*"7cada21d91bb857839a2a0679d875fdb538dae50cf91ff5c88d46b198cb470c5",?\s*$''',
+    '''^\s*"backend/migrations/145_deleted_api_key_audit\.sql":\s*"00815d0c2d67405876585497546216f08f536442004c7b098656904e615402e6",?\s*$''',
+    '''^\s*"backend/migrations/147_ops_error_log_api_key_prefix\.sql":\s*"71f9a5bb36bffb59295c106d205f91a4b47bad20ec67f04dbf5ad01afe21ce95",?\s*$''',
+    '''^\s*"backend/migrations/152_scheduler_outbox_dedup_key\.sql":\s*"7a64fd2907f880615eaaf0270ce4634c8c199d2b98985f6b7d9b70550ec21724",?\s*$''',
+    '''^\s*"backend/migrations/153_scheduler_outbox_pending_dedup_key_index_notx\.sql":\s*"a1a524b1a1ab1cdc12a7f8400b9dba8cc983e07a2b6cccec27b5d1a272133796",?\s*$''',
+    '''^\s*"backend/migrations/179_usage_log_image_input_tokens\.sql":\s*"d7036839d8613b38c4d620677a98b39aaf5289a110aa998259c4820b108ac778",?\s*$''',
+    '''^\s*"backend/migrations/191_passkey_credentials\.sql":\s*"2ada807c41138c6f209db138984d59439418f1d06af3a101246bacda6e882893",?\s*$''',
+]

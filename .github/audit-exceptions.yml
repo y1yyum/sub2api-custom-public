@@ -1,0 +1,41 @@
+version: 1
+# =============================================================================
+# 依赖审计例外清单（被官方 tools/check_pnpm_audit_exceptions.py 消费）
+# =============================================================================
+# 注意该官方检查器的一个已知盲区（已由 scripts/audit-gate.py 补上）：
+#   它只遍历 `pnpm audit --prod` 的结果，并且**只对匹配到的漏洞**检查例外是否过期。
+#   因此「已不在生产依赖闭包内」的条目既不会报缺失、也不会报过期 —— 完全不被校验。
+#
+# 2026-10-14 复核（Issue #6）：
+#   实测 prod high/critical 仅 2 条（均为 xlsx）。原文件中的 lodash / lodash-es /
+#   axios / nanoid 四条已失效，处理如下：
+#     - lodash      GHSA-r5fr-rjxr-66jc  仅存在于 devDependencies
+#                   → 移入 .github/audit-baseline-devdeps.json 的 accepted 列表
+#     - lodash-es   GHSA-r5fr-rjxr-66jc  审计中已完全不出现 → 删除
+#     - axios       GHSA-3p68-rc4w-qgx5  审计中已完全不出现（direct dep ^1.20.0 已含修复）→ 删除
+#     - nanoid      GHSA-2v37-7h3g-55p8  审计中已完全不出现 → 删除
+#   删除是安全的：若这些漏洞重新出现在生产依赖中，官方检查器会因「缺少例外」而失败（fail-closed）。
+#
+# 责任人与复核：
+#   owner 必须真实可追溯，禁止占位符（如 security@your-domain）。
+#   scripts/audit-gate.py 会强制校验 owner 非占位符、条目有效且未过期。
+# =============================================================================
+exceptions:
+  - package: xlsx
+    advisory: "GHSA-4r6h-8v6p-xvw6"
+    severity: high
+    reason: "Write-only: admin UsageView lazily imports xlsx solely for XLSX.write export; the advisory requires parsing a crafted file and no XLSX.read path exists (CVE-2023-30533)"
+    mitigation: "Never parse untrusted spreadsheets with xlsx; no patched version on npm, migrate to SheetJS CDN build or another writer before expiry"
+    expires_on: "2027-01-06"
+    owner: "@y1yyum"
+    reviewed_on: "2026-10-14"
+    review_note: "已核实 frontend/src/views/admin/UsageView.vue:580-624 仅使用 aoa_to_sheet / sheet_add_aoa / book_new / book_append_sheet / write，无任何 read 路径；xlsx 为 direct dependency ^0.18.5"
+  - package: xlsx
+    advisory: "GHSA-5pgg-2g8v-p4x9"
+    severity: high
+    reason: "Write-only: admin UsageView lazily imports xlsx solely for XLSX.write export; the advisory requires parsing a crafted file and no XLSX.read path exists (CVE-2024-22363)"
+    mitigation: "Never parse untrusted spreadsheets with xlsx; no patched version on npm, migrate to SheetJS CDN build or another writer before expiry"
+    expires_on: "2027-01-06"
+    owner: "@y1yyum"
+    reviewed_on: "2026-10-14"
+    review_note: "同上；两条 advisory 均针对解析路径，导出路径不触发"
