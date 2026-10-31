@@ -2,15 +2,13 @@
 
 Sub2API Custom Public 是基于 [Wei-Shaw/sub2api](https://github.com/Wei-Shaw/sub2api) 的二开版本，提供统一的 AI API 网关、账号管理、渠道调度、用量统计和管理后台。
 
-本仓库面向实机 Docker 部署。当前公开基线版本为 **v0.3.1**；本仓库不携带生产凭据，CI 只构建、测试和发布镜像，不连接任何服务器。
+本仓库面向实机 Docker 部署。当前预发布目标为 **v0.4.0-rc.1**（产物状态以 [Releases](https://github.com/y1yyum/sub2api-custom-public/releases) 为准）；本仓库不携带生产凭据，CI 只构建、测试和发布镜像，不连接任何服务器。
 
-## 上游稳定版同步（分步审查中）
+## 本次预发布
 
-本轮以用户确认的上游 `v0.2.16`（`01842576b3d5c1e2545b5a99ad555d36e28ed306`）为内容比较基点，向固定的 `v0.2.18`（`ac1b8f1271be0d674fa6f074403c1410f30a3a81`）移植；二开审查基线为 `357a6f0f5bd6cadc96d1caec19aeb8da52eeb55b`。公开仓库是源码快照，这些上游提交不是二开的真实 Git 祖先，不能直接用上游目录覆盖二开。
+`v0.4.0-rc.1` 在公开 `v0.3.1` 基础上整合上游 `v0.2.18`、`v0.2.19` 的已审查内容，以及请求读取限制、流式结算、账号用量批量统计、迁移工具、OAuth 刷新截止时间处理和门户界面更新。公开仓库是源码快照，上游提交不是二开的真实 Git 祖先，按固定内容移植。
 
-本阶段引入网关转换、模型目录与价格、服务账号配额及共享调度缓存依赖组，保留运行时 OAuth 凭据注入、统一状态页、自有界面、迁移和发行链。支付退款与存量分组迁移在后续依赖 PR 中审核；本阶段不表示整套升级已经完成或可直接部署。特别是 Gemini/Antigravity 生图开关需要与新增迁移及既有禁用策略一起验收。
-
-不包含上游 `main` 在 `v0.2.18` 之后的变化；不发布镜像、不移动标签，也不将二开 `VERSION` 改为上游版本。本轮仍保留 `0.3.1`，新发行版本号与部署放行另行确认。
+本次新增图片开关、支付退款审计重试、Scoped 管理员密钥和按图片数量计费相关迁移。升级前阅读 [v0.4.0-rc.1 发行说明](docs/releases/v0.4.0-rc.1.md)。预发布不更新 `latest`；存量库迁移、图片禁用策略、支付逐单对账和真实硬件验收仍须在部署前独立完成。
 
 ## Docker Compose 部署
 
@@ -37,7 +35,7 @@ curl http://127.0.0.1:8080/health
 每个版本都会发布 `linux/amd64` 和 `linux/arm64` 镜像到 GHCR。在 `deploy/.env` 中设置 `SUB2API_IMAGE`，即可跳过本地构建：
 
 ```bash
-SUB2API_IMAGE=ghcr.io/y1yyum/sub2api-custom-public:0.3.1
+SUB2API_IMAGE=ghcr.io/y1yyum/sub2api-custom-public:0.4.0-rc.1
 ```
 
 ```bash
@@ -84,8 +82,8 @@ docker compose -f deploy/docker-compose.local.yml ps
 
 ```bash
 # 先在 main 上把 backend/cmd/server/VERSION 改为新版本并合并
-git tag v0.3.1 origin/main
-git push origin v0.3.1
+git tag v0.4.0-rc.1 origin/main
+git push origin v0.4.0-rc.1
 ```
 
 ## 版本号规则
