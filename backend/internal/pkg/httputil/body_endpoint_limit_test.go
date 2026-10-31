@@ -38,13 +38,14 @@ func TestEndpointDecodedLimitAndExactBoundaryChecksum(t *testing.T) {
 			for _, corrupt := range []bool{false, true} {
 				payload := strings.Repeat("x", size)
 				var compressed bytes.Buffer
-				if codec == "gzip" {
+				switch codec {
+				case "gzip":
 					w := gzip.NewWriter(&compressed)
 					_, _ = w.Write([]byte(payload))
 					if e := w.Close(); e != nil {
 						t.Fatal(e)
 					}
-				} else if codec == "zstd" {
+				case "zstd":
 					w, e := zstd.NewWriter(&compressed, zstd.WithEncoderCRC(true))
 					if e != nil {
 						t.Fatal(e)
@@ -53,7 +54,7 @@ func TestEndpointDecodedLimitAndExactBoundaryChecksum(t *testing.T) {
 					if e := w.Close(); e != nil {
 						t.Fatal(e)
 					}
-				} else {
+				default:
 					w := zlib.NewWriter(&compressed)
 					_, _ = w.Write([]byte(payload))
 					if e := w.Close(); e != nil {
