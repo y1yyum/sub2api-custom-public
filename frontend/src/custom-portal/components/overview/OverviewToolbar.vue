@@ -16,7 +16,7 @@
         data-testid="overview-filter-trigger"
         @click="toggleFilters"
       >
-        <Icon name="filter" size="sm" aria-hidden="true" />
+        <PixelIcon name="filter" size="sm" aria-hidden="true" />
         <span
           v-if="state.activeFilterCount.value"
           class="absolute -right-1.5 -top-1.5 inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-primary-600 px-1 text-[10px] font-semibold text-white"
@@ -140,7 +140,7 @@
       data-testid="overview-refresh"
       @click="emit('refresh')"
     >
-      <Icon
+      <PixelIcon
         name="refresh"
         size="sm"
         aria-hidden="true"
@@ -156,7 +156,7 @@
 import { computed, nextTick, onBeforeUnmount, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import DateRangePicker from '@/components/common/DateRangePicker.vue'
-import Icon from '@/components/icons/Icon.vue'
+import PixelIcon from '../common/PixelIcon.vue'
 import type { UsageRequestType } from '@/types'
 import { usePortalI18n } from '../../i18n'
 import { injectOverviewState } from '../../overview/usageChartState'

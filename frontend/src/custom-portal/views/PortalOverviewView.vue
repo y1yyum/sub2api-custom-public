@@ -3,7 +3,7 @@
     <div class="space-y-4" data-testid="portal-overview">
       <header class="dash-rise flex flex-wrap items-start justify-between gap-3" :style="rise(0)">
         <div class="min-w-0 space-y-1">
-          <h2 class="text-2xl font-semibold text-gray-900 dark:text-white">{{ pt('pages.overview.heading') }}</h2>
+          <h2 class="overview-title text-gray-900 dark:text-white">{{ pt('pages.overview.heading') }}</h2>
           <p class="text-sm text-gray-500 dark:text-dark-400">{{ pt('pages.overview.welcome') }}</p>
           <OverviewLiveStats ref="liveStats" class="pt-1" />
         </div>
@@ -86,6 +86,24 @@ onMounted(() => {
 </script>
 
 <style scoped>
+/* Pixel title on the 12px grid, underlined by the square-spiral band. */
+.overview-title {
+  width: fit-content;
+  padding-bottom: 12px;
+  background: var(--pp-huiwen) left bottom / 8px 8px repeat-x;
+  font-family: var(--pp-font-pixel);
+  font-size: 24px;
+  font-synthesis: none;
+  font-weight: 400;
+  line-height: 1;
+}
+
+@media (min-width: 640px) {
+  .overview-title {
+    font-size: 36px;
+  }
+}
+
 .dash-rise {
   animation: dash-rise 420ms cubic-bezier(0.2, 0.7, 0.2, 1) both;
   animation-delay: calc(var(--dash-rise-index, 0) * 60ms);

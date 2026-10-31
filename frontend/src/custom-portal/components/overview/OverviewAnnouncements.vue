@@ -3,7 +3,7 @@
   <section class="card overflow-hidden" :aria-labelledby="titleId" data-testid="overview-announcements">
     <div class="flex min-h-[61px] items-center justify-between gap-3 border-b border-gray-100 px-6 py-4 dark:border-dark-700">
       <div class="flex min-w-0 items-center gap-2.5">
-        <Icon name="bell" size="md" class="shrink-0 text-primary-600 dark:text-primary-400" aria-hidden="true" />
+        <PixelIcon name="bell" size="md" class="shrink-0 text-primary-600 dark:text-primary-400" aria-hidden="true" />
         <h2 :id="titleId" class="truncate text-lg font-semibold text-gray-900 dark:text-white">
           {{ pt('pages.overview.announcements.title') }}
         </h2>
@@ -38,7 +38,7 @@
       </div>
 
       <div v-else-if="!items.length" class="flex flex-col items-center gap-2 py-8 text-center" data-testid="overview-announcements-empty">
-        <Icon name="inbox" size="lg" class="text-gray-300 dark:text-dark-600" aria-hidden="true" />
+        <PixelIcon name="inbox" size="lg" class="text-gray-300 dark:text-dark-600" aria-hidden="true" />
         <p class="text-sm font-medium text-gray-700 dark:text-dark-200">{{ pt('pages.overview.announcements.empty') }}</p>
         <p class="text-xs text-gray-500 dark:text-dark-400">{{ pt('pages.overview.announcements.emptyHint') }}</p>
       </div>
@@ -88,7 +88,7 @@
                 {{ formatDay(item.announcement.created_at) }}
               </time>
             </span>
-            <Icon
+            <PixelIcon
               name="chevronRight"
               size="sm"
               class="mt-1 shrink-0 text-gray-400 transition-transform group-hover:translate-x-0.5 group-hover:text-primary-500 motion-reduce:transition-none dark:text-dark-500"
@@ -107,7 +107,7 @@
 import { computed, onMounted, ref, useId } from 'vue'
 import { storeToRefs } from 'pinia'
 import AnnouncementPopup from '@/components/common/AnnouncementPopup.vue'
-import Icon from '@/components/icons/Icon.vue'
+import PixelIcon from '../common/PixelIcon.vue'
 import { useAnnouncementStore } from '@/stores/announcements'
 import type { UserAnnouncement } from '@/types'
 import { formatDate, formatDateTime } from '@/utils/format'

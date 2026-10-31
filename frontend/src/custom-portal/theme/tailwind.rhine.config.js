@@ -94,7 +94,7 @@ const violet = {
 }
 
 const SQUARE = '0px'
-const SHADOW = 'var(--pp-shadow, #2c2e33)'
+const NO_SHADOW = '0 0 #0000'
 const GRID_LINE = 'rgba(44, 46, 51, 0.05)'
 
 const { extend } = upstream.theme
@@ -145,21 +145,12 @@ export default {
         // Pills, status dots and avatars become pixel squares too.
         full: SQUARE
       },
-      boxShadow: {
-        ...extend.boxShadow,
-        sm: `1px 1px 0 ${SHADOW}`,
-        DEFAULT: `2px 2px 0 ${SHADOW}`,
-        md: `2px 2px 0 ${SHADOW}`,
-        lg: `3px 3px 0 ${SHADOW}`,
-        xl: `3px 3px 0 ${SHADOW}`,
-        '2xl': `4px 4px 0 ${SHADOW}`,
-        glass: `2px 2px 0 ${SHADOW}`,
-        'glass-sm': `2px 2px 0 ${SHADOW}`,
-        glow: '2px 2px 0 #8fa888',
-        'glow-lg': '3px 3px 0 #8fa888',
-        card: `4px 4px 0 ${SHADOW}`,
-        'card-hover': `5px 5px 0 ${SHADOW}`
-      },
+      // The pixel theme draws no drop shadows: frames and fills carry the depth.
+      boxShadow: Object.fromEntries(
+        ['sm', 'DEFAULT', 'md', 'lg', 'xl', '2xl', 'inner', 'glass', 'glass-sm', 'glow', 'glow-lg', 'card', 'card-hover'].map(
+          (size) => [size, NO_SHADOW]
+        )
+      ),
       backgroundImage: {
         ...extend.backgroundImage,
         'gradient-primary': 'linear-gradient(#8fa888, #8fa888)',

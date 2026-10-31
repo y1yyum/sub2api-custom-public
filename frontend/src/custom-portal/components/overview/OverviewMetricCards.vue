@@ -16,31 +16,28 @@
       :aria-selected="card.selected"
       :aria-controls="controls"
       :tabindex="card.selected ? 0 : -1"
-      class="card flex min-w-0 flex-col gap-1 overflow-hidden p-4 text-left transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 motion-reduce:transition-none sm:gap-3"
-      :class="
-        card.selected
-          ? 'border-primary-600 dark:border-primary-500/70'
-          : 'hover:border-gray-300 dark:hover:border-dark-500'
-      "
+      class="metric-card card flex min-w-0 flex-col gap-1 overflow-hidden p-4 text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 sm:gap-3"
+      :style="card.surface"
       :data-testid="`overview-metric-${card.metric}`"
       @click="state.setMetric(card.metric)"
     >
-      <span class="flex min-w-0 items-center gap-2">
-        <span
-          class="flex h-5 w-5 shrink-0 items-center justify-center rounded-md sm:h-7 sm:w-7"
-          :class="[card.tone.bg, card.tone.text]"
-          aria-hidden="true"
-        >
-          <Icon :name="card.tone.icon" size="sm" />
-        </span>
-        <span class="truncate text-xs font-medium text-gray-500 dark:text-dark-400">
+      <span class="flex min-w-0 items-start justify-between gap-2">
+        <span class="metric-label truncate text-xs" :class="card.tone.text">
           {{ pt(`pages.overview.metrics.${card.metric}`) }}
         </span>
-      </span>
-      <span class="flex min-w-0 items-end justify-between gap-3">
         <span
-          class="min-w-0 truncate text-2xl font-semibold tracking-tight tabular-nums text-gray-900 dark:text-white"
+          class="metric-icon flex h-10 w-10 shrink-0 items-center justify-center bg-white text-gray-900 dark:bg-dark-800 dark:text-dark-100"
+          aria-hidden="true"
+          data-testid="overview-metric-icon"
+        >
+          <PixelIcon :name="card.tone.icon" size="md" />
+        </span>
+      </span>
+      <span class="flex min-w-0 flex-wrap items-end justify-between gap-x-3 gap-y-2">
+        <span
+          class="metric-value min-w-0 truncate tabular-nums text-gray-900 dark:text-white"
           :class="{ 'opacity-60': state.loading.value }"
+          :title="card.display"
           :data-testid="`overview-metric-${card.metric}-value`"
         >
           {{ card.display }}
@@ -54,14 +51,14 @@
       </span>
       <span class="flex min-w-0 flex-wrap items-center gap-1 text-xs text-gray-500 dark:text-dark-400 sm:gap-2">
         <span
-          class="inline-flex shrink-0 items-center gap-0.5 rounded-full px-2 py-0.5 font-medium tabular-nums"
+          class="metric-delta inline-flex shrink-0 items-center gap-0.5 px-1.5 py-0.5 font-medium tabular-nums"
           :class="BADGE_CLASSES[card.badge.kind]"
           :title="card.badge.title"
           :data-testid="`overview-metric-${card.metric}-delta`"
           :data-kind="card.badge.kind"
         >
-          <Icon v-if="card.badge.kind === 'up'" name="trendingUp" size="xs" aria-hidden="true" />
-          <Icon v-else-if="card.badge.kind === 'down'" name="arrowDown" size="xs" aria-hidden="true" />
+          <PixelIcon v-if="card.badge.kind === 'up'" name="trendingUp" size="xs" aria-hidden="true" />
+          <PixelIcon v-else-if="card.badge.kind === 'down'" name="arrowDown" size="xs" aria-hidden="true" />
           <span aria-hidden="true">{{ card.badge.text }}</span>
           <span class="sr-only">{{ card.badge.title }}</span>
         </span>
@@ -73,11 +70,12 @@
 
 <script setup lang="ts">
 import { computed, type ComponentPublicInstance, type Ref } from 'vue'
-import Icon from '@/components/icons/Icon.vue'
+import PixelIcon from '../common/PixelIcon.vue'
 import { usePortalI18n } from '../../i18n'
 import { injectOverviewState } from '../../overview/usageChartState'
 import { OVERVIEW_METRICS, type DeltaKind, type OverviewMetric } from '../../overview/usageChartData'
-import { metricTone } from '../../overview/metricTones'
+import { metricTone, type MetricTone } from '../../overview/metricTones'
+import { pixelFrame } from '../../theme/pixelFrame'
 import { useCountUp } from '../../overview/useCountUp'
 import UsageSparkline from './UsageSparkline.vue'
 
@@ -92,6 +90,18 @@ const BADGE_CLASSES: Record<DeltaKind, string> = {
   flat: 'bg-gray-100 text-gray-600 dark:bg-dark-700 dark:text-dark-300',
   new: 'bg-primary-50 text-primary-700 dark:bg-primary-900/30 dark:text-primary-300',
   none: 'bg-gray-100 text-gray-500 dark:bg-dark-700 dark:text-dark-400'
+}
+
+/** Custom properties read by the scoped frame rules below. */
+function surfaceStyle({ surface }: MetricTone): Record<string, string> {
+  return {
+    '--metric-tint': surface.light.tint,
+    '--metric-rule': surface.light.rule,
+    '--metric-frame': pixelFrame(surface.light.rule),
+    '--metric-tint-dark': surface.dark.tint,
+    '--metric-rule-dark': surface.dark.rule,
+    '--metric-frame-dark': pixelFrame(surface.dark.rule)
+  }
 }
 
 const tabId = (metric: OverviewMetric) => `overview-metric-tab-${metric}`
@@ -151,6 +161,7 @@ const cards = computed(() =>
       metric,
       selected: state.metric.value === metric,
       tone: metricTone(metric),
+      surface: surfaceStyle(metricTone(metric)),
       display: unknown ? '—' : formatMetric(metric, counters[metric].value),
       badge: badgeFor(kind, summary.delta),
       series: trendFailed.value ? [] : summary.series
@@ -192,3 +203,59 @@ function onKeydown(event: KeyboardEvent) {
   tabRefs.get(metric)?.focus()
 }
 </script>
+
+<style scoped>
+/*
+ * The card frame is three rules in the metric's colour; the selected card fills the gaps into one 5px rule.
+ * `.card` is repeated to outrank the theme's card surface, including its dark variant.
+ */
+.metric-card.card {
+  background-color: var(--metric-tint);
+  border-color: var(--metric-rule);
+  border-image-source: var(--metric-frame);
+}
+
+:where(html.dark) .metric-card.card {
+  background-color: var(--metric-tint-dark);
+  border-color: var(--metric-rule-dark);
+  border-image-source: var(--metric-frame-dark);
+}
+
+.metric-card.card[aria-selected='true'] {
+  border-image-source: none;
+}
+
+.metric-icon,
+.metric-delta {
+  border: 3px double currentColor;
+}
+
+.metric-label,
+.metric-value {
+  font-family: var(--pp-font-pixel);
+  font-synthesis: none;
+  font-weight: 400;
+  letter-spacing: 0;
+}
+
+.metric-label {
+  font-size: 12px;
+}
+
+.metric-value {
+  font-size: 24px;
+  line-height: 1;
+}
+
+@media (min-width: 640px) {
+  .metric-value {
+    font-size: 36px;
+  }
+}
+
+@media (forced-colors: active) {
+  .metric-card.card {
+    border-image-source: none;
+  }
+}
+</style>

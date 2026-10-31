@@ -23,31 +23,57 @@
 /*
  * --pp-edge outlines cards (decorative), --pp-control outlines inputs and must
  * reach 3:1 against the surface (WCAG 1.4.11), --pp-ink draws focus outlines.
- * --pp-notch-* are 9-slice border images in the --pp-edge colour: sm cuts one
- * 2px pixel off each corner, lg draws a two-step corner. Unlike clip-path they
- * clip neither shadows, focus rings nor overflowing menus.
+ * There are no drop shadows: surfaces are framed by three 1px rules 1px apart
+ * (--pp-frame, a 9-slice border image in the --pp-edge colour) and controls by
+ * a 3px double border, which keeps their state colours.
  */
 :where(html.theme-rhine) {
   --pp-font-pixel: 'Fusion Pixel 12', ui-monospace, monospace;
   --pp-ink: #2c2e33;
   --pp-edge: #2c2e33;
   --pp-control: #2c2e33;
-  --pp-shadow: #2c2e33;
   --pp-grid: rgba(44, 46, 51, 0.05);
-  --pp-notch-sm: url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' width='6' height='6' shape-rendering='crispEdges'><path fill='%232c2e33' d='M2 0h2v2H2zM0 2h2v2H0zM4 2h2v2H4zM2 4h2v2H2z'/></svg>");
-  --pp-notch-lg: url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' width='18' height='18' shape-rendering='crispEdges'><path fill='%232c2e33' d='M4 0h10v2H4zM4 16h10v2H4zM0 4h2v10H0zM16 4h2v10h-2zM2 2h2v2H2zM14 2h2v2h-2zM2 14h2v2H2zM14 14h2v2h-2z'/></svg>");
+  --pp-frame: url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' width='11' height='11' shape-rendering='crispEdges'><path fill='%232c2e33' fill-rule='evenodd' d='M0 0h11v11H0zM1 1v9h9V1zM2 2h7v7H2zM3 3v5h5V3zM4 4h3v3H4zM5 5v1h1V5z'/></svg>");
   --pp-dither: rgba(44, 46, 51, 0.06);
+  /* Square-spiral band under page titles (same tile as the landing --rh-huiwen). */
+  --pp-huiwen: url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' width='8' height='8' shape-rendering='crispEdges'><path fill='%232c2e33' d='M0 0h7v1h-7zM0 1h1v1h-1zM6 1h1v1h-1zM0 2h1v1h-1zM2 2h3v1h-3zM6 2h1v1h-1zM0 3h1v1h-1zM2 3h1v1h-1zM4 3h1v1h-1zM6 3h1v1h-1zM0 4h1v1h-1zM2 4h1v1h-1zM6 4h1v1h-1zM0 5h1v1h-1zM2 5h5v1h-5zM0 6h1v1h-1zM0 7h8v1h-8z'/></svg>");
+  /* Pixel icon fills (theme/pixelIcons.ts); the ink pixels use currentColor. */
+  --pp-tone-card: #ffffff;
+  --pp-tone-sand: #d4c5b0;
+  --pp-tone-sage: #8fa888;
+  --pp-tone-peach: #f7ece8;
+  --pp-tone-peach-mid: #e8b4a6;
+  --pp-tone-peach-ink: #522b22;
+  --pp-tone-sky: #ebf1f6;
+  --pp-tone-sky-mid: #a9c4da;
+  --pp-tone-mint: #e8f2e8;
+  --pp-tone-mint-mid: #a8cba6;
+  --pp-tone-lilac: #f0ecf6;
+  --pp-tone-lilac-mid: #c3b3dd;
+  --pp-tone-butter-mid: #e6d08a;
 }
 
 :where(html.theme-rhine).dark {
   --pp-ink: #e6e8ee;
   --pp-edge: #383c4a;
   --pp-control: #6b7186;
-  --pp-shadow: #0e0f13;
   --pp-grid: rgba(255, 255, 255, 0.04);
-  --pp-notch-sm: url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' width='6' height='6' shape-rendering='crispEdges'><path fill='%23383c4a' d='M2 0h2v2H2zM0 2h2v2H0zM4 2h2v2H4zM2 4h2v2H2z'/></svg>");
-  --pp-notch-lg: url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' width='18' height='18' shape-rendering='crispEdges'><path fill='%23383c4a' d='M4 0h10v2H4zM4 16h10v2H4zM0 4h2v10H0zM16 4h2v10h-2zM2 2h2v2H2zM14 2h2v2h-2zM2 14h2v2H2zM14 14h2v2h-2z'/></svg>");
+  --pp-frame: url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' width='11' height='11' shape-rendering='crispEdges'><path fill='%23383c4a' fill-rule='evenodd' d='M0 0h11v11H0zM1 1v9h9V1zM2 2h7v7H2zM3 3v5h5V3zM4 4h3v3H4zM5 5v1h1V5z'/></svg>");
   --pp-dither: rgba(255, 255, 255, 0.05);
+  --pp-huiwen: url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' width='8' height='8' shape-rendering='crispEdges'><path fill='%23e6e8ee' d='M0 0h7v1h-7zM0 1h1v1h-1zM6 1h1v1h-1zM0 2h1v1h-1zM2 2h3v1h-3zM6 2h1v1h-1zM0 3h1v1h-1zM2 3h1v1h-1zM4 3h1v1h-1zM6 3h1v1h-1zM0 4h1v1h-1zM2 4h1v1h-1zM6 4h1v1h-1zM0 5h1v1h-1zM2 5h5v1h-5zM0 6h1v1h-1zM0 7h8v1h-8z'/></svg>");
+  --pp-tone-card: #232630;
+  --pp-tone-sand: #6f6150;
+  --pp-tone-sage: #a3bca0;
+  --pp-tone-peach: #3a2724;
+  --pp-tone-peach-mid: #7a4a40;
+  --pp-tone-peach-ink: #e8aaa0;
+  --pp-tone-sky: #223342;
+  --pp-tone-sky-mid: #3f6584;
+  --pp-tone-mint: #233827;
+  --pp-tone-mint-mid: #3f6b47;
+  --pp-tone-lilac: #2f243d;
+  --pp-tone-lilac-mid: #5e4880;
+  --pp-tone-butter-mid: #7a6a35;
 }
 
 :where(html.theme-rhine) body {
@@ -86,49 +112,27 @@
 
 /* ============ Buttons ============ */
 /*
- * The hard shadow goes through --tw-shadow because upstream `.btn:focus`
- * (higher specificity) rebuilds box-shadow from the ring and --tw-shadow; a
- * literal box-shadow here would be replaced by the ring on focus.
+ * Upstream `.btn:focus` (higher specificity) rebuilds box-shadow from the ring
+ * and --tw-shadow, so --tw-shadow is cleared rather than box-shadow overridden.
+ * States change the fill only; nothing moves.
  */
 :where(html.theme-rhine) .btn {
-  border-width: 2px;
-  border-style: solid;
+  border-width: 3px;
+  border-style: double;
   border-color: var(--pp-edge);
-  --tw-shadow: 2px 2px 0 var(--pp-shadow);
+  --tw-shadow: 0 0 #0000;
   box-shadow: var(--tw-ring-offset-shadow, 0 0 #0000), var(--tw-ring-shadow, 0 0 #0000), var(--tw-shadow);
-  border-image: var(--pp-notch-sm) 2 / 2px;
-  background-clip: padding-box;
-  transition: transform 80ms steps(2), box-shadow 80ms steps(2), background-color 80ms steps(2);
+  background-clip: border-box;
+  transition: background-color 80ms steps(2), color 80ms steps(2);
   @apply rounded-xl focus:ring-primary-500/50;
 }
 
-:where(html.theme-rhine) .btn:hover {
-  --tw-shadow: 3px 3px 0 var(--pp-shadow);
-  transform: translate(-1px, -1px);
-}
-
-:where(html.theme-rhine) .btn:active {
-  --tw-shadow: 1px 1px 0 var(--pp-shadow);
-  transform: translate(1px, 1px);
-}
-
-/* Primary actions sit higher and press further. */
-:where(html.theme-rhine) .btn-primary:hover {
-  --tw-shadow: 5px 5px 0 var(--pp-shadow);
-}
-
-:where(html.theme-rhine) .btn-primary:active {
-  --tw-shadow: 1px 1px 0 var(--pp-shadow);
-  transform: translate(3px, 3px);
-}
-
-:where(html.theme-rhine) .btn:disabled {
-  --tw-shadow: 0 0 #0000;
-  transform: none;
+/* Pressing inverts the button to ink, the pixel stand-in for sinking into a shadow. */
+:where(html.theme-rhine) .btn:active:not(:disabled) {
+  @apply bg-gray-900 text-gray-50 dark:bg-dark-100 dark:text-dark-900;
 }
 
 :where(html.theme-rhine) .btn-primary {
-  --tw-shadow: 4px 4px 0 var(--pp-shadow);
   background-image: none;
   @apply bg-primary-500 text-gray-900 hover:bg-primary-400;
   @apply dark:bg-primary-400 dark:text-dark-900 dark:hover:bg-primary-300;
@@ -141,14 +145,7 @@
 
 :where(html.theme-rhine) .btn-ghost {
   border-color: transparent;
-  border-image-source: none;
-  --tw-shadow: 0 0 #0000;
   @apply text-gray-600 hover:bg-gray-100 dark:text-dark-300 dark:hover:bg-dark-800;
-}
-
-:where(html.theme-rhine) .btn-ghost:is(:hover, :active) {
-  --tw-shadow: 0 0 #0000;
-  transform: none;
 }
 
 :where(html.theme-rhine) .btn-sm,
@@ -160,7 +157,8 @@
 
 /* ============ Inputs ============ */
 :where(html.theme-rhine) .input {
-  border-width: 2px;
+  border-width: 3px;
+  border-style: double;
   border-color: var(--pp-control);
   @apply rounded-lg bg-white text-gray-900 placeholder:text-gray-500;
   @apply focus:ring-primary-400/50;
@@ -194,32 +192,32 @@
 :where(html.theme-rhine) .card-glass {
   backdrop-filter: none;
   -webkit-backdrop-filter: none;
-  border-width: 2px;
+  border-width: 5px;
   border-style: solid;
   border-color: var(--pp-edge);
-  border-image: var(--pp-notch-lg) 6 / 6px;
-  background-clip: padding-box;
-  box-shadow: 4px 4px 0 var(--pp-shadow);
+  border-image: var(--pp-frame) 5 / 5px;
+  background-clip: border-box;
+  box-shadow: none;
   @apply rounded-2xl bg-white dark:bg-dark-800;
 }
 
 :where(html.theme-rhine) .card {
-  border-width: 2px;
+  border-width: 5px;
   border-style: solid;
   border-color: var(--pp-edge);
-  border-image: var(--pp-notch-lg) 6 / 6px;
-  background-clip: padding-box;
-  box-shadow: 4px 4px 0 var(--pp-shadow);
+  border-image: var(--pp-frame) 5 / 5px;
+  background-clip: border-box;
+  box-shadow: none;
   @apply rounded-2xl bg-white dark:bg-dark-800;
 }
 
-/* A border image ignores border-color, so state borders (the selected metric card) fall back to a plain edge. */
+/* A border image ignores border-color, so state borders (the selected metric card) become a solid 5px rule. */
 :where(html.theme-rhine) .card[class*='border-primary'] {
   border-image-source: none;
 }
 
 :where(html.theme-rhine) .card-hover:hover {
-  box-shadow: 5px 5px 0 var(--pp-shadow);
+  border-image-source: none;
 }
 
 :where(html.theme-rhine) .card-header,
@@ -247,8 +245,11 @@
 
 /* ============ Tables ============ */
 :where(html.theme-rhine) .table-container {
-  border-width: 2px;
+  border-width: 5px;
+  border-style: solid;
   border-color: var(--pp-edge);
+  border-image: var(--pp-frame) 5 / 5px;
+  background-clip: border-box;
   @apply rounded-xl;
 }
 
@@ -279,8 +280,8 @@
 
 /* ============ Badges ============ */
 :where(html.theme-rhine) .badge {
-  border-width: 1px;
-  border-style: solid;
+  border-width: 3px;
+  border-style: double;
   border-color: currentColor;
   @apply rounded-sm;
 }
@@ -295,12 +296,12 @@
 
 /* ============ Menus, modals, toasts ============ */
 :where(html.theme-rhine) .dropdown {
-  border-width: 2px;
+  border-width: 5px;
   border-style: solid;
   border-color: var(--pp-edge);
-  border-image: var(--pp-notch-lg) 6 / 6px;
-  background-clip: padding-box;
-  box-shadow: 2px 2px 0 var(--pp-shadow);
+  border-image: var(--pp-frame) 5 / 5px;
+  background-clip: border-box;
+  box-shadow: none;
   @apply rounded-xl bg-white dark:bg-dark-800;
 }
 
@@ -310,12 +311,12 @@
 
 :where(html.theme-rhine) .modal-content,
 :where(html.theme-rhine) .dialog-container {
-  border-width: 2px;
+  border-width: 5px;
   border-style: solid;
   border-color: var(--pp-edge);
-  border-image: var(--pp-notch-lg) 6 / 6px;
-  background-clip: padding-box;
-  box-shadow: 4px 4px 0 var(--pp-shadow);
+  border-image: var(--pp-frame) 5 / 5px;
+  background-clip: border-box;
+  box-shadow: none;
   @apply rounded-2xl bg-white dark:bg-dark-800;
 }
 
@@ -335,12 +336,12 @@
 }
 
 :where(html.theme-rhine) .toast {
-  border-width: 2px;
+  border-width: 5px;
   border-style: solid;
   border-color: var(--pp-edge);
-  border-image: var(--pp-notch-lg) 6 / 6px;
-  background-clip: padding-box;
-  box-shadow: 2px 2px 0 var(--pp-shadow);
+  border-image: var(--pp-frame) 5 / 5px;
+  background-clip: border-box;
+  box-shadow: none;
   @apply rounded-xl bg-white dark:bg-dark-800;
 }
 
@@ -415,7 +416,7 @@
 }
 
 :where(html.theme-rhine) .tab-active {
-  box-shadow: 2px 2px 0 var(--pp-shadow);
+  box-shadow: inset 0 0 0 1px var(--pp-edge);
   @apply bg-white text-gray-900 dark:bg-dark-700 dark:text-dark-50;
 }
 
@@ -465,10 +466,20 @@
   --color-primary-500: 143 168 136;
 }
 
+/* TablePageLayout narrows its card border to 1px, which would let the table paint over the inner rules. */
+:where(html.theme-rhine) .table-scroll-container.table-scroll-container {
+  border-width: 5px;
+}
+
+:where(html.theme-rhine) .table-page-layout.mobile-mode .table-scroll-container.table-scroll-container {
+  border-image-source: none;
+}
+
 :where(html.theme-rhine) .select-trigger.select-trigger,
 :where(html.theme-rhine) .date-picker-trigger.date-picker-trigger,
 :where(html.theme-rhine) .date-picker-input.date-picker-input {
-  border-width: 2px;
+  border-width: 3px;
+  border-style: double;
   border-color: var(--pp-control);
   border-radius: 0;
   @apply focus:border-gray-900 focus:ring-primary-400/50 dark:focus:border-primary-400;
@@ -546,7 +557,7 @@
 
 /* Forced colours repaint borders but not border images, which would keep the theme's charcoal. */
 @media (forced-colors: active) {
-  :where(html.theme-rhine) .btn,
+  :where(html.theme-rhine) .table-container,
   :where(html.theme-rhine) .card,
   :where(html.theme-rhine) .glass-card,
   :where(html.theme-rhine) .card-glass,
@@ -562,10 +573,6 @@
   :where(html.theme-rhine) .btn {
     transition: none;
   }
-
-  :where(html.theme-rhine) .btn:is(:hover, :active) {
-    transform: none;
-  }
 }
 
 @tailwind utilities;
@@ -576,6 +583,12 @@
  * ============ After utilities ============
  * These replace re-emitted utilities, so they must follow them and their variants.
  */
+
+/* Arbitrary upstream shadows (bottom sheets, popovers) are re-emitted verbatim; empty their shadow variables. */
+:where(html.theme-rhine) [class*='shadow-['] {
+  --tw-shadow: 0 0 #0000;
+  --tw-shadow-colored: 0 0 #0000;
+}
 
 /* AuthLayout and the upstream home draw a teal grid with an arbitrary utility. */
 :where(html.theme-rhine) [class*='rgba(20,184,166,0.03)'] {

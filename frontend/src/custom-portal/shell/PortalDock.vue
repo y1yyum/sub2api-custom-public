@@ -17,7 +17,7 @@
           :aria-current="isActive(entry) ? 'page' : undefined"
           :data-testid="`portal-dock-${entry.id}`"
         >
-          <Icon :name="entry.icon" size="md" />
+          <PixelIcon :name="entry.icon" size="md" />
           <span class="portal-dock-label">{{ pt(`shell.dock.${entry.id}`) }}</span>
         </router-link>
         <template v-else>
@@ -29,7 +29,7 @@
             :data-testid="`portal-dock-${entry.id}`"
             @click="toggle(entry.id)"
           >
-            <Icon :name="entry.icon" size="md" />
+            <PixelIcon :name="entry.icon" size="md" />
             <span class="portal-dock-label">{{ pt(`shell.dock.${entry.id}`) }}</span>
           </button>
           <transition name="portal-dock-pop">
@@ -46,7 +46,7 @@
                   class="dropdown-item"
                   :class="{ 'font-semibold text-primary-700 dark:text-primary-300': matchesPath(route.path, child.path) }"
                 >
-                  <Icon :name="child.icon" size="sm" />
+                  <PixelIcon :name="child.icon" size="sm" />
                   {{ childLabel(child.id) }}
                 </router-link>
               </li>
@@ -61,7 +61,7 @@
 <script setup lang="ts">
 import { onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
-import Icon from '@/components/icons/Icon.vue'
+import PixelIcon from '../components/common/PixelIcon.vue'
 import { useAppStore } from '@/stores/app'
 import { resolveSiteBillingMode } from '@/utils/siteBillingMode'
 import { usePortalI18n } from '../i18n'
@@ -77,7 +77,7 @@ const dockRef = ref<HTMLElement | null>(null)
 
 const itemClass =
   'flex min-w-[3.25rem] flex-col items-center gap-0.5 rounded-xl px-2 py-1.5 text-[11px] font-medium transition-colors sm:min-w-[4rem] sm:px-3'
-const activeClass = 'bg-primary-500 text-gray-900 dark:bg-primary-400 dark:text-dark-900'
+const activeClass = 'portal-dock-active bg-primary-500 text-gray-900 dark:bg-primary-400 dark:text-dark-900'
 const idleClass = 'text-gray-600 hover:bg-gray-100 hover:text-gray-900 dark:text-dark-300 dark:hover:bg-dark-800 dark:hover:text-white'
 
 function isActive(entry: ResolvedDockEntry): boolean {
@@ -117,17 +117,20 @@ onBeforeUnmount(() => document.removeEventListener('click', onDocumentClick))
 .portal-dock ul[role='menu'] {
   backdrop-filter: none;
   -webkit-backdrop-filter: none;
-  border-width: 2px;
+  border-width: 5px;
   border-color: var(--pp-edge);
-  border-image: var(--pp-notch-lg) 6 / 6px;
-  background-clip: padding-box;
-  box-shadow: 2px 2px 0 var(--pp-shadow);
+  border-image: var(--pp-frame) 5 / 5px;
+  background-clip: border-box;
+  box-shadow: none;
+  /* A canvas-coloured ring lifts the floating bar off the grid instead of a drop shadow. */
+  outline: 4px solid #f8f7f2;
   background-color: #ffffff;
 }
 
 :where(html.dark) .portal-dock > ul,
 :where(html.dark) .portal-dock ul[role='menu'] {
   background-color: #232630;
+  outline-color: #1c1e26;
 }
 
 @media (forced-colors: active) {
@@ -135,6 +138,17 @@ onBeforeUnmount(() => document.removeEventListener('click', onDocumentClick))
   .portal-dock ul[role='menu'] {
     border-image-source: none;
   }
+}
+
+/* The active item is sage with a 2px ink rule drawn inside its edge. */
+.portal-dock-active {
+  outline: 2px solid currentColor;
+  outline-offset: -2px;
+}
+
+.portal-dock > ul > li > :focus-visible {
+  outline: 2px solid var(--pp-ink);
+  outline-offset: 2px;
 }
 
 .portal-dock-label {
