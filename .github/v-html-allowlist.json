@@ -1,0 +1,106 @@
+{
+  "_comment": "v-html 使用点逐点登记清单与豁免基线（B2 审计项：危险动态 HTML 穷举）。规则：所有 v-html 使用点必须在此登记，且包含 file、expr、sanitizer、owner、reviewed_on；若属豁免（exemption:*）还须包含 reason。脚本：scripts/check-v-html-sinks.py",
+  "_schema": "v-html-allowlist/v2",
+  "sinks": [
+    {
+      "file": "frontend/src/components/admin/AdminComplianceDialog.vue",
+      "expr": "renderedDocument",
+      "sanitizer": "DOMPurify",
+      "owner": "@y1yyum",
+      "reviewed_on": "2026-10-14"
+    },
+    {
+      "file": "frontend/src/components/common/AnnouncementBell.vue",
+      "expr": "renderMarkdown(selectedAnnouncement.content)",
+      "sanitizer": "DOMPurify",
+      "owner": "@y1yyum",
+      "reviewed_on": "2026-10-14"
+    },
+    {
+      "file": "frontend/src/components/common/AnnouncementPopup.vue",
+      "expr": "renderedContent",
+      "sanitizer": "DOMPurify",
+      "owner": "@y1yyum",
+      "reviewed_on": "2026-10-14"
+    },
+    {
+      "file": "frontend/src/components/common/ImageUpload.vue",
+      "expr": "sanitizedValue",
+      "sanitizer": "sanitizeSvg",
+      "owner": "@y1yyum",
+      "reviewed_on": "2026-10-14"
+    },
+    {
+      "file": "frontend/src/components/keys/UseKeyModal.vue",
+      "expr": "file.highlighted",
+      "sanitizer": "escapeHtml",
+      "owner": "@y1yyum",
+      "reviewed_on": "2026-10-14"
+    },
+    {
+      "file": "frontend/src/components/layout/AppSidebar.vue",
+      "expr": "sanitizeSvg(item.iconSvg)",
+      "sanitizer": "sanitizeSvg",
+      "owner": "@y1yyum",
+      "reviewed_on": "2026-10-14"
+    },
+    {
+      "file": "frontend/src/components/modelPlaza/ModelPlazaContent.vue",
+      "expr": "descriptionHtml",
+      "sanitizer": "DOMPurify",
+      "owner": "@y1yyum",
+      "reviewed_on": "2026-10-14"
+    },
+    {
+      "file": "frontend/src/custom-portal/shell/PortalTopBar.vue",
+      "expr": "sanitizeSvg(page.icon_svg)",
+      "sanitizer": "sanitizeSvg",
+      "owner": "@y1yyum",
+      "reviewed_on": "2026-10-22"
+    },
+    {
+      "file": "frontend/src/views/HomeView.vue",
+      "expr": "homeContent",
+      "sanitizer": "exemption:admin_only",
+      "reason": "homeContent 来自 admin-only 站点设置（cachedPublicSettings.home_content），非普通用户可控。上游源码已显式注明『admin-only setting, XSS risk is acceptable』。风险边界为管理员→普通用户，属既有设计取舍，不在二开范围推翻。",
+      "owner": "@y1yyum",
+      "reviewed_on": "2026-10-14"
+    },
+    {
+      "file": "frontend/src/views/KeyUsageView.vue",
+      "expr": "row.iconSvg",
+      "sanitizer": "exemption:hardcoded_constant",
+      "reason": "v-html 绑定 row.iconSvg，其取值全部来自同文件内硬编码的 ICON_SHIELD/ICON_CALENDAR/ICON_DOLLAR/ICON_CHECK 常量（源码第 687-690 行），不含任何用户可控数据。",
+      "owner": "@y1yyum",
+      "reviewed_on": "2026-10-14"
+    },
+    {
+      "file": "frontend/src/views/public/LegalDocumentView.vue",
+      "expr": "renderedHtml",
+      "sanitizer": "DOMPurify",
+      "owner": "@y1yyum",
+      "reviewed_on": "2026-10-14"
+    },
+    {
+      "file": "frontend/src/views/user/CustomPageView.vue",
+      "expr": "renderedHtml",
+      "sanitizer": "DOMPurify",
+      "owner": "@y1yyum",
+      "reviewed_on": "2026-10-14"
+    },
+    {
+      "file": "frontend/src/views/user/PaymentView.vue",
+      "expr": "renderedBonusNotice",
+      "sanitizer": "DOMPurify",
+      "owner": "@y1yyum",
+      "reviewed_on": "2026-10-14"
+    },
+    {
+      "file": "frontend/src/views/user/PaymentView.vue",
+      "expr": "renderedHelpText",
+      "sanitizer": "DOMPurify",
+      "owner": "@y1yyum",
+      "reviewed_on": "2026-10-14"
+    }
+  ]
+}

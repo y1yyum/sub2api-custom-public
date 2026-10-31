@@ -181,10 +181,6 @@ func (s *OpenAIGatewayService) performOpenAIWSGeneratePrewarm(
 	return nil
 }
 
-func payloadAsJSON(payload map[string]any) string {
-	return string(payloadAsJSONBytes(payload))
-}
-
 func payloadAsJSONBytes(payload map[string]any) []byte {
 	if len(payload) == 0 {
 		return []byte("{}")
@@ -772,13 +768,6 @@ func classifyOpenAIWSErrorEventFromRaw(codeRaw, errTypeRaw, msgRaw string) (stri
 	return "event_error", false
 }
 
-func classifyOpenAIWSErrorEvent(message []byte) (string, bool) {
-	if len(message) == 0 {
-		return "event_error", false
-	}
-	return classifyOpenAIWSErrorEventFromRaw(parseOpenAIWSErrorEventFields(message))
-}
-
 func openAIWSErrorHTTPStatusFromRaw(codeRaw, errTypeRaw string) int {
 	code := strings.ToLower(strings.TrimSpace(codeRaw))
 	errType := strings.ToLower(strings.TrimSpace(errTypeRaw))
@@ -809,57 +798,4 @@ func openAIWSErrorHTTPStatus(message []byte) int {
 	}
 	codeRaw, errTypeRaw, _ := parseOpenAIWSErrorEventFields(message)
 	return openAIWSErrorHTTPStatusFromRaw(codeRaw, errTypeRaw)
-}
-
-func (s *OpenAIGatewayService) openAIWSFallbackCooldown() time.Duration {
-	if s == nil || s.cfg == nil {
-		return 30 * time.Second
-	}
-	seconds := s.cfg.Gateway.OpenAIWS.FallbackCooldownSeconds
-	if seconds <= 0 {
-		return 0
-	}
-	return time.Duration(seconds) * time.Second
-}
-
-func (s *OpenAIGatewayService) isOpenAIWSFallbackCooling(accountID int64) bool {
-	if s == nil || accountID <= 0 {
-		return false
-	}
-	cooldown := s.openAIWSFallbackCooldown()
-	if cooldown <= 0 {
-		return false
-	}
-	rawUntil, ok := s.openaiWSFallbackUntil.Load(accountID)
-	if !ok || rawUntil == nil {
-		return false
-	}
-	until, ok := rawUntil.(time.Time)
-	if !ok || until.IsZero() {
-		s.openaiWSFallbackUntil.Delete(accountID)
-		return false
-	}
-	if time.Now().Before(until) {
-		return true
-	}
-	s.openaiWSFallbackUntil.Delete(accountID)
-	return false
-}
-
-func (s *OpenAIGatewayService) markOpenAIWSFallbackCooling(accountID int64, _ string) {
-	if s == nil || accountID <= 0 {
-		return
-	}
-	cooldown := s.openAIWSFallbackCooldown()
-	if cooldown <= 0 {
-		return
-	}
-	s.openaiWSFallbackUntil.Store(accountID, time.Now().Add(cooldown))
-}
-
-func (s *OpenAIGatewayService) clearOpenAIWSFallbackCooling(accountID int64) {
-	if s == nil || accountID <= 0 {
-		return
-	}
-	s.openaiWSFallbackUntil.Delete(accountID)
 }

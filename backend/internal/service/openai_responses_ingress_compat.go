@@ -13,10 +13,6 @@ import (
 // normalizeOpenAIResponsesLegacyIngress accepts the Chat Completions-shaped
 // payloads that a few Responses clients still emit. Native Responses input is
 // always authoritative because this path has no separate full-replay attempt.
-func normalizeOpenAIResponsesLegacyIngress(body []byte) ([]byte, bool, error) {
-	return normalizeOpenAIResponsesLegacyIngressWithConfig(nil, body)
-}
-
 func normalizeOpenAIResponsesLegacyIngressWithConfig(cfg *config.Config, body []byte) ([]byte, bool, error) {
 	if len(body) == 0 {
 		return body, false, nil

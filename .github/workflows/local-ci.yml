@@ -1,0 +1,365 @@
+# GitHub 兼容入口；触发条件、检查命令、范围与分片沿用 Gitea 原件。
+name: Local CI
+
+# Upstream CI (Wei-Shaw/sub2api .github/workflows/backend-ci.yml and
+# security-scan.yml) on the local runner. Same jobs and commands; the only
+# changes are runner adaptations: builtin:checkout instead of downloaded
+# actions, tools preinstalled in the job image, checksum-pinned Node 24.
+# Local additions: the change-set secret scan (AGENTS.md §6), ci-gate (the
+# status main branch protection requires) and .gitea/ci-scope.py, which
+# puts pull requests on a fast lane: only the jobs their diff affects, and
+# only the Go tests named after changed files plus .gitea/critical-tests.txt.
+# Release tags and manual runs run every test, including the full vitest
+# suite; merges to main do not rerun CI. Jobs are capped at 10 minutes;
+# unit, integration and frontend at 20 for the full release suites.
+# The previous isolated pipeline is tagged backup/ci-main-20261030.
+
+on:
+  push:
+    tags:
+      - 'v*'
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+    inputs:
+      strict_secrets:
+        description: "Pre-publication secret scan: ignore repository suppressions, scan full history, block on any finding"
+        type: boolean
+        default: false
+        required: false
+
+permissions:
+  contents: read
+
+env:
+  # The integration harness fails instead of skipping when CI is set and
+  # Docker is unreachable.
+  CI: "true"
+  # Match Go runtimes to the runner's --cpus=2.
+  GOMAXPROCS: "2"
+  # GitHub hosted runner 使用默认 Docker daemon，由 testcontainers 自动发现。
+  # Synthetic, non-secret client ID: the built-in Gemini CLI OAuth client is
+  # runtime-injected (Issue #119), and its tests read the ID at package init.
+  GEMINI_CLI_OAUTH_CLIENT_ID: "custom-test-client"
+
+jobs:
+  changes:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    outputs:
+      unit: ${{ steps.scope.outputs.unit }}
+      unit_selected: ${{ steps.scope.outputs.unit_selected }}
+      unit_run: ${{ steps.scope.outputs.unit_run }}
+      integration: ${{ steps.scope.outputs.integration }}
+      integration_selected: ${{ steps.scope.outputs.integration_selected }}
+      integration_run: ${{ steps.scope.outputs.integration_run }}
+      lint: ${{ steps.scope.outputs.lint }}
+      frontend: ${{ steps.scope.outputs.frontend }}
+      shell: ${{ steps.scope.outputs.shell }}
+      release: ${{ steps.scope.outputs.release }}
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Prepare GitHub runner tools
+        uses: ./.github/actions/setup-ci
+        with:
+          python: 'true'
+      - id: scope
+        env:
+          CI_WORKFLOW: .github/workflows/local-ci.yml
+          EVENT: ${{ github.event_name }}
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+        run: python3 .gitea/ci-scope.py --event "$EVENT" --base "$BASE_SHA"
+
+  # The runner takes jobs in this order with 3 slots: longest jobs first.
+  unit:
+    needs: changes
+    if: needs.changes.outputs.unit != '' || needs.changes.outputs.unit_selected != ''
+    runs-on: ubuntu-24.04
+    # Full unit took 9m21s in run 306; the release lane needs the headroom.
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
+        with:
+          persist-credentials: false
+      - name: Prepare GitHub runner tools
+        uses: ./.github/actions/setup-ci
+        with:
+          go: 'true'
+      - name: Verify Go version
+        run: go version | grep -q 'go1.27.3'
+      # Scoped runs skip the tests of importing packages; the build still
+      # catches production code they no longer compile against.
+      - name: Build every package
+        if: needs.changes.outputs.unit != './...'
+        working-directory: backend
+        run: go build ./...
+      - name: Unit tests
+        working-directory: backend
+        env:
+          PACKAGES: ${{ needs.changes.outputs.unit }}
+          SELECTED: ${{ needs.changes.outputs.unit_selected }}
+          RUN: ${{ needs.changes.outputs.unit_run }}
+        run: |
+          if [ "$PACKAGES" = './...' ]; then bash ../.gitea/unit-full.sh
+          elif [ -n "$PACKAGES" ]; then go test -tags=unit $PACKAGES; fi
+          if [ -n "$SELECTED" ]; then go test -tags=unit -run "$RUN" $SELECTED; fi
+
+  integration:
+    needs: changes
+    if: needs.changes.outputs.integration != '' || needs.changes.outputs.integration_selected != ''
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
+        with:
+          persist-credentials: false
+      - name: Prepare GitHub runner tools
+        uses: ./.github/actions/setup-ci
+        with:
+          go: 'true'
+      - name: Verify Go version
+        run: go version | grep -q 'go1.27.3'
+      - name: Integration tests
+        working-directory: backend
+        env:
+          PACKAGES: ${{ needs.changes.outputs.integration }}
+          SELECTED: ${{ needs.changes.outputs.integration_selected }}
+          RUN: ${{ needs.changes.outputs.integration_run }}
+        run: |
+          if [ -n "$PACKAGES" ]; then go test -tags=integration $PACKAGES; fi
+          if [ -n "$SELECTED" ]; then go test -tags=integration -run "$RUN" $SELECTED; fi
+
+  golangci-lint:
+    needs: changes
+    if: needs.changes.outputs.lint != ''
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
+        with:
+          persist-credentials: false
+      - name: Prepare GitHub runner tools
+        uses: ./.github/actions/setup-ci
+        with:
+          go: 'true'
+          lint: 'true'
+      - name: Verify Go version
+        run: go version | grep -q 'go1.27.3'
+      # Soft heap limit below the 4 GiB job cgroup (OOM kills, Issue #15).
+      - name: golangci-lint
+        working-directory: backend
+        env:
+          GOMEMLIMIT: 2500MiB
+          PACKAGES: ${{ needs.changes.outputs.lint }}
+        run: golangci-lint run --timeout=30m $PACKAGES
+
+  frontend:
+    needs: changes
+    if: needs.changes.outputs.frontend == 'true'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    # vitest otherwise starts (host CPUs - 1) forks and exhausts --pids-limit.
+    env:
+      VITEST_MAX_FORKS: "2"
+      VITEST_MIN_FORKS: "1"
+      VITEST_MAX_THREADS: "2"
+      VITEST_MIN_THREADS: "1"
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
+        with:
+          persist-credentials: false
+      - name: Prepare GitHub runner tools
+        uses: ./.github/actions/setup-ci
+        with:
+          node: 'true'
+      - name: Select checksum-pinned Node 24
+        run: python3 .gitea/setup-ci-node.py
+      - name: Install frontend dependencies
+        working-directory: frontend
+        run: |
+          pnpm --version | grep -qx '9.15.9'
+          pnpm install --frozen-lockfile
+      - name: Frontend typecheck and critical vitest
+        run: make test-frontend
+      - name: Full vitest suite (release tags and manual runs)
+        if: github.event_name != 'pull_request'
+        working-directory: frontend
+        run: pnpm run test:run
+
+  # Always runs in full, outside the change scope: upstream security-scan
+  # (govulncheck, pnpm audit with exceptions) plus the local blocking gates
+  # AGENTS.md §6 keeps: change-set secret scan (full history under
+  # strict_secrets), gosec config tripwire, audit exception expiry and devDependencies ratchet,
+  # v-html sink inventory, deployment contract invariants, and the
+  # scanners' own regression tests.
+  security:
+    needs: changes
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Prepare GitHub runner tools
+        uses: ./.github/actions/setup-ci
+        with:
+          go: 'true'
+          node: 'true'
+          python: 'true'
+          gitleaks: 'true'
+          govulncheck: 'true'
+      # Strict mode scans every ref. builtin:checkout keeps no credentials, so
+      # authenticate this fetch with the job token through env, never argv.
+      - name: Refresh published branches, tags and PR refs
+        if: inputs.strict_secrets
+        shell: bash
+        env:
+          JOB_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          export GIT_CONFIG_COUNT=1 GIT_CONFIG_KEY_0=http.extraHeader
+          GIT_CONFIG_VALUE_0="Authorization: basic $(printf 'x-access-token:%s' "$JOB_TOKEN" | base64 -w0)"
+          export GIT_CONFIG_VALUE_0
+          git fetch --force --prune origin '+refs/heads/*:refs/remotes/origin/*' '+refs/tags/*:refs/tags/*' '+refs/pull/*:refs/remotes/public-review/pull/*'
+          echo "refs: $(git for-each-ref | wc -l)"
+      - name: Secret scan (blocking)
+        shell: bash
+        env:
+          PR_BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          PUSH_BEFORE_SHA: ${{ github.event.before }}
+          STRICT_SECRETS: ${{ inputs.strict_secrets || false }}
+        run: |
+          set -euo pipefail
+          ARGS=(--fail-on-findings --report "$RUNNER_TEMP/gitleaks.json")
+          BASE_SHA="${PR_BASE_SHA:-${PUSH_BEFORE_SHA:-}}"
+          if [ "$STRICT_SECRETS" = "true" ]; then
+            ARGS+=(--strict)
+          elif [ -n "$BASE_SHA" ] && git cat-file -e "${BASE_SHA}^{commit}" 2>/dev/null; then
+            ARGS+=(--log-range "${BASE_SHA}..$(git rev-parse HEAD)")
+          fi
+          python3 scripts/scan-secrets.py "${ARGS[@]}"
+      - name: Secret scan and gate script regression tests (offline)
+        run: |
+          python3 -m unittest discover -s scripts -p 'test_scan_secrets*.py'
+          python3 scripts/check-v-html-sinks.py --selftest
+          python3 scripts/audit-gate.py --selftest
+          python3 scripts/verify-gitea-ci-gate.py --selftest
+      - name: Assert gosec enabled in official lint config
+        run: python3 scripts/check-gosec-config.py
+      - name: Deployment contract invariants (blocking)
+        run: bash scripts/check-deployment-contract.sh
+      - name: v-html sink inventory (blocking)
+        run: python3 scripts/check-v-html-sinks.py
+      - name: Verify Go version
+        run: go version | grep -q 'go1.27.3'
+      # Crashes (Go/x-tools mismatch, SECURITY_REVIEW §6.6) and output without
+      # a conclusion block, as do reachable vulnerabilities.
+      - name: Run govulncheck
+        working-directory: backend
+        shell: bash
+        run: |
+          set -uo pipefail
+          govulncheck ./... 2>&1 | tee "$RUNNER_TEMP/govulncheck.txt"
+          rc=${PIPESTATUS[0]}
+          if grep -qE '^panic:|unexpected expr|cannot decode|export data version' "$RUNNER_TEMP/govulncheck.txt"; then
+            echo "govulncheck crashed (tool/Go version mismatch), not a finding" >&2
+            exit 1
+          fi
+          test "$rc" -eq 0 || { echo "govulncheck reported reachable vulnerabilities (exit $rc)" >&2; exit 1; }
+          grep -qE 'No vulnerabilities found|Your code is affected by [0-9]+ vulnerabilit|Vulnerability #' "$RUNNER_TEMP/govulncheck.txt"             || { echo "govulncheck output has no conclusion; refusing to pass" >&2; exit 1; }
+      - name: Select checksum-pinned Node 24
+        run: python3 .gitea/setup-ci-node.py
+      - name: Install dependencies
+        working-directory: frontend
+        run: |
+          pnpm --version | grep -qx '9.15.9'
+          pnpm install --frozen-lockfile
+      - name: Run pnpm audit
+        working-directory: frontend
+        run: |
+          pnpm audit --prod --audit-level=high --json > audit.json || true
+          pnpm audit --audit-level=high --json > audit-full.json || true
+      - name: Check audit exceptions
+        run: |
+          python3 tools/check_pnpm_audit_exceptions.py \
+            --audit frontend/audit.json \
+            --exceptions .github/audit-exceptions.yml
+          python3 scripts/audit-gate.py \
+            --prod frontend/audit.json \
+            --full frontend/audit-full.json \
+            --exceptions .github/audit-exceptions.yml \
+            --baseline .github/audit-baseline-devdeps.json
+
+  # Upstream runs this on macos-15. apple-container-test.sh needs BSD stat,
+  # so Linux only syntax-checks the Apple Container script. The compose
+  # simple-mode check moved here from upstream's test job.
+  shell:
+    needs: changes
+    if: needs.changes.outputs.shell == 'true'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
+        with:
+          persist-credentials: false
+      - name: Check deployment scripts
+        run: |
+          /bin/bash -n deploy/apple-container.sh
+          /bin/bash -n deploy/tests/apple-container-test.sh
+          /bin/sh deploy/tests/docker-compose-security-test.sh
+          /bin/sh deploy/tests/docker-compose-gateway-env-test.sh
+          /bin/sh deploy/tests/docker-compose-simple-mode-env-test.sh
+          /bin/sh deploy/tests/docker-runtime-resources-test.sh
+          /bin/sh deploy/test-caddyfile-cache.sh
+
+  release-helpers:
+    needs: changes
+    if: needs.changes.outputs.release == 'true'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
+        with:
+          persist-credentials: false
+      - name: Prepare GitHub runner tools
+        uses: ./.github/actions/setup-ci
+        with:
+          python: 'true'
+      # PyYAML (requirements-release.txt) is preinstalled in the job image.
+      - run: python3 -m unittest discover -s .github/release-tools -p 'test_release_matrix.py'
+      - run: bash -n .github/release-tools/release-images.sh
+
+  # Jobs outside the change scope are skipped and count as passed; the scope
+  # job and the always-on security job must succeed.
+  ci-gate:
+    if: always()
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    needs: [changes, unit, integration, golangci-lint, frontend, security, shell, release-helpers]
+    steps:
+      - name: Require every job to pass
+        shell: bash
+        run: |
+          set -euo pipefail
+          failed=0
+          check() {
+            case " $2 " in
+              *" $3 "*) ;;
+              *) echo "job '$1' result is '$3', expected: $2" >&2; failed=1 ;;
+            esac
+          }
+          check changes success "${{ needs.changes.result }}"
+          check security success "${{ needs.security.result }}"
+          check unit "success skipped" "${{ needs.unit.result }}"
+          check integration "success skipped" "${{ needs.integration.result }}"
+          check golangci-lint "success skipped" "${{ needs.golangci-lint.result }}"
+          check frontend "success skipped" "${{ needs.frontend.result }}"
+          check shell "success skipped" "${{ needs.shell.result }}"
+          check release-helpers "success skipped" "${{ needs.release-helpers.result }}"
+          test "$failed" -eq 0
+          echo "Local CI passed for ${{ github.sha }}"

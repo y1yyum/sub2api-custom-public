@@ -14,17 +14,14 @@ import (
 	"testing"
 	"time"
 
-	"github.com/Wei-Shaw/sub2api/internal/isolatedfixture"
 	"github.com/lib/pq"
+	tcpostgres "github.com/testcontainers/testcontainers-go/modules/postgres"
 )
 
 // Exercise main's actual ordering, rather than just the repository dispatcher.
 // Before the fix, auto-setup creates the missing database before checking Redis,
 // even though the later repository startup dispatcher would select validate.
 func TestCustomValidateAutoSetupStartupRejectsBeforeWrites(t *testing.T) {
-	if err := isolatedfixture.RequireIsolated(); err != nil {
-		t.Fatal(err)
-	}
 	if os.Getenv("SUB2API_TEST_VALIDATE_AUTO_SETUP_CHILD") == "1" {
 		// The subprocess is this compiled test binary; no additional Go build or
 		// external server executable is needed. Let the real main parse no flags.
@@ -37,20 +34,51 @@ func TestCustomValidateAutoSetupStartupRejectsBeforeWrites(t *testing.T) {
 		t.Fatal("unsafe startup unexpectedly returned successfully")
 	}
 
+	fixture := startStartupPostgres(t)
 	for _, scenario := range []string{"environment", "config_file", "explicit_check"} {
 		t.Run(scenario, func(t *testing.T) {
-			testValidateAutoSetupStartup(t, scenario)
+			testValidateAutoSetupStartup(t, fixture, scenario)
 		})
 	}
 }
 
-func testValidateAutoSetupStartup(t *testing.T, scenario string) {
+type startupPostgres struct {
+	dsn, host, port string
+}
 
-	dsn, err := isolatedfixture.PostgresDSN("repository")
+// A reachable server makes "no database created" meaningful: the child is
+// pointed at it and must still reject before any setup work.
+func startStartupPostgres(t *testing.T) startupPostgres {
+	t.Helper()
+	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Minute)
+	defer cancel()
+	container, err := tcpostgres.Run(ctx, "postgres:18.1-alpine3.23",
+		tcpostgres.WithDatabase("sub2api_startup"),
+		tcpostgres.WithUsername("fixture"),
+		tcpostgres.WithPassword("fixture-only"),
+		tcpostgres.BasicWaitStrategies(),
+	)
+	if err != nil {
+		t.Fatalf("start postgres fixture: %v", err)
+	}
+	t.Cleanup(func() { _ = container.Terminate(context.Background()) })
+	dsn, err := container.ConnectionString(ctx, "sslmode=disable", "TimeZone=UTC")
 	if err != nil {
 		t.Fatal(err)
 	}
-	db, err := sql.Open("postgres", dsn)
+	host, err := container.Host(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	port, err := container.MappedPort(ctx, "5432/tcp")
+	if err != nil {
+		t.Fatal(err)
+	}
+	return startupPostgres{dsn: dsn, host: host, port: port.Port()}
+}
+
+func testValidateAutoSetupStartup(t *testing.T, fixture startupPostgres, scenario string) {
+	db, err := sql.Open("postgres", fixture.dsn)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -90,9 +118,9 @@ func testValidateAutoSetupStartup(t *testing.T, scenario string) {
 	cmd.Dir = dataDir
 	cmd.Env = []string{
 		"PATH=/usr/local/bin:/usr/bin:/bin", "HOME=" + dataDir, "TZ=UTC",
-		"SUB2API_ISOLATED_INTEGRATION=1", "SUB2API_TEST_VALIDATE_AUTO_SETUP_CHILD=1",
+		"SUB2API_TEST_VALIDATE_AUTO_SETUP_CHILD=1",
 		"DATA_DIR=" + dataDir, "AUTO_SETUP=true", "DATABASE_MIGRATION_MODE=validate",
-		"DATABASE_HOST=127.0.0.1", "DATABASE_PORT=55432", "DATABASE_USER=fixture",
+		"DATABASE_HOST=" + fixture.host, "DATABASE_PORT=" + fixture.port, "DATABASE_USER=fixture",
 		"DATABASE_PASSWORD=fixture-only", "DATABASE_DBNAME=" + name, "DATABASE_SSLMODE=disable",
 		// No Redis listener is needed: rejection must precede any setup work.
 		"REDIS_HOST=127.0.0.1", "REDIS_PORT=1", "JWT_SECRET=fixture-not-a-production-jwt-secret",

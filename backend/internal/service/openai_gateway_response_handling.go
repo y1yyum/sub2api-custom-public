@@ -1295,10 +1295,6 @@ func dedupeRepeatedJSONArgumentString(arguments string) (string, bool) {
 	return first, true
 }
 
-func (s *OpenAIGatewayService) parseSSEUsage(data string, usage *OpenAIUsage) {
-	s.parseSSEUsageBytes([]byte(data), usage)
-}
-
 func (s *OpenAIGatewayService) parseSSEUsageBytes(data []byte, usage *OpenAIUsage) {
 	s.parseSSEUsageBytesWithType(data, "", usage)
 }

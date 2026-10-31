@@ -1,0 +1,10 @@
+# 仅保留公开快照现有用例的慢测试记录；其余现有用例仍由 rest 分片执行。
+
+internal/handler TestCustomLateDisconnectDrainControls 4.01
+internal/service TestTokenRefreshService_RefreshWithRetry_Antigravity 4.49
+internal/service TestOpenAIStreamingResponse_GrokWrappedBodyClosesOnTerminalOrCancel 1.10
+internal/service TestCommonCanceledBareErrorWaitsForBoundedDrain 1.00
+internal/service TestCustomWriteFailureDrainIsBoundedWithoutCancelableContext 1.00
+internal/service TestPassthroughCancelClosesBlockedScannerWithinTotalBudget 1.00
+internal/service TestPassthroughCanceledBareErrorWaitsOnlyTotalDrainBudget 1.00
+internal/service TestPassthroughWriteFailureWithBackgroundContextHasTotalDrainBound 1.00

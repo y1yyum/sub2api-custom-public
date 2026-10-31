@@ -1,0 +1,142 @@
+{
+  "schema_version": "1",
+  "scope": "devDependencies",
+  "owner": "@y1yyum",
+  "recorded_on": "2026-10-14",
+  "recheck_on": "2027-01-14",
+  "source_run": "https://github.com/y1yyum/sub2api-custom/actions/runs/38623734609",
+  "reason": "官方 security-scan.yml 只执行 pnpm audit --prod，devDependencies 的 high/critical 无任何门禁。此处记录当前已接受的集合作为棘轮基线：出现基线外的新漏洞即阻断，防止 devDependencies 依赖态势继续恶化。",
+  "policy": "这些包仅用于构建与测试（vite / vitest / js-yaml / minimatch 等），不进入运行时镜像；但仍在 CI 中执行，因此仍需跟踪。",
+  "accepted": [
+    {
+      "package": "brace-expansion",
+      "advisory": "GHSA-3jxr-9vmj-r5cp",
+      "severity": "high"
+    },
+    {
+      "package": "brace-expansion",
+      "advisory": "GHSA-6j4f-fj2g-mc7p",
+      "severity": "high"
+    },
+    {
+      "package": "brace-expansion",
+      "advisory": "GHSA-mh99-v99m-4gvg",
+      "severity": "high"
+    },
+    {
+      "package": "brace-expansion",
+      "advisory": "GHSA-qhr7-859c-m2p7",
+      "severity": "high"
+    },
+    {
+      "package": "brace-expansion",
+      "advisory": "GHSA-rgw5-rvv9-x895",
+      "severity": "high"
+    },
+    {
+      "package": "braces",
+      "advisory": "GHSA-vfj7-8cjw-p6xm",
+      "severity": "high"
+    },
+    {
+      "package": "browserslist",
+      "advisory": "GHSA-73wf-gq98-2v4g",
+      "severity": "high"
+    },
+    {
+      "package": "browserslist",
+      "advisory": "GHSA-c83g-rgw3-j3cx",
+      "severity": "high"
+    },
+    {
+      "package": "flatted",
+      "advisory": "GHSA-25h7-pfq9-p65f",
+      "severity": "high"
+    },
+    {
+      "package": "flatted",
+      "advisory": "GHSA-rf6f-7fwh-wjgh",
+      "severity": "high"
+    },
+    {
+      "package": "js-yaml",
+      "advisory": "GHSA-2883-xcg3-v3hh",
+      "severity": "high"
+    },
+    {
+      "package": "js-yaml",
+      "advisory": "GHSA-52cp-r559-cp3m",
+      "severity": "high"
+    },
+    {
+      "package": "js-yaml",
+      "advisory": "GHSA-5p4m-2wfm-xmqj",
+      "severity": "high"
+    },
+    {
+      "package": "lodash",
+      "advisory": "GHSA-r5fr-rjxr-66jc",
+      "severity": "high"
+    },
+    {
+      "package": "minimatch",
+      "advisory": "GHSA-23c5-xmqv-rm74",
+      "severity": "high"
+    },
+    {
+      "package": "minimatch",
+      "advisory": "GHSA-3ppc-4f35-3m26",
+      "severity": "high"
+    },
+    {
+      "package": "minimatch",
+      "advisory": "GHSA-7r86-cg39-jmmj",
+      "severity": "high"
+    },
+    {
+      "package": "picomatch",
+      "advisory": "GHSA-c2c7-rcm5-vvqj",
+      "severity": "high"
+    },
+    {
+      "package": "rollup",
+      "advisory": "GHSA-mw96-cpmx-2vgc",
+      "severity": "high"
+    },
+    {
+      "package": "tinypool",
+      "advisory": "GHSA-5gmw-xhrv-c9v3",
+      "severity": "critical"
+    },
+    {
+      "package": "tinypool",
+      "advisory": "GHSA-85c8-ppgw-ccpr",
+      "severity": "critical"
+    },
+    {
+      "package": "vite",
+      "advisory": "GHSA-fx2h-pf6j-xcff",
+      "severity": "high"
+    },
+    {
+      "package": "vitest",
+      "advisory": "GHSA-5xrq-8626-4rwp",
+      "severity": "critical"
+    },
+    {
+      "package": "ws",
+      "advisory": "GHSA-96hv-2xvq-fx4p",
+      "severity": "high"
+    },
+    {
+      "package": "vite",
+      "advisory": "GHSA-587h-7wmj-h5pm",
+      "severity": "high",
+      "reason": "Dev server only: vite 5.4.21 registers launch-editor under /__open-in-editor in the dev server; production ships only the vite build output and CI runs on Linux, while the bypass requires Windows. No patched 5.x exists (first fix 6.4.4).",
+      "mitigation": "Partial only: on Windows run `pnpm dev --host 127.0.0.1` (the official vite.config.ts binds 0.0.0.0) to remove LAN exposure, but any page open in a local browser can still send a simple GET to /__open-in-editor; while the dev server runs on Windows, do not browse untrusted sites in that browser, or run the dev server in WSL/Linux. Only upgrading to vite >=6.4.4 removes the risk.",
+      "review_by": "2026-11-04",
+      "review_note": "Issue #19 stays open until review_by; audit-gate.py ignores per-entry dates and enforces only the top-level recheck_on.",
+      "reviewed_on": "2026-10-21"
+    }
+  ]
+}

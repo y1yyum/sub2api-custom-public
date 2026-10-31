@@ -229,13 +229,6 @@ func summarizeOpenAIWSErrorEventFieldsFromRaw(codeRaw, errTypeRaw, errMessageRaw
 	return code, errType, errMessage
 }
 
-func summarizeOpenAIWSErrorEventFields(message []byte) (code string, errType string, errMessage string) {
-	if len(message) == 0 {
-		return "-", "-", "-"
-	}
-	return summarizeOpenAIWSErrorEventFieldsFromRaw(parseOpenAIWSErrorEventFields(message))
-}
-
 func summarizeOpenAIWSPayloadKeySizes(payload map[string]any, topN int) string {
 	if len(payload) == 0 {
 		return "-"

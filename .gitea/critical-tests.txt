@@ -1,0 +1,11 @@
+# 公开裁剪快照实际保留的关键回归；不下载或恢复上游测试。
+backend/cmd/server/migration_command_custom_test.go
+backend/internal/config/database_migration_mode_custom_test.go
+backend/internal/pkg/antigravity/oauth_custom_test.go
+backend/internal/pkg/geminicli/oauth_custom_test.go
+backend/internal/pkg/requestmodel/model_uniqueness_test.go
+backend/internal/server/middleware/gateway_model_uniqueness_test.go
+backend/internal/service/payment_affiliate_claim_query_test.go
+backend/internal/repository/payment_refund_retry_integration_test.go
+backend/internal/repository/migration_check_custom_integration_test.go
+backend/internal/repository/upgrade_019_custom_migrations_integration_test.go

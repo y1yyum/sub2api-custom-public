@@ -10,13 +10,12 @@ import (
 	"testing"
 	"time"
 
-	"github.com/Wei-Shaw/sub2api/internal/isolatedfixture"
 	"github.com/lib/pq"
 )
 
 func TestCustomMigrationLedgerReadOnlyRole(t *testing.T) {
 	if integrationDB == nil {
-		t.Fatal("isolated repository database required")
+		t.Fatal("repository integration database required")
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
@@ -41,11 +40,7 @@ func TestCustomMigrationLedgerReadOnlyRole(t *testing.T) {
 	})
 	exec("CREATE SCHEMA " + ident)
 	exec("GRANT USAGE ON SCHEMA " + ident + " TO " + ident)
-	dsn, err := isolatedfixture.PostgresDSN("repository")
-	if err != nil {
-		t.Fatal(err)
-	}
-	readDB, err := sql.Open("postgres", dsn+"&search_path="+name)
+	readDB, err := sql.Open("postgres", integrationDSN+"&search_path="+name)
 	if err != nil {
 		t.Fatal(err)
 	}

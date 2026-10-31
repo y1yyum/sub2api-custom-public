@@ -689,34 +689,9 @@ func (s *httpUpstreamService) redirectChecker(req *http.Request, via []*http.Req
 	return s.validateRequestHost(req)
 }
 
-// acquireClient 获取或创建客户端，并标记为进行中请求
-// 用于请求路径，避免在获取后被淘汰
-func (s *httpUpstreamService) acquireClient(proxyURL string, accountID int64, accountConcurrency int) (*upstreamClientEntry, error) {
-	return s.acquireClientWithProfile(proxyURL, accountID, accountConcurrency, service.HTTPUpstreamProfileDefault)
-}
-
 // acquireClientWithProfile 获取或创建客户端，并按请求 profile 选择协议策略。
 func (s *httpUpstreamService) acquireClientWithProfile(proxyURL string, accountID int64, accountConcurrency int, profile service.HTTPUpstreamProfile) (*upstreamClientEntry, error) {
 	return s.getClientEntry(proxyURL, accountID, accountConcurrency, profile, true, true)
-}
-
-// getOrCreateClient 获取或创建客户端
-// 根据隔离策略和参数决定缓存键，处理代理变更和配置变更
-//
-// 参数:
-//   - proxyURL: 代理地址
-//   - accountID: 账户 ID
-//   - accountConcurrency: 账户并发限制
-//
-// 返回:
-//   - *upstreamClientEntry: 客户端缓存条目
-//
-// 隔离策略说明:
-//   - proxy: 按代理地址隔离，同一代理共享客户端
-//   - account: 按账户隔离，同一账户共享客户端（代理变更时重建）
-//   - account_proxy: 按账户+代理组合隔离，最细粒度
-func (s *httpUpstreamService) getOrCreateClient(proxyURL string, accountID int64, accountConcurrency int) (*upstreamClientEntry, error) {
-	return s.getClientEntry(proxyURL, accountID, accountConcurrency, service.HTTPUpstreamProfileDefault, false, false)
 }
 
 // getClientEntry 获取或创建客户端条目
