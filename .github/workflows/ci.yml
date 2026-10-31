@@ -1,17 +1,26 @@
-# CI：后端编译与漏洞扫描、前端类型检查与构建、镜像冒烟测试。
-# 也被 release.yml 以 workflow_call 复用，保证发布的 tag 通过同一套检查。
+# 普通 PR 走快速通道；发布调用及手动运行执行完整测试。
 name: CI
 
 on:
-  push:
-    branches: [main]
   pull_request:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      strict_secrets:
+        description: 全历史严格密钥扫描
+        type: boolean
+        default: false
   workflow_call:
     inputs:
       ref:
-        description: 要检查的 ref
         required: true
         type: string
+      full:
+        type: boolean
+        default: true
+      strict_secrets:
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -20,7 +29,56 @@ concurrency:
   group: ci-${{ inputs.ref || github.ref }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
+env:
+  CI: 'true'
+  GOMAXPROCS: '2'
+
 jobs:
+  changes:
+    name: Plan test scope
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    outputs:
+      mode: ${{ steps.plan.outputs.mode }}
+      full: ${{ steps.plan.outputs.full }}
+      unit: ${{ steps.plan.outputs.unit }}
+      integration: ${{ steps.plan.outputs.integration }}
+      frontend: ${{ steps.plan.outputs.frontend }}
+      nodes: ${{ steps.plan.outputs.nodes }}
+      suites: ${{ steps.plan.outputs.suites }}
+      lint: ${{ steps.plan.outputs.lint }}
+      lint_packages: ${{ steps.plan.outputs.lint_packages }}
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          ref: ${{ inputs.ref || github.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Fetch reviewed fixture inputs before checks
+        run: python3 .github/scripts/fetch-upgrade-fixture-inputs.py
+      - name: Validate scope and isolation contracts
+        run: |
+          python3 -m unittest discover -s .github/isolation -p 'test_*.py'
+          python3 .github/scripts/test-upgrade-preservation.py
+      - name: Restore exact-source validation closure
+        run: python3 .github/scripts/prepare-upgrade-validation.py "$RUNNER_TEMP/validation"
+      - name: Plan fast or full coverage
+        id: plan
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          FULL: ${{ github.event_name != 'pull_request' || inputs.full }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          args=(--base "$BASE_SHA" --validation-root "$RUNNER_TEMP/validation" --output "$RUNNER_TEMP/ci-plan.json")
+          if [ "$FULL" = true ]; then args+=(--full); fi
+          python3 .github/scripts/ci-plan.py "${args[@]}"
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
+        with:
+          name: ci-plan
+          path: ${{ runner.temp }}/ci-plan.json
+          if-no-files-found: error
+
   backend:
     name: Backend
     runs-on: ubuntu-latest
@@ -48,31 +106,205 @@ jobs:
           go install golang.org/x/vuln/cmd/govulncheck@v1.9.0
           "$(go env GOPATH)/bin/govulncheck" ./...
 
-  frontend:
-    name: Frontend
+
+  security:
+    name: Security gates
     runs-on: ubuntu-latest
-    timeout-minutes: 30
-    defaults:
-      run:
-        working-directory: frontend
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
         with:
           ref: ${{ inputs.ref || github.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Install checksum-pinned Gitleaks
+        run: python3 .github/scripts/install-ci-tools.py gitleaks "$RUNNER_TEMP/ci-bin"
+      - name: Install audit parser
+        run: python3 -m pip install --disable-pip-version-check PyYAML==6.0.3
+      - name: Secret scan
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          STRICT: ${{ inputs.strict_secrets }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          args=(--fail-on-findings --report "$RUNNER_TEMP/secret-scan.json")
+          if [ "$STRICT" = true ]; then args+=(--strict)
+          elif [ -n "$BASE_SHA" ]; then args+=(--log-range "$BASE_SHA..$(git rev-parse HEAD)"); fi
+          python3 scripts/scan-secrets.py "${args[@]}"
+      - name: Security guard regressions and invariants
+        run: |
+          python3 -m unittest discover -s scripts -p 'test_scan_secrets*.py'
+          python3 scripts/audit-gate.py --selftest
+          python3 scripts/check-v-html-sinks.py --selftest
+          python3 scripts/check-gosec-config.py
+          python3 scripts/check-v-html-sinks.py
+          bash scripts/check-deployment-contract.sh
+          bash -n .github/ci/unit-full.sh
+          bash -n deploy/apple-container.sh
+          bash -n deploy/tests/apple-container-test.sh
+          sh deploy/tests/docker-compose-security-test.sh
+          sh deploy/tests/docker-compose-gateway-env-test.sh
+          sh deploy/tests/docker-compose-simple-mode-env-test.sh
+          sh deploy/tests/docker-runtime-resources-test.sh
+          sh deploy/test-caddyfile-cache.sh
       - uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # v6
         with:
-          version: 9
+          version: 9.15.9
       - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
         with:
-          node-version: 20
+          node-version: 24
           cache: pnpm
           cache-dependency-path: frontend/pnpm-lock.yaml
-      - run: pnpm install --frozen-lockfile
-      - run: pnpm run typecheck
-      - run: pnpm run build
+      - name: Install locked audit dependencies
+        working-directory: frontend
+        run: pnpm install --ignore-scripts --frozen-lockfile
+      - name: Audit production and development dependencies
+        working-directory: frontend
+        run: |
+          pnpm audit --prod --audit-level=high --json > audit.json || true
+          pnpm audit --audit-level=high --json > audit-full.json || true
+      - name: Enforce reviewed exceptions and development ratchet
+        run: |
+          python3 tools/check_pnpm_audit_exceptions.py --audit frontend/audit.json --exceptions .github/audit-exceptions.yml
+          python3 scripts/audit-gate.py --prod frontend/audit.json --full frontend/audit-full.json --exceptions .github/audit-exceptions.yml --baseline .github/audit-baseline-devdeps.json
+
+  lint:
+    name: Go static security and lint
+    needs: changes
+    if: needs.changes.outputs.lint == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          ref: ${{ inputs.ref || github.sha }}
+          persist-credentials: false
+      - uses: actions/setup-go@924ae3a1cded613372ab5595356fb5720e22ba16 # v6
+        with:
+          go-version-file: backend/go.mod
+          cache-dependency-path: backend/go.sum
+      - name: Install checksum-pinned golangci-lint
+        run: python3 .github/scripts/install-ci-tools.py golangci-lint "$RUNNER_TEMP/ci-bin"
+      - name: Lint application code
+        working-directory: backend
+        env:
+          GOMEMLIMIT: 2500MiB
+          PACKAGES: ${{ needs.changes.outputs.lint_packages }}
+        run: golangci-lint run --timeout=12m $PACKAGES
+
+  tests:
+    name: Backend ${{ matrix.suite }} (${{ needs.changes.outputs.mode }}, network isolated)
+    needs: changes
+    if: needs.changes.outputs.unit == 'true' || needs.changes.outputs.integration == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: ${{ needs.changes.outputs.full == 'true' && 80 || 20 }}
+    strategy:
+      fail-fast: false
+      matrix:
+        suite: ${{ fromJSON(needs.changes.outputs.suites) }}
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          ref: ${{ inputs.ref || github.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Fetch reviewed fixture inputs before checks
+        run: python3 .github/scripts/fetch-upgrade-fixture-inputs.py
+      - name: Test isolation validators before backend execution
+        run: |
+          python3 -m unittest discover -s .github/isolation -p 'test_*.py'
+          python3 .github/scripts/test-isolated-unit-entrypoint.py
+          python3 .github/upgrade/test-isolated-fixtures.py
+          python3 .github/upgrade/test-race-fixtures.py
+          python3 .github/upgrade/test-service-race-fixtures.py
+          python3 .github/upgrade/test-gin-mode-fixtures.py
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: ci-plan
+          path: ${{ runner.temp }}
+      - uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3
+      - uses: actions/cache@cdf6c1fa76f9f475f3d7449005a359c84ca0f306 # v5.0.3
+        with:
+          path: ${{ runner.temp }}/${{ matrix.suite }}-build-cache
+          key: isolated-${{ runner.os }}-${{ matrix.suite }}-${{ hashFiles('backend/go.sum', '.github/isolation/*.Dockerfile') }}-${{ github.sha }}
+          restore-keys: |
+            isolated-${{ runner.os }}-${{ matrix.suite }}-${{ hashFiles('backend/go.sum', '.github/isolation/*.Dockerfile') }}-
+      - name: Execute planned offline race tests
+        env:
+          SUITE: ${{ matrix.suite }}
+          FULL: ${{ needs.changes.outputs.full }}
+        run: |
+          if [ "$SUITE" = unit ] && [ "$FULL" = true ]; then
+            bash .github/ci/unit-full.sh "$RUNNER_TEMP/ci-plan.json" "$RUNNER_TEMP/isolated-unit" --build-cache "$RUNNER_TEMP/unit-build-cache"
+          else
+            python3 .github/scripts/run-isolated-unit.py --suite "$SUITE" --plan "$RUNNER_TEMP/ci-plan.json" --build-cache "$RUNNER_TEMP/$SUITE-build-cache" "$RUNNER_TEMP/isolated-$SUITE"
+          fi
+      - name: Preserve scope, source, isolation and test evidence
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
+        with:
+          name: isolated-${{ matrix.suite }}-${{ needs.changes.outputs.mode }}-evidence
+          path: |
+            ${{ runner.temp }}/ci-plan.json
+            ${{ runner.temp }}/isolated-${{ matrix.suite }}/image-build.log
+            ${{ runner.temp }}/isolated-${{ matrix.suite }}/*receipt.json
+            ${{ runner.temp }}/isolated-${{ matrix.suite }}/*tests.jsonl
+            ${{ runner.temp }}/isolated-${{ matrix.suite }}/runtime-output.jsonl
+            ${{ runner.temp }}/isolated-${{ matrix.suite }}/build-capacity.json
+            ${{ runner.temp }}/isolated-${{ matrix.suite }}/modules.json
+            ${{ runner.temp }}/isolated-${{ matrix.suite }}/os-packages.txt
+            ${{ runner.temp }}/isolated-${{ matrix.suite }}/context/*manifest.json
+            ${{ runner.temp }}/isolated-${{ matrix.suite }}/context/validation-receipt.json
+          if-no-files-found: error
+
+  frontend:
+    name: Frontend (Node ${{ matrix.node }}, ${{ needs.changes.outputs.mode }})
+    needs: changes
+    if: needs.changes.outputs.frontend == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        node: ${{ fromJSON(needs.changes.outputs.nodes) }}
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          ref: ${{ inputs.ref || github.sha }}
+          persist-credentials: false
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: ci-plan
+          path: ${{ runner.temp }}
+      - uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # v6
+        with:
+          version: 9.15.9
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version: ${{ matrix.node }}
+          cache: pnpm
+          cache-dependency-path: frontend/pnpm-lock.yaml
+      - name: Restore exact-source validation closure
+        run: python3 .github/scripts/prepare-upgrade-validation.py "$RUNNER_TEMP/validation"
+      - name: Install locked dependencies
+        working-directory: ${{ runner.temp }}/validation/frontend
+        run: pnpm install --frozen-lockfile
+      - name: Lint and typecheck
+        working-directory: ${{ runner.temp }}/validation/frontend
+        run: |
+          pnpm run lint:check
+          pnpm run typecheck
+      - name: Execute critical or full frontend regression
+        run: python3 .github/scripts/run-frontend-tests.py --plan "$RUNNER_TEMP/ci-plan.json" --root "$RUNNER_TEMP/validation/frontend"
+      - name: Production build
+        working-directory: ${{ runner.temp }}/validation/frontend
+        run: pnpm run build
 
   image:
     name: Image smoke test
+    needs: changes
+    if: needs.changes.outputs.full == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 45
     steps:
@@ -104,126 +336,29 @@ jobs:
           IMAGE: sub2api-custom-public:ci
         run: bash .ci-tools/.github/scripts/test-smoke.sh
 
-  upgrade-preservation:
-    name: Custom upgrade safeguards
+
+  ci-gate:
+    name: CI gate
+    if: always()
+    needs: [changes, backend, security, lint, tests, frontend, image]
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
-      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
-        with:
-          ref: ${{ inputs.ref || github.sha }}
-      - run: python3 .github/scripts/test-upgrade-preservation.py
-
-  backend-unit-isolated:
-    name: Backend unit (network isolated)
-    runs-on: ubuntu-latest
-    timeout-minutes: 80
-    steps:
-      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
-        with:
-          ref: ${{ inputs.ref || github.sha }}
-          persist-credentials: false
-      - name: Fetch reviewed fixture inputs before all static isolation checks
-        run: python3 .github/scripts/fetch-upgrade-fixture-inputs.py
-      - name: Test isolation validators without executing Go tests
+      - name: Require the declared coverage and all security checks
+        env:
+          NEEDS: ${{ toJSON(needs) }}
         run: |
-          python3 -m unittest discover -s .github/isolation -p 'test_*.py' -v
-          python3 .github/scripts/test-isolated-unit-entrypoint.py
-      - name: Build dependency-only image and run verified offline unit container
-        run: python3 .github/scripts/run-isolated-unit.py "$RUNNER_TEMP/isolated-unit"
-      - name: Preserve isolation receipts and actual test output
-        if: always()
-        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
-        with:
-          name: isolated-unit-evidence
-          path: |
-            ${{ runner.temp }}/isolated-unit/image-build.log
-            ${{ runner.temp }}/isolated-unit/build-capacity.json
-            ${{ runner.temp }}/isolated-unit/compile-receipt.json
-            ${{ runner.temp }}/isolated-unit/host-receipt.json
-            ${{ runner.temp }}/isolated-unit/isolation-receipt.json
-            ${{ runner.temp }}/isolated-unit/unit-tests.jsonl
-            ${{ runner.temp }}/isolated-unit/runtime-output.jsonl
-            ${{ runner.temp }}/isolated-unit/modules.json
-            ${{ runner.temp }}/isolated-unit/os-packages.txt
-            ${{ runner.temp }}/isolated-unit/context/source-manifest.json
-            ${{ runner.temp }}/isolated-unit/context/validation-receipt.json
-          if-no-files-found: error
-
-  backend-integration-isolated:
-    name: Backend integration (network isolated)
-    runs-on: ubuntu-latest
-    timeout-minutes: 80
-    steps:
-      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
-        with:
-          ref: ${{ inputs.ref || github.sha }}
-          persist-credentials: false
-      - name: Fetch reviewed fixture inputs before all static isolation checks
-        run: python3 .github/scripts/fetch-upgrade-fixture-inputs.py
-      - name: Check isolation and fixture adapters without executing Go or databases
-        run: |
-          python3 -m unittest discover -s .github/isolation -p 'test_*.py' -v
-          python3 .github/scripts/test-isolated-unit-entrypoint.py
-          python3 .github/upgrade/test-isolated-fixtures.py
-          python3 .github/upgrade/test-race-fixtures.py
-          python3 .github/upgrade/test-service-race-fixtures.py
-          python3 .github/upgrade/test-gin-mode-fixtures.py
-      - name: Prepare dependencies then run verified offline integration container
-        run: python3 .github/scripts/run-isolated-unit.py --suite integration "$RUNNER_TEMP/isolated-integration"
-      - name: Preserve actual isolation, fixture and test evidence
-        if: always()
-        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
-        with:
-          name: isolated-integration-evidence
-          path: |
-            ${{ runner.temp }}/isolated-integration/image-build.log
-            ${{ runner.temp }}/isolated-integration/build-capacity.json
-            ${{ runner.temp }}/isolated-integration/compile-receipt.json
-            ${{ runner.temp }}/isolated-integration/host-receipt.json
-            ${{ runner.temp }}/isolated-integration/isolation-receipt.json
-            ${{ runner.temp }}/isolated-integration/integration-tests.jsonl
-            ${{ runner.temp }}/isolated-integration/runtime-output.jsonl
-            ${{ runner.temp }}/isolated-integration/modules.json
-            ${{ runner.temp }}/isolated-integration/os-packages.txt
-            ${{ runner.temp }}/isolated-integration/context/source-manifest.json
-            ${{ runner.temp }}/isolated-integration/context/validation-receipt.json
-          if-no-files-found: error
-
-  frontend-regression:
-    name: Frontend regression (Node ${{ matrix.node }})
-    runs-on: ubuntu-latest
-    timeout-minutes: 30
-    strategy:
-      fail-fast: false
-      matrix:
-        node: [20, 24]
-    steps:
-      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
-        with:
-          ref: ${{ inputs.ref || github.sha }}
-      - uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # v6
-        with:
-          version: 9.15.9
-      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
-        with:
-          node-version: ${{ matrix.node }}
-          cache: pnpm
-          cache-dependency-path: frontend/pnpm-lock.yaml
-      - name: Restore pinned test dependency closure onto this checkout
-        run: python3 .github/scripts/prepare-upgrade-validation.py "$RUNNER_TEMP/upgrade-validation"
-      - name: Install locked dependencies
-        working-directory: ${{ runner.temp }}/upgrade-validation/frontend
-        run: pnpm install --frozen-lockfile
-      - name: Lint
-        working-directory: ${{ runner.temp }}/upgrade-validation/frontend
-        run: pnpm run lint:check
-      - name: Typecheck
-        working-directory: ${{ runner.temp }}/upgrade-validation/frontend
-        run: pnpm run typecheck
-      - name: Vitest
-        working-directory: ${{ runner.temp }}/upgrade-validation/frontend
-        run: pnpm run test:run
-      - name: Production build
-        working-directory: ${{ runner.temp }}/upgrade-validation/frontend
-        run: pnpm run build
+          python3 - <<'PY'
+          import json, os
+          needs = json.loads(os.environ['NEEDS'])
+          full = needs['changes']['outputs'].get('full') == 'true'
+          required = {'changes', 'backend', 'security'}
+          for job, output in [('lint', 'lint'), ('frontend', 'frontend')]:
+              if needs['changes']['outputs'].get(output) == 'true': required.add(job)
+          if any(needs['changes']['outputs'].get(s) == 'true' for s in ('unit', 'integration')): required.add('tests')
+          if full: required.add('image')
+          failed = {name: item['result'] for name, item in needs.items()
+                    if item['result'] != 'success' and (name in required or item['result'] != 'skipped')}
+          if failed: raise SystemExit(str(failed))
+          print('CI passed for the declared ' + ('full' if full else 'fast') + ' plan')
+          PY

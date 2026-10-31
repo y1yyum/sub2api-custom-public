@@ -10,6 +10,7 @@ import json
 import os
 from pathlib import Path
 import re
+import runpy
 import stat
 import subprocess
 import sys
@@ -18,6 +19,7 @@ spec = importlib.util.spec_from_file_location('isolated_runtime', Path(__file__)
 runtime = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(runtime)
 require = runtime.require
+plan_contract = runpy.run_path(str(Path(__file__).with_name('test-plan.py')))
 
 
 def decode_packages(text):
@@ -90,13 +92,19 @@ def build(source, manifest, sha, output, suite, *, inspect=compile_preflight, ex
     version = execute([runtime.GO, 'version'], env=env, capture_output=True, text=True, check=False)
     require(version.returncode == 0 and re.fullmatch(r'go version go1\.27\.3 linux/(amd64|arm64)\n', version.stdout), 'pinned executable version mismatch')
     flags = ['-p', '1', '-race', '-tags=' + suite, '-mod=readonly']
-    inventory_command = [runtime.GO, 'list', '-json', '-race', '-tags=' + suite, '-mod=readonly', './...']
+    plan = source_doc.get('ci_plan')
+    if plan is not None:
+        plan_contract['validate'](plan, suite, source_doc['source_commit'])
+    inventory_command = [runtime.GO, 'list', '-json', '-race', '-tags=' + suite, '-mod=readonly',
+                         *plan_contract['package_args'](plan)]
     listed = execute(inventory_command,
                      cwd=source / 'backend', env=env, capture_output=True, text=True, check=False)
     if listed.returncode:
         print(listed.stderr, file=sys.stderr, flush=True)
     require(listed.returncode == 0, 'offline package inventory failed')
     inventory = package_inventory(decode_packages(listed.stdout), source)
+    if plan is not None and plan['mode'] == 'fast':
+        require({p['package'] for p in inventory} == set(plan['packages']), 'scoped package inventory mismatch')
     raw_inventory = (json.dumps(inventory, sort_keys=True, indent=2) + '\n').encode()
     (output / 'package-inventory.json').write_bytes(raw_inventory)
     binaries = output / 'binaries'

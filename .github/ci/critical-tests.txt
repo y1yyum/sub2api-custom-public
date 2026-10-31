@@ -1,0 +1,14 @@
+# Pull request fast lane: test files that always run (globs from the repo root).
+# Unit-suite files run whenever a PR touches backend Go code; integration-only
+# files run when it touches migrations, ent or the repository layer. Everything
+# else runs in full on release tags and manual runs (docs/CI_WORKFLOW.md).
+# Keep this list short: money paths, authentication and schema.
+
+backend/internal/payment/*_test.go
+backend/internal/payment/provider/*_test.go
+backend/internal/service/payment_*_test.go
+backend/internal/service/admin_service_update_balance_test.go
+backend/internal/handler/payment_*_test.go
+backend/internal/server/middleware/*auth*_test.go
+backend/internal/repository/payment_refund_retry_integration_test.go
+backend/internal/repository/migrations_schema_integration_test.go

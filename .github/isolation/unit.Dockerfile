@@ -6,6 +6,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends python3 \
     && rm -rf /var/lib/apt/lists/*
 ENV GOTOOLCHAIN=local GOMODCACHE=/opt/gomodcache
 WORKDIR /prepare
+# 标准库 race 缓存独立于应用源码和模块版本。
+RUN --network=none GOCACHE=/tmp/build-cache go build -race std \
+    && chown -R 65532:65532 /tmp/build-cache
 COPY backend/go.mod backend/go.sum ./
 RUN test "$(go version | awk '{print $3}')" = go1.27.3 \
     && go mod download && go mod verify \
@@ -20,6 +23,7 @@ COPY validation-receipt.json /src/validation-receipt.json
 COPY source-manifest.json /opt/isolation/source-manifest.json
 COPY isolated-unit-entrypoint.py /opt/isolation/isolated-unit-entrypoint.py
 COPY compile-isolated-tests.py /opt/isolation/compile-isolated-tests.py
+COPY test-plan.py planned-tests.py /opt/isolation/
 ARG SOURCE_MANIFEST_SHA256
 RUN mkdir -p /opt/isolation/compiled && chown 65532:65532 /opt/isolation/compiled
 WORKDIR /src/backend
