@@ -235,7 +235,7 @@ class ScanSecretsTests(unittest.TestCase):
 
     def test_workflows_fetch_commits_only_retained_by_pr_refs(self):
         for workflow, prefix in (
-            (".github/workflows/custom-security.yml", "run: git fetch "),
+            (".github/workflows/local-ci.yml", "git fetch --force "),
             (".gitea/workflows/local-ci.yml", "git fetch --force "),
         ):
             with self.subTest(workflow=workflow):

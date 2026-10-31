@@ -15,9 +15,9 @@ import yaml
 
 ALL = './...'
 BACKEND = Path('backend')
-FULL_PREFIXES = ('deploy/local-gitea/ci-image/',)
+FULL_PREFIXES = ('deploy/local-gitea/ci-image/', '.github/actions/setup-ci/')
 FULL_FILES = {'backend/go.mod', 'backend/go.sum', 'backend/Makefile'}
-WORKFLOW = '.gitea/workflows/local-ci.yml'
+WORKFLOW = os.environ.get('CI_WORKFLOW', '.gitea/workflows/local-ci.yml')
 CRITICAL = '.gitea/critical-tests.txt'
 UNIT_FULL = ('.gitea/unit-full.sh', '.gitea/slow-unit-tests.txt')
 NODE_SETUP = ('.gitea/setup-ci-node.py', '.gitea/node-shasums.txt')
@@ -138,8 +138,10 @@ def changed_jobs(base):
     """Scoped outputs whose workflow job changed since base; None when
     settings shared by every job (env, permissions) changed. Triggers
     (`on`, read by PyYAML as True) do not change what a job checks."""
-    old = yaml.safe_load(subprocess.run(
-        ['git', 'show', f'{base}:{WORKFLOW}'], capture_output=True, check=True).stdout)
+    previous = subprocess.run(['git', 'show', f'{base}:{WORKFLOW}'], capture_output=True)
+    if previous.returncode:
+        return None
+    old = yaml.safe_load(previous.stdout)
     new = yaml.safe_load(Path(WORKFLOW).read_text(encoding='utf-8'))
     old_jobs, new_jobs = old.pop('jobs'), new.pop('jobs')
     for workflow in (old, new):

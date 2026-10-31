@@ -1,3 +1,4 @@
+# GitHub 兼容入口；触发条件、检查命令、范围与分片沿用 Gitea 原件。
 name: Local CI
 
 # Upstream CI (Wei-Shaw/sub2api .github/workflows/backend-ci.yml and
@@ -37,16 +38,14 @@ env:
   CI: "true"
   # Match Go runtimes to the runner's --cpus=2.
   GOMAXPROCS: "2"
-  # Isolated rootless daemon for testcontainers (deploy/local-gitea/ci-dind).
-  DOCKER_HOST: "tcp://10.233.0.1:2375"
-  TESTCONTAINERS_DOCKER_SOCKET_OVERRIDE: "/run/user/1001/docker.sock"
+  # GitHub hosted runner 使用默认 Docker daemon，由 testcontainers 自动发现。
   # Synthetic, non-secret client ID: the built-in Gemini CLI OAuth client is
   # runtime-injected (Issue #119), and its tests read the ID at package init.
   GEMINI_CLI_OAUTH_CLIENT_ID: "custom-test-client"
 
 jobs:
   changes:
-    runs-on: sub2api-local
+    runs-on: ubuntu-24.04
     timeout-minutes: 10
     outputs:
       unit: ${{ steps.scope.outputs.unit }}
@@ -60,11 +59,17 @@ jobs:
       shell: ${{ steps.scope.outputs.shell }}
       release: ${{ steps.scope.outputs.release }}
     steps:
-      - uses: builtin:checkout
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
         with:
           fetch-depth: 0
+          persist-credentials: false
+      - name: Prepare GitHub runner tools
+        uses: ./.github/actions/setup-ci
+        with:
+          python: 'true'
       - id: scope
         env:
+          CI_WORKFLOW: .github/workflows/local-ci.yml
           EVENT: ${{ github.event_name }}
           BASE_SHA: ${{ github.event.pull_request.base.sha }}
         run: python3 .gitea/ci-scope.py --event "$EVENT" --base "$BASE_SHA"
@@ -73,11 +78,17 @@ jobs:
   unit:
     needs: changes
     if: needs.changes.outputs.unit != '' || needs.changes.outputs.unit_selected != ''
-    runs-on: sub2api-local
+    runs-on: ubuntu-24.04
     # Full unit took 9m21s in run 306; the release lane needs the headroom.
     timeout-minutes: 20
     steps:
-      - uses: builtin:checkout
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
+        with:
+          persist-credentials: false
+      - name: Prepare GitHub runner tools
+        uses: ./.github/actions/setup-ci
+        with:
+          go: 'true'
       - name: Verify Go version
         run: go version | grep -q 'go1.27.3'
       # Scoped runs skip the tests of importing packages; the build still
@@ -100,10 +111,16 @@ jobs:
   integration:
     needs: changes
     if: needs.changes.outputs.integration != '' || needs.changes.outputs.integration_selected != ''
-    runs-on: sub2api-local
+    runs-on: ubuntu-24.04
     timeout-minutes: 20
     steps:
-      - uses: builtin:checkout
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
+        with:
+          persist-credentials: false
+      - name: Prepare GitHub runner tools
+        uses: ./.github/actions/setup-ci
+        with:
+          go: 'true'
       - name: Verify Go version
         run: go version | grep -q 'go1.27.3'
       - name: Integration tests
@@ -119,10 +136,17 @@ jobs:
   golangci-lint:
     needs: changes
     if: needs.changes.outputs.lint != ''
-    runs-on: sub2api-local
+    runs-on: ubuntu-24.04
     timeout-minutes: 10
     steps:
-      - uses: builtin:checkout
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
+        with:
+          persist-credentials: false
+      - name: Prepare GitHub runner tools
+        uses: ./.github/actions/setup-ci
+        with:
+          go: 'true'
+          lint: 'true'
       - name: Verify Go version
         run: go version | grep -q 'go1.27.3'
       # Soft heap limit below the 4 GiB job cgroup (OOM kills, Issue #15).
@@ -136,7 +160,7 @@ jobs:
   frontend:
     needs: changes
     if: needs.changes.outputs.frontend == 'true'
-    runs-on: sub2api-local
+    runs-on: ubuntu-24.04
     timeout-minutes: 20
     # vitest otherwise starts (host CPUs - 1) forks and exhausts --pids-limit.
     env:
@@ -145,7 +169,13 @@ jobs:
       VITEST_MAX_THREADS: "2"
       VITEST_MIN_THREADS: "1"
     steps:
-      - uses: builtin:checkout
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
+        with:
+          persist-credentials: false
+      - name: Prepare GitHub runner tools
+        uses: ./.github/actions/setup-ci
+        with:
+          node: 'true'
       - name: Select checksum-pinned Node 24
         run: python3 .gitea/setup-ci-node.py
       - name: Install frontend dependencies
@@ -168,12 +198,21 @@ jobs:
   # scanners' own regression tests.
   security:
     needs: changes
-    runs-on: sub2api-local
+    runs-on: ubuntu-24.04
     timeout-minutes: 10
     steps:
-      - uses: builtin:checkout
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
         with:
           fetch-depth: 0
+          persist-credentials: false
+      - name: Prepare GitHub runner tools
+        uses: ./.github/actions/setup-ci
+        with:
+          go: 'true'
+          node: 'true'
+          python: 'true'
+          gitleaks: 'true'
+          govulncheck: 'true'
       # Strict mode scans every ref. builtin:checkout keeps no credentials, so
       # authenticate this fetch with the job token through env, never argv.
       - name: Refresh published branches, tags and PR refs
@@ -262,10 +301,12 @@ jobs:
   shell:
     needs: changes
     if: needs.changes.outputs.shell == 'true'
-    runs-on: sub2api-local
+    runs-on: ubuntu-24.04
     timeout-minutes: 10
     steps:
-      - uses: builtin:checkout
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
+        with:
+          persist-credentials: false
       - name: Check deployment scripts
         run: |
           /bin/bash -n deploy/apple-container.sh
@@ -279,10 +320,16 @@ jobs:
   release-helpers:
     needs: changes
     if: needs.changes.outputs.release == 'true'
-    runs-on: sub2api-local
+    runs-on: ubuntu-24.04
     timeout-minutes: 10
     steps:
-      - uses: builtin:checkout
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
+        with:
+          persist-credentials: false
+      - name: Prepare GitHub runner tools
+        uses: ./.github/actions/setup-ci
+        with:
+          python: 'true'
       # PyYAML (requirements-release.txt) is preinstalled in the job image.
       - run: python3 -m unittest discover -s .github/release-tools -p 'test_release_matrix.py'
       - run: bash -n .github/release-tools/release-images.sh
@@ -291,7 +338,7 @@ jobs:
   # job and the always-on security job must succeed.
   ci-gate:
     if: always()
-    runs-on: sub2api-local
+    runs-on: ubuntu-24.04
     timeout-minutes: 10
     needs: [changes, unit, integration, golangci-lint, frontend, security, shell, release-helpers]
     steps:
