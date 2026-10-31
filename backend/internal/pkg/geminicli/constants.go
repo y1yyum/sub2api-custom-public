@@ -40,7 +40,7 @@ const (
 	GeminiCLIRedirectURI = "https://codeassist.google.com/authcode"
 
 	// Built-in Gemini CLI OAuth credentials must be injected at runtime.
-	GeminiCLIOAuthClientIDEnv = "GEMINI_CLI_OAUTH_CLIENT_ID"
+	GeminiCLIOAuthClientIDEnv     = "GEMINI_CLI_OAUTH_CLIENT_ID"
 	GeminiCLIOAuthClientSecretEnv = "GEMINI_CLI_OAUTH_CLIENT_SECRET"
 
 	SessionTTL = 30 * time.Minute
