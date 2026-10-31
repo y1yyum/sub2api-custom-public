@@ -378,10 +378,6 @@ func (c *openAIWSConn) hasReaderLoop() bool {
 	return c != nil && c.readerLoopResults != nil
 }
 
-func (c *openAIWSConn) readerLoopClosedByPeer() bool {
-	return c != nil && c.readerLoopPeerClosed.Load()
-}
-
 func (c *openAIWSConn) upstreamPingCount() int64 {
 	if c == nil || c.ws == nil {
 		return 0
@@ -896,13 +892,6 @@ func (p *openAIWSConnPool) SnapshotTransportMetrics() OpenAIWSTransportMetricsSn
 		return dialer.SnapshotTransportMetrics()
 	}
 	return OpenAIWSTransportMetricsSnapshot{}
-}
-
-func (p *openAIWSConnPool) setClientDialerForTest(dialer openAIWSClientDialer) {
-	if p == nil || dialer == nil {
-		return
-	}
-	p.clientDialer = dialer
 }
 
 // Close 停止后台 worker 并关闭所有空闲连接，应在优雅关闭时调用。
@@ -1607,10 +1596,6 @@ func (p *openAIWSConnPool) getOrCreateAccountPool(accountID int64) *openAIWSAcco
 }
 
 // ensureAccountPoolLocked 兼容旧调用。
-func (p *openAIWSConnPool) ensureAccountPoolLocked(accountID int64) *openAIWSAccountPool {
-	return p.getOrCreateAccountPool(accountID)
-}
-
 func (p *openAIWSConnPool) getAccountPool(accountID int64) (*openAIWSAccountPool, bool) {
 	if p == nil || accountID <= 0 {
 		return nil, false

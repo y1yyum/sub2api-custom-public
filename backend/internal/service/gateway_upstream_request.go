@@ -679,14 +679,6 @@ func (s *GatewayService) computeFinalCountTokensAnthropicBeta(
 	return "", false
 }
 
-// stripBetaTokens removes the given beta tokens from a comma-separated header value.
-func stripBetaTokens(header string, tokens []string) string {
-	if header == "" || len(tokens) == 0 {
-		return header
-	}
-	return stripBetaTokensWithSet(header, buildBetaTokenSet(tokens))
-}
-
 func stripBetaTokensWithSet(header string, drop map[string]struct{}) string {
 	if header == "" || len(drop) == 0 {
 		return header
@@ -836,18 +828,6 @@ func resolveRuleAction(rule BetaPolicyRule, model string) (action, errorMessage 
 		return rule.FallbackAction, rule.FallbackErrorMessage
 	}
 	return BetaPolicyActionPass, "" // default fallback: pass (fail-open)
-}
-
-// droppedBetaSet returns claude.DroppedBetas as a set, with optional extra tokens.
-func droppedBetaSet(extra ...string) map[string]struct{} {
-	m := make(map[string]struct{}, len(defaultDroppedBetasSet)+len(extra))
-	for t := range defaultDroppedBetasSet {
-		m[t] = struct{}{}
-	}
-	for _, t := range extra {
-		m[t] = struct{}{}
-	}
-	return m
 }
 
 // containsBetaToken checks if a comma-separated header value contains the given token.

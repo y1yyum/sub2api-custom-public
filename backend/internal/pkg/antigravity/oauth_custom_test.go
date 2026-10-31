@@ -18,13 +18,17 @@ func TestCustomOAuthStartupCredentials(t *testing.T) {
 		}
 		return
 	}
+	executable, err := os.Executable()
+	if err != nil {
+		t.Fatalf("locate current test executable: %v", err)
+	}
 	for _, injected := range []bool{false, true} {
 		name := "empty"
 		if injected {
 			name = "injected"
 		}
 		t.Run(name, func(t *testing.T) {
-			cmd := exec.Command(os.Args[0], "-test.run=^TestCustomOAuthStartupCredentials$")
+			cmd := exec.Command(executable, "-test.run=^TestCustomOAuthStartupCredentials$")
 			for _, entry := range os.Environ() {
 				if strings.HasPrefix(entry, AntigravityOAuthClientIDEnv+"=") || strings.HasPrefix(entry, AntigravityOAuthClientSecretEnv+"=") || strings.HasPrefix(entry, "SUB2API_CUSTOM_OAUTH_TEST_CHILD=") {
 					continue

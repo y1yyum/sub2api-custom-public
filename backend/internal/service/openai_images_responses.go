@@ -709,14 +709,6 @@ func isOpenAIImagesContentPolicyRefusal(text string) bool {
 
 // extractOpenAIImagesModelRefusal returns only text with an explicit safety or
 // moderation signal. Plain prompt suggestions are capability failures instead.
-func extractOpenAIImagesModelRefusal(body []byte) string {
-	text := extractOpenAIImagesModelText(body)
-	if !isOpenAIImagesContentPolicyRefusal(text) {
-		return ""
-	}
-	return text
-}
-
 func openAIImagesTextFallbackError(body []byte) *OpenAIImagesUpstreamError {
 	return openAIImagesTextFallbackErrorForText(extractOpenAIImagesModelText(body))
 }

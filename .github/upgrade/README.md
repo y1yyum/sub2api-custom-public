@@ -1,3 +1,6 @@
+> 历史资料：自 2026-10-31 起，当前 CI 直接测试公开仓库的裁剪版本，
+> 不再恢复本目录描述的完整测试闭包。当前入口和复现方式见 [公开仓库 CI](../README.md)。
+
 # Stable v0.2.19 validation harness
 
 Backend execution is permitted only through the reviewed isolated CI runner:

@@ -20,17 +20,6 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-type anthropicCacheControlPayload struct {
-	Type string `json:"type"`
-	TTL  string `json:"ttl,omitempty"`
-}
-
-type anthropicSystemTextBlockPayload struct {
-	Type         string                        `json:"type"`
-	Text         string                        `json:"text"`
-	CacheControl *anthropicCacheControlPayload `json:"cache_control,omitempty"`
-}
-
 type anthropicMetadataPayload struct {
 	UserID string `json:"user_id"`
 }
@@ -62,20 +51,6 @@ func sanitizeSystemText(text string) string {
 		strings.TrimSpace(claudeCodeSystemPrompt),
 	)
 	return text
-}
-
-func marshalAnthropicSystemTextBlock(text string, includeCacheControl bool) ([]byte, error) {
-	block := anthropicSystemTextBlockPayload{
-		Type: "text",
-		Text: text,
-	}
-	if includeCacheControl {
-		block.CacheControl = &anthropicCacheControlPayload{
-			Type: "ephemeral",
-			TTL:  claude.DefaultCacheControlTTL,
-		}
-	}
-	return json.Marshal(block)
 }
 
 func marshalAnthropicSystemTextBlockWithCacheControl(text string, cacheControl any) ([]byte, error) {
@@ -543,25 +518,6 @@ func normalizeSystemParam(system any) any {
 	return parsed
 }
 
-// systemIncludesClaudeCodePrompt 检查 system 中是否已包含 Claude Code 提示词
-// 使用前缀匹配支持多种变体（标准版、Agent SDK 版等）
-func systemIncludesClaudeCodePrompt(system any) bool {
-	system = normalizeSystemParam(system)
-	switch v := system.(type) {
-	case string:
-		return hasClaudeCodePrefix(v)
-	case []any:
-		for _, item := range v {
-			if m, ok := item.(map[string]any); ok {
-				if text, ok := m["text"].(string); ok && hasClaudeCodePrefix(text) {
-					return true
-				}
-			}
-		}
-	}
-	return false
-}
-
 // hasClaudeCodePrefix 检查文本是否以 Claude Code 提示词的特征前缀开头
 func hasClaudeCodePrefix(text string) bool {
 	for _, prefix := range claudeCodePromptPrefixes {
@@ -570,123 +526,6 @@ func hasClaudeCodePrefix(text string) bool {
 		}
 	}
 	return false
-}
-
-// injectClaudeCodePrompt 在 system 开头注入 Claude Code 提示词
-// 处理 null、字符串、数组三种格式
-func injectClaudeCodePrompt(body []byte, system any) []byte {
-	system = normalizeSystemParam(system)
-	claudeCodeBlock, err := marshalAnthropicSystemTextBlock(claudeCodeSystemPrompt, true)
-	if err != nil {
-		logger.LegacyPrintf("service.gateway", "Warning: failed to build Claude Code prompt block: %v", err)
-		return body
-	}
-	// Opencode plugin applies an extra safeguard: it not only prepends the Claude Code
-	// banner, it also prefixes the next system instruction with the same banner plus
-	// a blank line. This helps when upstream concatenates system instructions.
-	claudeCodePrefix := strings.TrimSpace(claudeCodeSystemPrompt)
-
-	var items [][]byte
-
-	switch v := system.(type) {
-	case nil:
-		items = [][]byte{claudeCodeBlock}
-	case string:
-		// Be tolerant of older/newer clients that may differ only by trailing whitespace/newlines.
-		if strings.TrimSpace(v) == "" || strings.TrimSpace(v) == strings.TrimSpace(claudeCodeSystemPrompt) {
-			items = [][]byte{claudeCodeBlock}
-		} else {
-			// Mirror opencode behavior: keep the banner as a separate system entry,
-			// but also prefix the next system text with the banner.
-			merged := v
-			if !strings.HasPrefix(v, claudeCodePrefix) {
-				merged = claudeCodePrefix + "\n\n" + v
-			}
-			nextBlock, buildErr := marshalAnthropicSystemTextBlock(merged, false)
-			if buildErr != nil {
-				logger.LegacyPrintf("service.gateway", "Warning: failed to build prefixed Claude Code system block: %v", buildErr)
-				return body
-			}
-			items = [][]byte{claudeCodeBlock, nextBlock}
-		}
-	case []any:
-		items = make([][]byte, 0, len(v)+1)
-		items = append(items, claudeCodeBlock)
-		prefixedNext := false
-		systemResult := gjson.GetBytes(body, "system")
-		if systemResult.IsArray() {
-			systemResult.ForEach(func(_, item gjson.Result) bool {
-				textResult := item.Get("text")
-				if textResult.Exists() && textResult.Type == gjson.String &&
-					strings.TrimSpace(textResult.String()) == strings.TrimSpace(claudeCodeSystemPrompt) {
-					return true
-				}
-
-				raw := []byte(item.Raw)
-				// Prefix the first subsequent text system block once.
-				if !prefixedNext && item.Get("type").String() == "text" && textResult.Exists() && textResult.Type == gjson.String {
-					text := textResult.String()
-					if strings.TrimSpace(text) != "" && !strings.HasPrefix(text, claudeCodePrefix) {
-						next, setErr := sjson.SetBytes(raw, "text", claudeCodePrefix+"\n\n"+text)
-						if setErr == nil {
-							raw = next
-							prefixedNext = true
-						}
-					}
-				}
-				items = append(items, raw)
-				return true
-			})
-		} else {
-			for _, item := range v {
-				m, ok := item.(map[string]any)
-				if !ok {
-					raw, marshalErr := json.Marshal(item)
-					if marshalErr == nil {
-						items = append(items, raw)
-					}
-					continue
-				}
-				if text, ok := m["text"].(string); ok && strings.TrimSpace(text) == strings.TrimSpace(claudeCodeSystemPrompt) {
-					continue
-				}
-				if !prefixedNext {
-					if blockType, _ := m["type"].(string); blockType == "text" {
-						if text, ok := m["text"].(string); ok && strings.TrimSpace(text) != "" && !strings.HasPrefix(text, claudeCodePrefix) {
-							m["text"] = claudeCodePrefix + "\n\n" + text
-							prefixedNext = true
-						}
-					}
-				}
-				raw, marshalErr := json.Marshal(m)
-				if marshalErr == nil {
-					items = append(items, raw)
-				}
-			}
-		}
-	default:
-		items = [][]byte{claudeCodeBlock}
-	}
-
-	result, ok := setJSONRawBytes(body, "system", buildJSONArrayRaw(items))
-	if !ok {
-		logger.LegacyPrintf("service.gateway", "Warning: failed to inject Claude Code prompt")
-		return body
-	}
-	return result
-}
-
-// rewriteSystemForNonClaudeCode 将非 Claude Code 客户端的 system prompt 迁移至 messages，
-// system 字段仅保留 Claude Code 标识提示词。
-// Anthropic 基于 system 参数内容检测第三方应用，仅前置追加 Claude Code 提示词
-// 无法通过检测，因为后续内容仍为非 Claude Code 格式。
-// 策略：将原始 system prompt 提取并注入为 user/assistant 消息对，system 仅保留 Claude Code 标识。
-func rewriteSystemForNonClaudeCode(body []byte, system any) []byte {
-	return rewriteSystemForNonClaudeCodeWithPromptBlocks(body, system, "", "")
-}
-
-func rewriteSystemForNonClaudeCodeWithPrompt(body []byte, system any, expansionPrompt string) []byte {
-	return rewriteSystemForNonClaudeCodeWithPromptBlocks(body, system, expansionPrompt, "")
 }
 
 type claudeOAuthSystemPromptBlockConfig struct {

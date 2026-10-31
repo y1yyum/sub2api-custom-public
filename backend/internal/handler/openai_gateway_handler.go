@@ -4488,12 +4488,6 @@ func (h *OpenAIGatewayHandler) recordCyberPolicyIfMarked(c *gin.Context, apiKey 
 	}()
 }
 
-// clearCyberPolicyTurnState resets the cyber mark and recorded guard after a
-// logical WS turn has finished.
-func clearCyberPolicyTurnState(c *gin.Context) {
-	clearCyberPolicyAttemptState(c, true)
-}
-
 func clearCyberPolicyAttemptState(c *gin.Context, resetRecorded bool) {
 	if c == nil {
 		return

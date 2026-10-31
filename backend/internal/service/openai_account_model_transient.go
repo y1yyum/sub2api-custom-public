@@ -162,15 +162,6 @@ func (s *openAIAccountModelTransientState) isBlocked(accountID int64, model stri
 	return !entry.blockUntil.IsZero() && now.Before(entry.blockUntil)
 }
 
-func (s *openAIAccountModelTransientState) size() int {
-	if s == nil {
-		return 0
-	}
-	s.mu.Lock()
-	defer s.mu.Unlock()
-	return len(s.entries)
-}
-
 func (s *openAIAccountModelTransientState) evictOldestLocked() {
 	if len(s.entries) < s.maxEntries {
 		return

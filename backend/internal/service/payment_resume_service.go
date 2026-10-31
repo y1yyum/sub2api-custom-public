@@ -210,17 +210,6 @@ func (lb *visibleMethodLoadBalancer) SelectInstance(ctx context.Context, provide
 	return lb.inner.SelectInstance(ctx, inst.ProviderKey, paymentType, strategy, orderAmount)
 }
 
-func visibleMethodEnabledSettingKey(method string) string {
-	switch NormalizeVisibleMethod(method) {
-	case payment.TypeAlipay:
-		return SettingPaymentVisibleMethodAlipayEnabled
-	case payment.TypeWxpay:
-		return SettingPaymentVisibleMethodWxpayEnabled
-	default:
-		return ""
-	}
-}
-
 func visibleMethodSourceSettingKey(method string) string {
 	switch NormalizeVisibleMethod(method) {
 	case payment.TypeAlipay:

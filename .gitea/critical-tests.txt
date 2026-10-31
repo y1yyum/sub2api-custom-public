@@ -1,14 +1,11 @@
-# Pull request fast lane: test files that always run (globs from the repo root).
-# Unit-suite files run whenever a PR touches backend Go code; integration-only
-# files run when it touches migrations, ent or the repository layer. Everything
-# else runs in full on release tags and manual runs (docs/LOCAL_CI_WORKFLOW.md).
-# Keep this list short: money paths, authentication and schema.
-
-backend/internal/payment/*_test.go
-backend/internal/payment/provider/*_test.go
-backend/internal/service/payment_*_test.go
-backend/internal/service/admin_service_update_balance_test.go
-backend/internal/handler/payment_*_test.go
-backend/internal/server/middleware/*auth*_test.go
+# 公开裁剪快照实际保留的关键回归；不下载或恢复上游测试。
+backend/cmd/server/migration_command_custom_test.go
+backend/internal/config/database_migration_mode_custom_test.go
+backend/internal/pkg/antigravity/oauth_custom_test.go
+backend/internal/pkg/geminicli/oauth_custom_test.go
+backend/internal/pkg/requestmodel/model_uniqueness_test.go
+backend/internal/server/middleware/gateway_model_uniqueness_test.go
+backend/internal/service/payment_affiliate_claim_query_test.go
 backend/internal/repository/payment_refund_retry_integration_test.go
-backend/internal/repository/migrations_schema_integration_test.go
+backend/internal/repository/migration_check_custom_integration_test.go
+backend/internal/repository/upgrade_019_custom_migrations_integration_test.go

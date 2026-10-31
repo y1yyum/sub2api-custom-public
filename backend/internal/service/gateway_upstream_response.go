@@ -1162,21 +1162,6 @@ func (s *GatewayService) handleStreamingResponse(ctx context.Context, resp *http
 
 }
 
-func (s *GatewayService) parseSSEUsage(data string, usage *ClaudeUsage) {
-	if usage == nil {
-		return
-	}
-
-	var event map[string]any
-	if err := json.Unmarshal([]byte(data), &event); err != nil {
-		return
-	}
-
-	if patch := s.extractSSEUsagePatch(event); patch != nil {
-		mergeSSEUsagePatch(usage, patch)
-	}
-}
-
 type sseUsagePatch struct {
 	inputTokens              int
 	hasInputTokens           bool

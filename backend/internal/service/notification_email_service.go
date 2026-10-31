@@ -228,11 +228,6 @@ func shouldFallbackNotificationEmail(err error) bool {
 	return errors.As(err, &configErr)
 }
 
-func isNotificationEmailDeliveryError(err error) bool {
-	var deliveryErr notificationEmailDeliveryError
-	return errors.As(err, &deliveryErr)
-}
-
 func (s *NotificationEmailService) ListEventInfos() []NotificationEmailEventInfo {
 	infos := make([]NotificationEmailEventInfo, 0, len(notificationEmailEventDefinitions))
 	for _, event := range notificationEmailEventOrder {

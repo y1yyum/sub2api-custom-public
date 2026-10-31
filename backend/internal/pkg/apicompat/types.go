@@ -864,5 +864,3 @@ func (d ChatDelta) reasoningText() *string {
 // Responses request. Very small values may cause upstream API errors, so we
 // enforce a minimum.
 const DefaultMinMaxOutputTokens = 128
-
-const minMaxOutputTokens = DefaultMinMaxOutputTokens

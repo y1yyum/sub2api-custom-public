@@ -447,36 +447,6 @@ func shouldInferIngressFunctionCallOutputPreviousResponseID(
 	return strings.TrimSpace(expectedPreviousResponseID) != ""
 }
 
-func alignStoreDisabledPreviousResponseID(
-	payload []byte,
-	expectedPreviousResponseID string,
-) ([]byte, bool, error) {
-	if len(payload) == 0 {
-		return payload, false, nil
-	}
-	expected := strings.TrimSpace(expectedPreviousResponseID)
-	if expected == "" {
-		return payload, false, nil
-	}
-	current := openAIWSPayloadStringFromRaw(payload, "previous_response_id")
-	if current == "" || current == expected {
-		return payload, false, nil
-	}
-
-	withoutPrev, removed, dropErr := dropPreviousResponseIDFromRawPayload(payload)
-	if dropErr != nil {
-		return payload, false, dropErr
-	}
-	if !removed {
-		return payload, false, nil
-	}
-	updated, setErr := setPreviousResponseIDToRawPayload(withoutPrev, expected)
-	if setErr != nil {
-		return payload, false, setErr
-	}
-	return updated, true, nil
-}
-
 // Replay 状态所有权不变式：replay 序列中的 json.RawMessage 正文一经放入即视为
 // 不可变，所有持有者共享同一份字节，任何修改都必须整体替换元素或重建 payload。
 // 序列头数组在跨持有者保存时必须新建（combineOpenAIWSReplayItems），禁止通过
@@ -586,38 +556,6 @@ func openAIWSExtractNormalizedInputSequence(payload []byte) ([]json.RawMessage, 
 		return []json.RawMessage{encoded}, true, nil
 	}
 	return []json.RawMessage{openAIWSRawMessageFromResult(payload, inputValue)}, true, nil
-}
-
-func openAIWSInputIsPrefixExtended(previousPayload, currentPayload []byte) (bool, error) {
-	previousItems, previousExists, prevErr := openAIWSExtractNormalizedInputSequence(previousPayload)
-	if prevErr != nil {
-		return false, prevErr
-	}
-	currentItems, currentExists, currentErr := openAIWSExtractNormalizedInputSequence(currentPayload)
-	if currentErr != nil {
-		return false, currentErr
-	}
-	if !previousExists && !currentExists {
-		return true, nil
-	}
-	if !previousExists {
-		return len(currentItems) == 0, nil
-	}
-	if !currentExists {
-		return len(previousItems) == 0, nil
-	}
-	if len(currentItems) < len(previousItems) {
-		return false, nil
-	}
-
-	for idx := range previousItems {
-		previousNormalized := normalizeOpenAIWSJSONForCompareOrRaw(previousItems[idx])
-		currentNormalized := normalizeOpenAIWSJSONForCompareOrRaw(currentItems[idx])
-		if !bytes.Equal(previousNormalized, currentNormalized) {
-			return false, nil
-		}
-	}
-	return true, nil
 }
 
 func openAIWSRawItemsHasPrefix(items []json.RawMessage, prefix []json.RawMessage) bool {

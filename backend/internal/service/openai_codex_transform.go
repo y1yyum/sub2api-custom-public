@@ -171,13 +171,6 @@ var openAICodexOAuthUnsupportedFields = append([]string{
 	"presence_penalty",
 }, openAIChatGPTInternalUnsupportedFields...)
 
-func applyCodexOAuthTransform(reqBody map[string]any, isCodexCLI bool, isCompact bool) codexTransformResult {
-	return applyCodexOAuthTransformWithOptions(reqBody, codexOAuthTransformOptions{
-		IsCodexCLI: isCodexCLI,
-		IsCompact:  isCompact,
-	})
-}
-
 func applyCodexOAuthTransformWithOptions(reqBody map[string]any, opts codexOAuthTransformOptions) codexTransformResult {
 	result := codexTransformResult{}
 	if normalizeOpenAIOAuthResponsesCompatibilityFields(reqBody) {
@@ -1531,14 +1524,6 @@ func isInstructionsEmpty(reqBody map[string]any) bool {
 type codexInputFilterOptions struct {
 	PreserveReferences bool
 	PreserveCallIDs    bool
-}
-
-// filterCodexInput 按需过滤 item_reference 与 id。
-// preserveReferences 为 true 时保持引用与 id，以满足续链请求对上下文的依赖。
-func filterCodexInput(input []any, preserveReferences bool) []any {
-	return filterCodexInputWithOptions(input, codexInputFilterOptions{
-		PreserveReferences: preserveReferences,
-	})
 }
 
 func normalizeCodexFilterCallID(itemType, id string, preserve bool) string {

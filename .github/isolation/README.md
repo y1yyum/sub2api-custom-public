@@ -1,3 +1,6 @@
+> 历史资料：自 2026-10-31 起，本执行器不再作为当前 CI 的入口。
+> 当前 CI 按公开仓库保留的裁剪版本运行，见 [公开仓库 CI](../README.md)。
+
 # Offline unit-test execution boundary
 
 This changes the previously quarantined operation: **application/test code only
