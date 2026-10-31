@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import argparse
+from datetime import date, datetime, timezone
 import json
 import os
 import re
@@ -195,6 +196,44 @@ def result_code(scans, strict):
     return int(strict and any(scan["findings"] for scan in scans))
 
 
+def reviewed_false_positives(repo, scans, strict, today=None):
+    """Exclude only reviewed immutable historical locations outside strict mode."""
+    path = repo / ".github/secret-scan-exceptions.json"
+    if strict or not path.exists():
+        return []
+    try:
+        doc = json.loads(path.read_text(encoding="utf-8"))
+        if not isinstance(doc, dict) or doc.get("schema_version") != 1 or not isinstance(doc.get("exceptions"), list):
+            raise ValueError
+        approved = {}
+        current = today or datetime.now(timezone.utc).date()
+        for item in doc["exceptions"]:
+            fingerprint = item["fingerprint"]
+            if (
+                not re.fullmatch(r"[0-9a-f]{40}:[^:\r\n]+:generic-api-key:[1-9][0-9]*", fingerprint)
+                or fingerprint in approved
+                or not all(isinstance(item.get(key), str) and item[key].strip() for key in ("owner", "reason"))
+                or not re.fullmatch(r"[0-9a-f]{64}", item["line_digest"])
+                or date.fromisoformat(item["expires"]) <= current
+            ):
+                raise ValueError
+            approved[fingerprint] = item
+    except (OSError, KeyError, TypeError, ValueError):
+        raise ScanError("Reviewed secret-scan exceptions are invalid or expired; re-review is required.") from None
+    excluded = []
+    for scan in scans:
+        retained = []
+        for finding in scan["findings"]:
+            review = approved.get(finding.get("Fingerprint"))
+            if review is None:
+                retained.append(finding)
+            else:
+                excluded.append({**finding, "owner": review["owner"], "expires": review["expires"],
+                                 "reason": review["reason"]})
+        scan["findings"] = retained
+    return excluded
+
+
 def commit_range(value):
     oid = r"(?:[0-9a-f]{40}|[0-9a-f]{64})"
     if not re.fullmatch(oid + r"\.\." + oid, value):
@@ -218,10 +257,13 @@ def main(argv=None):
     try:
         args.report.unlink(missing_ok=True)
         scans = perform_scan(args.repo.resolve(), args.gitleaks, args.strict, args.log_range)
+        reviewed = reviewed_false_positives(args.repo.resolve(), scans, args.strict)
         output = {
             "schema_version": 1, "strict": args.strict,
             "log_range": args.log_range, "scans": scans,
         }
+        if reviewed:
+            output["reviewed_false_positives"] = reviewed
         with tempfile.TemporaryDirectory(
             prefix=".secret-report-", dir=args.report.absolute().parent,
         ) as temporary:
@@ -230,6 +272,8 @@ def main(argv=None):
             report.replace(args.report)
         count = sum(len(scan["findings"]) for scan in scans)
         message = f"Secret scan completed: {count} findings across {len(scans)} scan(s)."
+        if reviewed:
+            message += f" Reviewed non-secret historical fingerprints: {len(reviewed)}."
         if count:
             message += " Findings require review; origin and validity are not established."
         message += "\nThis result does not certify that the repository is safe to publish.\n"

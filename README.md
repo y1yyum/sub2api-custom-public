@@ -2,7 +2,7 @@
 
 # Sub2API Custom Public
 
-[![Release](https://img.shields.io/badge/Release-v0.4.0-blue.svg)](https://github.com/y1yyum/sub2api-custom-public/releases)
+[![Release](https://img.shields.io/badge/Release-v0.4.0--rc.1-blue.svg)](https://github.com/y1yyum/sub2api-custom-public/releases)
 [![Go Version](https://img.shields.io/badge/Go-1.27.3-00ADD8.svg)](https://golang.org/)
 [![Vue Version](https://img.shields.io/badge/Vue-3.4+-4FC08D.svg)](https://vuejs.org/)
 [![Docker Multi-Arch](https://img.shields.io/badge/Docker-amd64%20%7C%20arm64-2496ED.svg)](https://github.com/y1yyum/sub2api-custom-public/pkgs/container/sub2api-custom-public)
@@ -19,7 +19,7 @@
 
 ## 📖 项目简介
 
-**Sub2API Custom Public** 是专为实机 Docker 生产环境打造的不可变 AI API 网关与配额管理平台。当前最新公开发行版本为 **v0.4.0**。
+**Sub2API Custom Public** 是专为实机 Docker 生产环境打造的不可变 AI API 网关与配额管理平台。当前公开预发布版本为 **v0.4.0-rc.1**；正式版放行与存量库验收另行确认。
 
 在官方 Sub2API 核心能力的基础上，`v0.4.0` 完整吸收并审查了上游 `v0.2.18` 与 `v0.2.19` 的核心特性，深入解决了高并发流式计费丢失、OAuth 凭据刷新悬挂、SSRF 探测逃逸及顶层模型混淆注入等关键生产缺陷，并提供专属的莱茵实验室风格（Rhine Lab）主题门户与像素艺术（Pixel Art）界面。
 
@@ -75,7 +75,7 @@
 - `248_group_image_count_billing.sql`（生图计费分组）
 
 > [!IMPORTANT]
-> **双 247 迁移兼容性保障**：系统迁移引擎基于**完整文件名**与**文件校验和（Checksum）**排序，同编号不同文件名属于完全不同的迁移项。**严禁重命名或手动修改已执行的迁移文件**。`v0.4.0` 内置的迁移账本校验工具已通过真实回归演练，可平滑兼容既有数据库。
+> **双 247 迁移兼容性保障**：系统迁移引擎基于**完整文件名**与**文件校验和（Checksum）**排序，同编号不同文件名属于完全不同的迁移项。**严禁重命名或手动修改已执行的迁移文件**。迁移账本工具已覆盖测试库中的兼容性回归，存量库升级前仍须独立演练并验证可恢复备份。
 
 ---
 
@@ -115,10 +115,10 @@ TOTP_ENCRYPTION_KEY=generate_a_random_32_byte_base64_string
 
 ### 2. 使用官方预构建镜像运行（推荐）
 
-直接在 `deploy/.env` 中指定 `v0.4.0` 镜像版本即可跳过本地耗时编译：
+直接在 `deploy/.env` 中指定当前预发布 `v0.4.0-rc.1` 镜像即可跳过本地编译：
 
 ```ini
-SUB2API_IMAGE=ghcr.io/y1yyum/sub2api-custom-public:0.4.0
+SUB2API_IMAGE=ghcr.io/y1yyum/sub2api-custom-public:0.4.0-rc.1
 ```
 
 执行容器拉取与启动：
@@ -175,14 +175,15 @@ docker compose -f deploy/docker-compose.local.yml ps
 
 为保障生产环境交付的不可篡改性，本仓库严格执行供应链安全透明化与隔离验证：
 
-- **自动化 CI 门禁**：每个 PR 必须通过独立无外网提权的测试闭包，覆盖带大小限制的流式传输、双架构构建及全量数据持久化冒烟测试。
+- **自动化 CI 门禁**：PR 按改动范围快速检查，标签与手动运行检查当前公开快照的全量保留测试；安全扫描持续阻断。范围与复现见[公开仓库 CI](.github/README.md)。
+- **事件驱动发行**：标签全量 Local CI 成功后，`publish.yml` 校验同一 SHA 的九项真实作业和完整收据，再刷新漏洞数据、构建实际镜像、冒烟和签名，不启动另一轮 CI。权限、源码绑定及重试规则见[发行衔接说明](.github/PUBLISHING.md)。
 - **Sigstore Cosign 无密钥镜像签名**：发布镜像与 GitHub Actions 强绑定。您可在生产部署前核验镜像签名：
   ```bash
-  cosign verify ghcr.io/y1yyum/sub2api-custom-public:0.4.0 \
+  cosign verify ghcr.io/y1yyum/sub2api-custom-public:0.4.0-rc.1 \
     --certificate-identity-regexp "https://github.com/y1yyum/sub2api-custom-public" \
     --certificate-oidc-issuer "https://token.actions.githubusercontent.com"
   ```
-- **SBOM 与 SLSA 认证**：每个正式 Release 均同步输出 CycloneDX SBOM 清单与构建来源证明文件，所有组件依赖透明可追溯。无法直连 GHCR 时，可从 Release 下载离线镜像包使用 `docker load` 导入。
+- **SBOM 与构建来源证明**：每个正式 Release 均同步输出 CycloneDX SBOM 清单与构建来源证明文件，所有组件依赖透明可追溯。无法直连 GHCR 时，可从 Release 下载离线镜像包使用 `docker load` 导入。
 
 ---
 

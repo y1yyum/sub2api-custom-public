@@ -1,4 +1,5 @@
 import contextlib
+from datetime import date
 import importlib.util
 import io
 import json
@@ -437,6 +438,56 @@ class ScanSecretsTests(unittest.TestCase):
             with self.assertRaises(scanner.ScanError) as error:
                 scanner.run_command(["gitleaks"])
         self.assertNotIn("sensitive-test-value", str(error.exception))
+
+
+class ReviewedFalsePositiveTests(unittest.TestCase):
+    def setUp(self):
+        self.temp = tempfile.TemporaryDirectory()
+        self.addCleanup(self.temp.cleanup)
+        self.root = Path(self.temp.name)
+        (self.root / '.github').mkdir()
+        self.fingerprint = 'a' * 40 + ':config.txt:generic-api-key:3'
+        self.review = {'fingerprint': self.fingerprint, 'owner': 'maintainer', 'expires': '2026-11-30',
+                       'reason': 'Reviewed non-secret source data', 'line_digest': 'b' * 64}
+        self.finding = {'RuleID': 'generic-api-key', 'File': 'config.txt', 'StartLine': 3,
+                        'Commit': 'a' * 40, 'Fingerprint': self.fingerprint}
+
+    def config(self, entries):
+        (self.root / '.github/secret-scan-exceptions.json').write_text(
+            json.dumps({'schema_version': 1, 'exceptions': entries}), encoding='utf-8')
+
+    def test_exact_historical_location_only_and_new_commit_still_blocks(self):
+        self.config([self.review])
+        changed = dict(self.finding, Commit='c' * 40, Fingerprint='c' * 40 + ':config.txt:generic-api-key:3')
+        scans = [{'scope': 'history', 'findings': [self.finding, changed]}]
+        reviewed = scanner.reviewed_false_positives(self.root, scans, False, date(2026, 10, 31))
+        self.assertEqual(len(reviewed), 1)
+        self.assertEqual(reviewed[0]['owner'], 'maintainer')
+        self.assertEqual(scans[0]['findings'], [changed])
+        self.assertEqual(scanner.result_code(scans, True), 1)
+
+    def test_strict_mode_never_loads_or_applies_repository_exceptions(self):
+        self.config([dict(self.review, expires='2000-01-01')])
+        scans = [{'scope': 'history', 'findings': [self.finding]}]
+        self.assertEqual(scanner.reviewed_false_positives(self.root, scans, True, date(2026, 10, 31)), [])
+        self.assertEqual(scans[0]['findings'], [self.finding])
+        self.assertEqual(scanner.result_code(scans, True), 1)
+
+    def test_expired_unowned_wildcard_or_duplicate_exception_fails_closed(self):
+        for change in ({'expires': '2026-10-31'}, {'owner': ''}, {'fingerprint': '*'},
+                       {'fingerprint': 'a' * 40 + ':config.txt:github-pat:3'}):
+            with self.subTest(change=change):
+                self.config([dict(self.review, **change)])
+                with self.assertRaises(scanner.ScanError):
+                    scanner.reviewed_false_positives(self.root, [], False, date(2026, 10, 31))
+        self.config([self.review, self.review])
+        with self.assertRaises(scanner.ScanError):
+            scanner.reviewed_false_positives(self.root, [], False, date(2026, 10, 31))
+
+    def test_no_exception_file_preserves_existing_findings(self):
+        scans = [{'scope': 'diff', 'findings': [self.finding]}]
+        self.assertEqual(scanner.reviewed_false_positives(self.root, scans, False, date(2026, 10, 31)), [])
+        self.assertEqual(scans[0]['findings'], [self.finding])
 
 
 if __name__ == "__main__":

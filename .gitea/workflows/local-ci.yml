@@ -284,7 +284,7 @@ jobs:
     steps:
       - uses: builtin:checkout
       # PyYAML (requirements-release.txt) is preinstalled in the job image.
-      - run: python3 -m unittest discover -s .github/release-tools -p 'test_release_matrix.py'
+      - run: python3 -m unittest discover -s .github/release-tools -p 'test_*.py'
       - run: bash -n .github/release-tools/release-images.sh
 
   # Jobs outside the change scope are skipped and count as passed; the scope

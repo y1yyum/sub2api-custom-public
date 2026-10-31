@@ -1,4 +1,12 @@
-# Release matrix
+# 发行辅助工具
+
+当前公开发行入口为 [`publish.yml`](../workflows/publish.yml)，只消费已完成的全量
+Local CI 证据；`ci_evidence.py` 负责记录和验证来源。详见[发行衔接说明](../PUBLISHING.md)。
+
+以下矩阵工具保留用于兼容性测试，不是当前公开镜像的发行执行路径；
+当前 Publisher 不调用 GoReleaser 或 DockerHub 发布脚本。
+
+## 保留的矩阵工具
 
 The release workflow builds the frontend once, then runs each configured Go target on its own Linux runner. `CGO_ENABLED=0` permits cross-compilation. The target matrix is read from `.goreleaser.yaml`, including its exclusions; simple releases select Linux amd64 only.
 
