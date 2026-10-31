@@ -102,6 +102,7 @@ git push origin v0.3.1
 
 ## 相关文件
 
+- [公开源码同步记录](docs/UPSTREAM_SYNC.md)
 - [Docker Compose 配置](deploy/docker-compose.local.yml)
 - [环境变量示例](deploy/.env.example)
 - [完整配置示例](deploy/config.example.yaml)
