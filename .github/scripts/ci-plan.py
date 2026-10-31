@@ -92,11 +92,12 @@ def make_plan(paths, mode, commit):
                   or p in {'.github/workflows/ci.yml'} for p in paths)
     dependency = any(p in {'backend/go.mod', 'backend/go.sum', 'Dockerfile'} for p in paths)
     database = any(p.startswith(DB_LAYER) for p in paths)
-    for name in paths:
-        if not name.startswith('backend/') and not name.endswith('.md'):
-            for path in BACKEND.rglob('*.go'):
-                if name in path.read_text(encoding='utf-8'):
-                    changed_go.append(path)
+    references = [name for name in paths if not name.startswith('backend/') and not name.endswith('.md')]
+    if references:
+        for path in BACKEND.rglob('*.go'):
+            text = path.read_text(encoding='utf-8')
+            if any(name in text for name in references):
+                changed_go.append(path)
     for path in changed_go:
         for suite in SUITES:
             add_tests(suites[suite]['packages'], path, suite, whole=not path.exists())

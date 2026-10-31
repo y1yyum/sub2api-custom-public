@@ -10,6 +10,13 @@ MANIFEST = json.loads((ROOT / '.github/upgrade/manifest.json').read_text())
 
 
 class CustomPreservation(unittest.TestCase):
+    def test_release_workflow_only_adds_explicit_full_validation(self):
+        raw = (ROOT / '.github/workflows/release.yml').read_bytes()
+        addition = b'      full: true\n'
+        self.assertEqual(raw.count(addition), 1)
+        self.assertEqual(hashlib.sha256(raw.replace(addition, b'', 1)).hexdigest(),
+                         '06b770b3acd11c04cbd8000e39bfc004f7f1edd1978f0c8e782885e7804986d1')
+
     def test_custom_paths_retained(self):
         self.assertEqual(len(MANIFEST['preserved_paths']), 108)
         for path in MANIFEST['preserved_paths']:
