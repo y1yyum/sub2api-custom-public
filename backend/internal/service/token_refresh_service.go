@@ -70,6 +70,10 @@ type TokenRefreshService struct {
 	privacyClientFactory PrivacyClientFactory
 	proxyRepo            ProxyRepository
 
+	// Per-instance dependency keeps privacy-call tests hermetic without mutating
+	// global HTTP transports. Nil preserves the production privacy workflow.
+	antigravityPrivacySetter func(context.Context, string, string, string) string
+
 	stopCh        chan struct{}
 	stopOnce      sync.Once
 	wg            sync.WaitGroup
@@ -1509,7 +1513,11 @@ func (s *TokenRefreshService) ensureAntigravityPrivacy(ctx context.Context, acco
 		}
 	}
 
-	mode := setAntigravityPrivacy(ctx, token, projectID, proxyURL)
+	setPrivacy := s.antigravityPrivacySetter
+	if setPrivacy == nil {
+		setPrivacy = setAntigravityPrivacy
+	}
+	mode := setPrivacy(ctx, token, projectID, proxyURL)
 	if mode == "" {
 		return
 	}

@@ -492,6 +492,17 @@ func TestTokenRefreshService_RefreshWithRetry_Antigravity(t *testing.T) {
 		},
 	}
 	service := NewTokenRefreshService(repo, nil, nil, nil, nil, invalidator, nil, cfg, nil)
+	privacyCalls := 0
+	service.antigravityPrivacySetter = func(ctx context.Context, token, projectID, proxyURL string) string {
+		privacyCalls++
+		require.NoError(t, ctx.Err())
+		require.Equal(t, "ag-token", token, "privacy must use the newly refreshed token")
+		require.Empty(t, projectID)
+		require.Empty(t, proxyURL)
+		// Missing project IDs cannot be verified by the production workflow.
+		// Record that result without constructing any HTTP client or request.
+		return AntigravityPrivacyFailed
+	}
 	account := &Account{
 		ID:       8,
 		Platform: PlatformAntigravity,
@@ -507,6 +518,10 @@ func TestTokenRefreshService_RefreshWithRetry_Antigravity(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, 1, repo.updateCalls)
 	require.Equal(t, 1, invalidator.calls) // Antigravity 也应触发缓存失效
+	require.Equal(t, 1, privacyCalls)
+	require.Equal(t, 1, repo.updateExtraCalls)
+	require.Equal(t, map[string]any{"privacy_mode": AntigravityPrivacyFailed}, repo.lastExtraUpdates)
+	require.Equal(t, AntigravityPrivacyFailed, account.Extra["privacy_mode"])
 }
 
 func TestAntigravityTokenRefresher_NeedsRefresh_ForceRefreshMarker(t *testing.T) {
