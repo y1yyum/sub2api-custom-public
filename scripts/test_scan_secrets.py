@@ -235,9 +235,13 @@ class ScanSecretsTests(unittest.TestCase):
 
     def test_workflows_fetch_commits_only_retained_by_pr_refs(self):
         for workflow, prefix in (
+            (".github/workflows/custom-security.yml", "run: git fetch "),
             (".github/workflows/local-ci.yml", "git fetch --force "),
             (".gitea/workflows/local-ci.yml", "git fetch --force "),
         ):
+            # Gitea and the public repository each carry only some of these workflows.
+            if not (SCRIPT.parent.parent / workflow).exists():
+                continue
             with self.subTest(workflow=workflow):
                 self.assert_fetch_reaches_pr_only_commit(workflow, prefix)
 

@@ -477,6 +477,12 @@ func (p *tokenRefreshProviderState) recordResult(err error) {
 	}
 }
 
+// processRefresh preserves the existing test/internal call surface while the
+// production loop supplies a cancelable parent context.
+func (s *TokenRefreshService) processRefresh() {
+	s.processRefreshContext(context.Background())
+}
+
 // processRefreshContext executes one bounded, cursor-resumable refresh cycle.
 func (s *TokenRefreshService) processRefreshContext(parent context.Context) {
 	if parent == nil {
@@ -818,6 +824,10 @@ func (s *TokenRefreshService) maxRetries() int {
 }
 
 // refreshWithRetry 带重试的刷新
+func (s *TokenRefreshService) refreshWithRetry(ctx context.Context, account *Account, refresher TokenRefresher, executor OAuthRefreshExecutor, refreshWindow time.Duration) error {
+	return s.refreshWithRetryWithRateGate(ctx, account, refresher, executor, refreshWindow, nil)
+}
+
 func (s *TokenRefreshService) refreshWithRetryWithRateGate(
 	ctx context.Context,
 	account *Account,
