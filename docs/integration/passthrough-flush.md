@@ -38,6 +38,26 @@ cases and remaining 402/429 semantics; independent cumulative Gitea acceptance.
 No production-loss claim, real provider call or verified network-none runtime is
 implied by these local synthetic fixtures.
 
+## Verification correction — unexpected external fixture side effect
+
+Read-only review on 2026-11-01 found that the **full retained service suite**
+ran `TestTokenRefreshService_RefreshWithRetry_Antigravity`, which mocks token
+refresh but not the subsequent privacy-settings request. Its source constructs
+an HTTPS POST to `daily-cloudcode-pa.googleapis.com/v1internal:setUserSettings`
+with JSON `{"user_settings":{}}` and the literal synthetic bearer `ag-token`.
+The recorded #27 run reports `context deadline exceeded`; delivery is unknown,
+and no successful settings change was established. It is not a model inference
+request and no real credential or customer prompt was found in that fixture.
+
+The numerical 84-test / 178-event PASS below remains the actual process result,
+but **is not local-only or hermetic acceptance evidence**. The focused new
+passthrough fixtures and selected handler fixtures use recorded/mock upstreams;
+this external side effect belongs to the unrelated retained refresh test.
+A later cumulative run was blocked by auto-review after the same external path
+was detected. It was not retried. Do not rerun the full suite unisolated: first
+review an explicitly mocked privacy seam or have the reviewer enforce approved
+network isolation. No public CI workflow change is requested or included.
+
 ## Local evidence
 
 With Go 1.27.3, the final fixture against the unchanged base production source
