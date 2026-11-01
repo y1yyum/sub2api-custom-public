@@ -2471,6 +2471,9 @@ scanLoop:
 		}
 	}
 	observeClientCancellation()
+	// EOF may leave a final SSE line without a blank boundary. Observe its
+	// flush failure before classifying the stream and snapshotting usage.
+	flushPendingOutput()
 	if clientDisconnected {
 		// The terminal may have been parsed before a downstream blank-line
 		// write failed. A later queued EOF/read error cannot undo completion.
