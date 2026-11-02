@@ -75,3 +75,84 @@ regexes = [
     '''^\s*"backend/migrations/179_usage_log_image_input_tokens\.sql":\s*"d7036839d8613b38c4d620677a98b39aaf5289a110aa998259c4820b108ac778",?\s*$''',
     '''^\s*"backend/migrations/191_passkey_credentials\.sql":\s*"2ada807c41138c6f209db138984d59439418f1d06af3a101246bacda6e882893",?\s*$''',
 ]
+
+# 2026-11-01，Issue #156；owner: agent-coordinator；复核/到期：2027-02-01 或上游 tag 升级时（先到者）。
+# 上游 v0.2.19 测试中 40 条逐项核验的非凭据值，导出到公开仓库时进入变更范围才被检出。
+# 每条均为「确切文件路径 AND 完整 secret 值」；同值出现在其他文件或同文件出现新值仍会检出。
+# 详见 docs/SECURITY_REVIEW.md §19；strict 绕过本例外。
+[[rules.allowlists]]
+description = "Issue #156：Anthropic beta 标记与带日期的模型名，公开协议常量"
+condition = "AND"
+paths = [
+    '''^backend/internal/service/gateway_beta_test\.go$''',
+    '''^backend/internal/service/gateway_context_management_test\.go$''',
+    '''^backend/internal/service/gateway_fallbacks_sanitize_test\.go$''',
+    '''^backend/internal/handler/openai_gateway_handler_test\.go$''',
+]
+regexes = [
+    '''^interleaved-thinking-2025-05-14$''',
+    '''^claude-haiku-4-5-20251001$''',
+]
+
+[[rules.allowlists]]
+description = "Issue #156：顺序十六进制测试密钥 0123456789abcdef 的重复"
+condition = "AND"
+paths = [
+    '''^backend/internal/handler/auth_wechat_oauth_test\.go$''',
+    '''^backend/internal/handler/payment_handler_resume_test\.go$''',
+    '''^backend/internal/service/payment_order_result_test\.go$''',
+    '''^backend/internal/service/payment_webhook_provider_test\.go$''',
+]
+regexes = ['''^(?:0123456789abcdef){2}(?:(?:0123456789abcdef){2})?$''']
+
+[[rules.allowlists]]
+description = "Issue #156：幂等键、请求 ID、预支付 ID 与迁移 112 历史校验和，非凭据"
+condition = "AND"
+paths = [
+    '''^backend/internal/handler/admin/affiliate_handler_withdraw_test\.go$''',
+    '''^backend/internal/service/affiliate_service_test\.go$''',
+    '''^frontend/src/api/__tests__/admin\.subscriptions\.bulk\.spec\.ts$''',
+    '''^backend/internal/handler/stream_error_event_test\.go$''',
+    '''^backend/internal/payment/provider/wxpay_test\.go$''',
+    '''^backend/internal/repository/migrations_runner_checksum_test\.go$''',
+]
+regexes = [
+    '''^affiliate-withdraw-1-5d0c7a2e$''',
+    '''^affiliate-withdraw-7-3f2b8c1e$''',
+    '''^operation-123$''',
+    '''^fd277bc5-ff7e-45d1-8aa9-f54e1df318f1$''',
+    '''^prepay_id=wx_prepay_123$''',
+    '''^ffd3e8a2c9295fa9cbefefd629a78268877e5b51bc970a82d9b3f46ec4ebd15e$''',
+]
+
+[[rules.allowlists]]
+description = "Issue #156：截断占位与 DUMMY 令牌"
+condition = "AND"
+paths = [
+    '''^backend/internal/payment/provider/alipay_test\.go$''',
+    '''^backend/internal/util/logredact/redact_test\.go$''',
+    '''^backend/internal/service/content_moderation_test\.go$''',
+]
+regexes = [
+    '''^MIIEvQIBADANBgkqhkiG9w0BAQEFAASC\.\.\.$''',
+    '''^ya29\.a0AfH6SMDUMMY$''',
+    '''^abc123456789xyz$''',
+]
+
+[[rules]]
+id = "jwt"
+
+[[rules.allowlists]]
+description = "Issue #156：签名段为字面量 signaturepart 的示例 JWT"
+condition = "AND"
+paths = ['''^backend/internal/service/content_moderation_test\.go$''']
+regexes = ['''^eyJhbGciOiJIUzI1NiJ9\.eyJzdWIiOiIxMjM0NTY3ODkwIn0\.signaturepart$''']
+
+[[rules]]
+id = "private-key"
+
+[[rules.allowlists]]
+description = "Issue #156：正文为 MIIEvQIBADANBg... 或 data 的截断 PEM 占位"
+condition = "AND"
+paths = ['''^backend/internal/payment/provider/wxpay_test\.go$''']
+regexes = ['''^-----BEGIN (?:RSA )?PRIVATE KEY-----\\n(?:MIIEvQIBADANBg\.\.\.|data)\\n-----END (?:RSA )?PRIVATE KEY-----\s*"''']
