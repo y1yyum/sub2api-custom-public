@@ -40,7 +40,7 @@ def validate():
     for path in (ROOT / 'backend').rglob('*_test.go'):
         for name in re.findall(r'^func\s+(Test\w+)\(', path.read_text(), re.M):
             names.setdefault(name, []).append(path.relative_to(ROOT).as_posix())
-    retained = 0
+    retained = restored = 0
     for index, item in enumerate(doc['contracts'], 1):
         require(item['id'] == f'HDB-{index:02}', 'contract ID sequence changed')
         require(item['expected_runs'] == 1 and item['allowed_skips'] == [], 'acceptance policy changed')
@@ -48,22 +48,25 @@ def validate():
         path = item['current_path']
         require(names.get(item['test'], []) == ([path] if path else []),
                 f'test presence changed: {item["test"]}')
-        if path:
-            retained += 1
-            require(item['disposition'] == 'retained', 'retained disposition mismatch')
-            bound(path, item['test_sha256'])
-            bound(item['fixture_path'], item['fixture_sha256'])
-        else:
-            require(item['disposition'] == 'needs_restoration_or_reviewed_equivalent', 'missing disposition mismatch')
-            require(item['test_sha256'] is None and item['fixture_sha256'] is None,
-                    'missing source cannot have a claimed current hash')
-    require(doc['coverage'] == dict(historical_contracts=32, retained=retained, missing=32-retained, replaced=0),
-            'coverage summary differs from inventory')
+        require(path is not None, 'all historical contracts must remain present')
+        require(item['disposition'] == ('restored' if index <= 26 else 'retained'),
+                'historical disposition changed')
+        retained += item['disposition'] == 'retained'
+        restored += item['disposition'] == 'restored'
+        bound(path, item['test_sha256'])
+        bound(item['fixture_path'], item['fixture_sha256'])
+        for fixture in item['additional_fixture_inputs']:
+            bound(fixture['path'], fixture['sha256'])
+        tag = re.search(r'^//go:build (.+)$', (ROOT / path).read_text(), re.M)
+        require(item['lane'] == (tag[1] if tag else 'untagged'), 'build lane mismatch')
+    require(doc['coverage'] == dict(historical_contracts=32, present=retained+restored,
+            retained_from_previous_baseline=retained, restored_since_previous_baseline=restored,
+            missing=0, replaced=0), 'coverage summary differs from inventory')
     require(doc['gate_status'] == 'BLOCKED', 'inventory alone cannot release G0')
     ci = doc['current_ci']
     bound(ci['workflow'], ci['workflow_sha256'])
     bound(ci['critical_list'], ci['critical_list_sha256'])
-    print(f'INT-00 inventory valid: 32 historical contracts; {retained} retained, {32-retained} missing. G0 BLOCKED; no runtime tests executed.')
+    print(f'INT-00 inventory valid: 32 historical contracts; {retained+restored} present ({retained} retained, {restored} restored), 0 missing. G0 BLOCKED; no runtime tests executed.')
 
 
 if __name__ == '__main__':

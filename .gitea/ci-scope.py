@@ -82,6 +82,12 @@ def package_dir(path):
     return None
 
 
+def lintable(directory):
+    """golangci-lint runs without custom build tags, so a package whose files
+    all need one (e.g. internal/integration's e2e tests) fails to type-check."""
+    return any(build_tag_matches(path, None) for path in directory.glob('*.go'))
+
+
 def package_arg(directory):
     return './' + directory.relative_to(BACKEND).as_posix()
 
@@ -201,7 +207,7 @@ def scope(paths, base):
             go_all = True
             lint_all = lint_all or path.suffix == '.go'
             continue
-        if changed and path.suffix == '.go':
+        if changed and path.suffix == '.go' and lintable(directory):
             lint.add(package_arg(directory))
         for tag in GO_TAGS:
             select(whole[tag], named[tag], tag, directory, path)

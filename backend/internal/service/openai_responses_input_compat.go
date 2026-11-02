@@ -4,6 +4,8 @@ import (
 	"strings"
 )
 
+const openAIResponsesInputTextMaxChars = 10000000
+
 // sanitizeOpenAIResponsesOrphanToolOutputs removes tool-output items that have
 // no matching call or item reference anywhere in the current input. Named
 // function outputs without a call ID are standalone inputs, not orphan results.

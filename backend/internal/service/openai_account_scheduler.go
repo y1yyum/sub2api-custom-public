@@ -1158,6 +1158,16 @@ func sortOpenAICompactRetryCandidates(pool []openAIAccountCandidateScore) []open
 	return ordered
 }
 
+func (s *defaultOpenAIAccountScheduler) tryAcquireOpenAISelectionOrder(
+	ctx context.Context,
+	req OpenAIAccountScheduleRequest,
+	selectionOrder []openAIAccountCandidateScore,
+) (*AccountSelectionResult, bool, error) {
+	budget := newOpenAISelectionProbeBudget()
+	budget.enableLimit()
+	return s.tryAcquireOpenAISelectionOrderWithBudget(ctx, req, selectionOrder, budget)
+}
+
 func (s *defaultOpenAIAccountScheduler) tryAcquireOpenAISelectionOrderWithBudget(
 	ctx context.Context,
 	req OpenAIAccountScheduleRequest,
@@ -2080,6 +2090,11 @@ func (s *OpenAIGatewayService) getOpenAIAccountScheduler(ctx context.Context) Op
 		}
 	})
 	return s.openaiScheduler
+}
+
+func resetOpenAIAdvancedSchedulerSettingCacheForTest() {
+	openAIAdvancedSchedulerSettingCache = atomic.Value{}
+	openAIAdvancedSchedulerSettingSF = singleflight.Group{}
 }
 
 func (s *OpenAIGatewayService) SelectAccountWithScheduler(

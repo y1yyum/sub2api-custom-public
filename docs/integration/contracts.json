@@ -1,10 +1,10 @@
 {
-  "schema_version": 1,
-  "recorded_at": "2026-11-01",
+  "schema_version": 2,
+  "recorded_at": "2026-11-02",
   "package": "INT-00",
   "repository": "y1yyum/sub2api-custom-public",
-  "baseline_sha": "f347674975c1bfae5a38c60eed43fdda164fc1de",
-  "baseline_tree": "40df4a2a4fd6971f20fea3e6fd7a7321c1093b89",
+  "baseline_sha": "bd6d0ea606abde5f0f85698124bd877e3c998f48",
+  "baseline_tree": "99e94c1f334c8738333fa43eed1f1046f3b04571",
   "gate": "G0",
   "gate_status": "BLOCKED",
   "historical_source": {
@@ -16,20 +16,22 @@
   },
   "coverage": {
     "historical_contracts": 32,
-    "retained": 6,
-    "missing": 26,
+    "present": 32,
+    "retained_from_previous_baseline": 6,
+    "restored_since_previous_baseline": 26,
+    "missing": 0,
     "replaced": 0
   },
   "current_ci": {
     "workflow": ".github/workflows/local-ci.yml",
     "workflow_sha256": "12e451d2722edf0725b5071466f3646715d6f2b223876744b71b8007e8ae69f6",
     "critical_list": ".gitea/critical-tests.txt",
-    "critical_list_sha256": "904394285d3688c2687bcd8854d3a2405395944e9e0264cd516afd10405bbdad",
+    "critical_list_sha256": "5e725666b208356fb1f4125bf1f708411b7fd7664c27b5bea42921e41426ec74",
     "go_version": "1.27.3",
     "network_none": false,
     "race": false,
     "mandatory_contract_event_audit": false,
-    "full_means": "All tests retained in the public snapshot, not the historical fixture closure."
+    "full_means": "Current checked-out test closure, including restored sources; presence or package success does not establish 32 non-skipped contract passes."
   },
   "contracts": [
     {
@@ -37,468 +39,643 @@
       "package": "github.com/Wei-Shaw/sub2api/internal/securityaudit",
       "test": "TestPromptAuditMigrationSchemaAndLeakageGate",
       "historical_path": "backend/internal/securityaudit/prompt_repository_integration_test.go",
-      "current_path": null,
-      "disposition": "needs_restoration_or_reviewed_equivalent",
-      "reason": "Named contract absent; relevant production domain remains present. No equivalent replacement established.",
-      "test_sha256": null,
-      "fixture_path": null,
-      "fixture_sha256": null,
-      "lane": "integration",
+      "current_path": "backend/internal/securityaudit/prompt_repository_integration_test.go",
+      "disposition": "restored",
+      "reason": "Named source restored by PR #30; runtime NOT_RUN.",
+      "test_sha256": "ae7e4b7d460f4a05bb1197a27d252f8e1ef7229c7f6d3125ea12c50d77347901",
+      "fixture_path": "backend/internal/securityaudit/prompt_repository_integration_test.go",
+      "fixture_sha256": "ae7e4b7d460f4a05bb1197a27d252f8e1ef7229c7f6d3125ea12c50d77347901",
+      "lane": "untagged",
       "expected_runs": 1,
       "allowed_skips": [],
-      "postgres_version": "historical 18.1-bookworm; restoration target unverified",
+      "postgres_version": "PROMPT_AUDIT_TEST_POSTGRES_DSN; explicit disposable PostgreSQL; version unverified",
       "redis_requirement": "not_required_by_recorded_contract",
-      "execution_status": "NOT_RUN"
+      "execution_status": "NOT_RUN",
+      "skip_conditions": [
+        "Missing PROMPT_AUDIT_TEST_POSTGRES_DSN skips, including under CI."
+      ],
+      "additional_fixture_inputs": []
     },
     {
       "id": "HDB-02",
       "package": "github.com/Wei-Shaw/sub2api/internal/securityaudit",
       "test": "TestPromptAuditDatabasePersistsFullPromptOnEventsOnly",
       "historical_path": "backend/internal/securityaudit/prompt_repository_integration_test.go",
-      "current_path": null,
-      "disposition": "needs_restoration_or_reviewed_equivalent",
-      "reason": "Named contract absent; relevant production domain remains present. No equivalent replacement established.",
-      "test_sha256": null,
-      "fixture_path": null,
-      "fixture_sha256": null,
-      "lane": "integration",
+      "current_path": "backend/internal/securityaudit/prompt_repository_integration_test.go",
+      "disposition": "restored",
+      "reason": "Named source restored by PR #30; runtime NOT_RUN.",
+      "test_sha256": "ae7e4b7d460f4a05bb1197a27d252f8e1ef7229c7f6d3125ea12c50d77347901",
+      "fixture_path": "backend/internal/securityaudit/prompt_repository_integration_test.go",
+      "fixture_sha256": "ae7e4b7d460f4a05bb1197a27d252f8e1ef7229c7f6d3125ea12c50d77347901",
+      "lane": "untagged",
       "expected_runs": 1,
       "allowed_skips": [],
-      "postgres_version": "historical 18.1-bookworm; restoration target unverified",
+      "postgres_version": "PROMPT_AUDIT_TEST_POSTGRES_DSN; explicit disposable PostgreSQL; version unverified",
       "redis_requirement": "not_required_by_recorded_contract",
-      "execution_status": "NOT_RUN"
+      "execution_status": "NOT_RUN",
+      "skip_conditions": [
+        "Missing PROMPT_AUDIT_TEST_POSTGRES_DSN skips, including under CI."
+      ],
+      "additional_fixture_inputs": []
     },
     {
       "id": "HDB-03",
       "package": "github.com/Wei-Shaw/sub2api/internal/securityaudit",
       "test": "TestPromptAuditRepositoryAdmissionClaimFencingAndEventTransaction",
       "historical_path": "backend/internal/securityaudit/prompt_repository_integration_test.go",
-      "current_path": null,
-      "disposition": "needs_restoration_or_reviewed_equivalent",
-      "reason": "Named contract absent; relevant production domain remains present. No equivalent replacement established.",
-      "test_sha256": null,
-      "fixture_path": null,
-      "fixture_sha256": null,
-      "lane": "integration",
+      "current_path": "backend/internal/securityaudit/prompt_repository_integration_test.go",
+      "disposition": "restored",
+      "reason": "Named source restored by PR #30; runtime NOT_RUN.",
+      "test_sha256": "ae7e4b7d460f4a05bb1197a27d252f8e1ef7229c7f6d3125ea12c50d77347901",
+      "fixture_path": "backend/internal/securityaudit/prompt_repository_integration_test.go",
+      "fixture_sha256": "ae7e4b7d460f4a05bb1197a27d252f8e1ef7229c7f6d3125ea12c50d77347901",
+      "lane": "untagged",
       "expected_runs": 1,
       "allowed_skips": [],
-      "postgres_version": "historical 18.1-bookworm; restoration target unverified",
+      "postgres_version": "PROMPT_AUDIT_TEST_POSTGRES_DSN; explicit disposable PostgreSQL; version unverified",
       "redis_requirement": "not_required_by_recorded_contract",
-      "execution_status": "NOT_RUN"
+      "execution_status": "NOT_RUN",
+      "skip_conditions": [
+        "Missing PROMPT_AUDIT_TEST_POSTGRES_DSN skips, including under CI."
+      ],
+      "additional_fixture_inputs": []
     },
     {
       "id": "HDB-04",
       "package": "github.com/Wei-Shaw/sub2api/internal/securityaudit",
       "test": "TestPromptAuditRepositoryForeignKeysFiltersAndStableIdentitySnapshots",
       "historical_path": "backend/internal/securityaudit/prompt_repository_integration_test.go",
-      "current_path": null,
-      "disposition": "needs_restoration_or_reviewed_equivalent",
-      "reason": "Named contract absent; relevant production domain remains present. No equivalent replacement established.",
-      "test_sha256": null,
-      "fixture_path": null,
-      "fixture_sha256": null,
-      "lane": "integration",
+      "current_path": "backend/internal/securityaudit/prompt_repository_integration_test.go",
+      "disposition": "restored",
+      "reason": "Named source restored by PR #30; runtime NOT_RUN.",
+      "test_sha256": "ae7e4b7d460f4a05bb1197a27d252f8e1ef7229c7f6d3125ea12c50d77347901",
+      "fixture_path": "backend/internal/securityaudit/prompt_repository_integration_test.go",
+      "fixture_sha256": "ae7e4b7d460f4a05bb1197a27d252f8e1ef7229c7f6d3125ea12c50d77347901",
+      "lane": "untagged",
       "expected_runs": 1,
       "allowed_skips": [],
-      "postgres_version": "historical 18.1-bookworm; restoration target unverified",
+      "postgres_version": "PROMPT_AUDIT_TEST_POSTGRES_DSN; explicit disposable PostgreSQL; version unverified",
       "redis_requirement": "not_required_by_recorded_contract",
-      "execution_status": "NOT_RUN"
+      "execution_status": "NOT_RUN",
+      "skip_conditions": [
+        "Missing PROMPT_AUDIT_TEST_POSTGRES_DSN skips, including under CI."
+      ],
+      "additional_fixture_inputs": []
     },
     {
       "id": "HDB-05",
       "package": "github.com/Wei-Shaw/sub2api/internal/securityaudit",
       "test": "TestPromptAuditRepositoryHighWaterAndSafeDeletion",
       "historical_path": "backend/internal/securityaudit/prompt_repository_integration_test.go",
-      "current_path": null,
-      "disposition": "needs_restoration_or_reviewed_equivalent",
-      "reason": "Named contract absent; relevant production domain remains present. No equivalent replacement established.",
-      "test_sha256": null,
-      "fixture_path": null,
-      "fixture_sha256": null,
-      "lane": "integration",
+      "current_path": "backend/internal/securityaudit/prompt_repository_integration_test.go",
+      "disposition": "restored",
+      "reason": "Named source restored by PR #30; runtime NOT_RUN.",
+      "test_sha256": "ae7e4b7d460f4a05bb1197a27d252f8e1ef7229c7f6d3125ea12c50d77347901",
+      "fixture_path": "backend/internal/securityaudit/prompt_repository_integration_test.go",
+      "fixture_sha256": "ae7e4b7d460f4a05bb1197a27d252f8e1ef7229c7f6d3125ea12c50d77347901",
+      "lane": "untagged",
       "expected_runs": 1,
       "allowed_skips": [],
-      "postgres_version": "historical 18.1-bookworm; restoration target unverified",
+      "postgres_version": "PROMPT_AUDIT_TEST_POSTGRES_DSN; explicit disposable PostgreSQL; version unverified",
       "redis_requirement": "not_required_by_recorded_contract",
-      "execution_status": "NOT_RUN"
+      "execution_status": "NOT_RUN",
+      "skip_conditions": [
+        "Missing PROMPT_AUDIT_TEST_POSTGRES_DSN skips, including under CI."
+      ],
+      "additional_fixture_inputs": []
     },
     {
       "id": "HDB-06",
       "package": "github.com/Wei-Shaw/sub2api/internal/securityaudit",
       "test": "TestPromptAuditServiceConfirmationKeepsPostPreviewEventsAndConcurrentDeletesAreSafe",
       "historical_path": "backend/internal/securityaudit/prompt_repository_integration_test.go",
-      "current_path": null,
-      "disposition": "needs_restoration_or_reviewed_equivalent",
-      "reason": "Named contract absent; relevant production domain remains present. No equivalent replacement established.",
-      "test_sha256": null,
-      "fixture_path": null,
-      "fixture_sha256": null,
-      "lane": "integration",
+      "current_path": "backend/internal/securityaudit/prompt_repository_integration_test.go",
+      "disposition": "restored",
+      "reason": "Named source restored by PR #30; runtime NOT_RUN.",
+      "test_sha256": "ae7e4b7d460f4a05bb1197a27d252f8e1ef7229c7f6d3125ea12c50d77347901",
+      "fixture_path": "backend/internal/securityaudit/prompt_repository_integration_test.go",
+      "fixture_sha256": "ae7e4b7d460f4a05bb1197a27d252f8e1ef7229c7f6d3125ea12c50d77347901",
+      "lane": "untagged",
       "expected_runs": 1,
       "allowed_skips": [],
-      "postgres_version": "historical 18.1-bookworm; restoration target unverified",
+      "postgres_version": "PROMPT_AUDIT_TEST_POSTGRES_DSN; explicit disposable PostgreSQL; version unverified",
       "redis_requirement": "not_required_by_recorded_contract",
-      "execution_status": "NOT_RUN"
+      "execution_status": "NOT_RUN",
+      "skip_conditions": [
+        "Missing PROMPT_AUDIT_TEST_POSTGRES_DSN skips, including under CI."
+      ],
+      "additional_fixture_inputs": []
     },
     {
       "id": "HDB-07",
       "package": "github.com/Wei-Shaw/sub2api/internal/securityaudit",
       "test": "TestPromptAuditConfigCASSecretRoundTripInvalidationAndTTL",
       "historical_path": "backend/internal/securityaudit/prompt_config_integration_test.go",
-      "current_path": null,
-      "disposition": "needs_restoration_or_reviewed_equivalent",
-      "reason": "Named contract absent; relevant production domain remains present. No equivalent replacement established.",
-      "test_sha256": null,
-      "fixture_path": null,
-      "fixture_sha256": null,
-      "lane": "integration",
+      "current_path": "backend/internal/securityaudit/prompt_config_integration_test.go",
+      "disposition": "restored",
+      "reason": "Named source restored by PR #30; runtime NOT_RUN.",
+      "test_sha256": "8b1505e432877ab03cc231e1255087834e5ce5f5e852da6119a085fd8a5a2edb",
+      "fixture_path": "backend/internal/securityaudit/prompt_repository_integration_test.go",
+      "fixture_sha256": "ae7e4b7d460f4a05bb1197a27d252f8e1ef7229c7f6d3125ea12c50d77347901",
+      "lane": "untagged",
       "expected_runs": 1,
       "allowed_skips": [],
-      "postgres_version": null,
-      "redis_requirement": "historical 8.4; fixture closure missing",
-      "execution_status": "NOT_RUN"
+      "postgres_version": "PROMPT_AUDIT_TEST_POSTGRES_DSN; explicit disposable PostgreSQL; version unverified",
+      "redis_requirement": "PROMPT_AUDIT_TEST_REDIS_ADDR; explicit disposable Redis; version unverified",
+      "execution_status": "NOT_RUN",
+      "skip_conditions": [
+        "Missing PROMPT_AUDIT_TEST_POSTGRES_DSN skips, including under CI.",
+        "Missing PROMPT_AUDIT_TEST_REDIS_ADDR skips, including under CI."
+      ],
+      "additional_fixture_inputs": []
     },
     {
       "id": "HDB-08",
       "package": "github.com/Wei-Shaw/sub2api/internal/securityaudit",
       "test": "TestRedisPayloadStoreRoundTripTTLNamespaceAndDelete",
       "historical_path": "backend/internal/securityaudit/prompt_payload_store_integration_test.go",
-      "current_path": null,
-      "disposition": "needs_restoration_or_reviewed_equivalent",
-      "reason": "Named contract absent; relevant production domain remains present. No equivalent replacement established.",
-      "test_sha256": null,
-      "fixture_path": null,
-      "fixture_sha256": null,
-      "lane": "integration",
+      "current_path": "backend/internal/securityaudit/prompt_payload_store_integration_test.go",
+      "disposition": "restored",
+      "reason": "Named source restored by PR #30; runtime NOT_RUN.",
+      "test_sha256": "d721151b9142200bd2ce1f2c25d1f209afa268b3a2ff38a7cd1195acddb965e0",
+      "fixture_path": "backend/internal/securityaudit/prompt_payload_store_integration_test.go",
+      "fixture_sha256": "d721151b9142200bd2ce1f2c25d1f209afa268b3a2ff38a7cd1195acddb965e0",
+      "lane": "untagged",
       "expected_runs": 1,
       "allowed_skips": [],
-      "postgres_version": null,
-      "redis_requirement": "historical 8.4; fixture closure missing",
-      "execution_status": "NOT_RUN"
+      "postgres_version": "not_required_by_recorded_contract",
+      "redis_requirement": "PROMPT_AUDIT_TEST_REDIS_ADDR; explicit disposable Redis; version unverified",
+      "execution_status": "NOT_RUN",
+      "skip_conditions": [
+        "Missing PROMPT_AUDIT_TEST_REDIS_ADDR skips, including under CI."
+      ],
+      "additional_fixture_inputs": [
+        {
+          "path": "backend/internal/securityaudit/prompt_config_integration_test.go",
+          "sha256": "8b1505e432877ab03cc231e1255087834e5ce5f5e852da6119a085fd8a5a2edb"
+        }
+      ]
     },
     {
       "id": "HDB-09",
       "package": "github.com/Wei-Shaw/sub2api/internal/securityaudit",
       "test": "TestPromptRuntimeAggregatesConfigWorkersQueueRedisEndpointsAndGuardMetrics",
       "historical_path": "backend/internal/securityaudit/prompt_payload_store_integration_test.go",
-      "current_path": null,
-      "disposition": "needs_restoration_or_reviewed_equivalent",
-      "reason": "Named contract absent; relevant production domain remains present. No equivalent replacement established.",
-      "test_sha256": null,
-      "fixture_path": null,
-      "fixture_sha256": null,
-      "lane": "integration",
+      "current_path": "backend/internal/securityaudit/prompt_payload_store_integration_test.go",
+      "disposition": "restored",
+      "reason": "Named source restored by PR #30; runtime NOT_RUN.",
+      "test_sha256": "d721151b9142200bd2ce1f2c25d1f209afa268b3a2ff38a7cd1195acddb965e0",
+      "fixture_path": "backend/internal/securityaudit/prompt_payload_store_integration_test.go",
+      "fixture_sha256": "d721151b9142200bd2ce1f2c25d1f209afa268b3a2ff38a7cd1195acddb965e0",
+      "lane": "untagged",
       "expected_runs": 1,
       "allowed_skips": [],
-      "postgres_version": null,
-      "redis_requirement": "historical 8.4; fixture closure missing",
-      "execution_status": "NOT_RUN"
+      "postgres_version": "PROMPT_AUDIT_TEST_POSTGRES_DSN; explicit disposable PostgreSQL; version unverified",
+      "redis_requirement": "PROMPT_AUDIT_TEST_REDIS_ADDR; explicit disposable Redis; version unverified",
+      "execution_status": "NOT_RUN",
+      "skip_conditions": [
+        "Missing PROMPT_AUDIT_TEST_POSTGRES_DSN skips, including under CI.",
+        "Missing PROMPT_AUDIT_TEST_REDIS_ADDR skips, including under CI."
+      ],
+      "additional_fixture_inputs": [
+        {
+          "path": "backend/internal/securityaudit/prompt_config_integration_test.go",
+          "sha256": "8b1505e432877ab03cc231e1255087834e5ce5f5e852da6119a085fd8a5a2edb"
+        },
+        {
+          "path": "backend/internal/securityaudit/prompt_repository_integration_test.go",
+          "sha256": "ae7e4b7d460f4a05bb1197a27d252f8e1ef7229c7f6d3125ea12c50d77347901"
+        }
+      ]
     },
     {
       "id": "HDB-10",
       "package": "github.com/Wei-Shaw/sub2api/internal/repository",
       "test": "TestScopedAdminKeyPostgresDeleteRecordPreservesHistory",
       "historical_path": "backend/internal/repository/custom_admin_keys_postgres_test.go",
-      "current_path": null,
-      "disposition": "needs_restoration_or_reviewed_equivalent",
-      "reason": "Named contract absent; relevant production domain remains present. No equivalent replacement established.",
-      "test_sha256": null,
-      "fixture_path": null,
-      "fixture_sha256": null,
-      "lane": "integration",
+      "current_path": "backend/internal/repository/custom_admin_keys_postgres_test.go",
+      "disposition": "restored",
+      "reason": "Named source restored by PR #30; runtime NOT_RUN.",
+      "test_sha256": "be2ab29fa9d5187e5f8bcc5528a6d342e808007965ef884f23fe70cb2df1bb0f",
+      "fixture_path": "backend/internal/testutil/pgtest/pgtest.go",
+      "fixture_sha256": "60b2ec331da62f6d0f99baaa5c1251b2b8f5e9873af1120b1b773b9c819d4ddd",
+      "lane": "unit",
       "expected_runs": 1,
       "allowed_skips": [],
-      "postgres_version": "historical 18.1-bookworm; restoration target unverified",
+      "postgres_version": "SCOPED_ADMIN_TEST_DSN override or postgres:18.1-alpine3.23 (mutable tag)",
       "redis_requirement": "not_required_by_recorded_contract",
-      "execution_status": "NOT_RUN"
+      "execution_status": "NOT_RUN",
+      "skip_conditions": [
+        "Without SCOPED_ADMIN_TEST_DSN: disposable PostgreSQL unavailable skips outside CI, fails when CI is nonempty."
+      ],
+      "additional_fixture_inputs": []
     },
     {
       "id": "HDB-11",
       "package": "github.com/Wei-Shaw/sub2api/internal/repository",
       "test": "TestScopedAdminKeyPostgresMigrationAndLifecycle",
       "historical_path": "backend/internal/repository/custom_admin_keys_postgres_test.go",
-      "current_path": null,
-      "disposition": "needs_restoration_or_reviewed_equivalent",
-      "reason": "Named contract absent; relevant production domain remains present. No equivalent replacement established.",
-      "test_sha256": null,
-      "fixture_path": null,
-      "fixture_sha256": null,
-      "lane": "integration",
+      "current_path": "backend/internal/repository/custom_admin_keys_postgres_test.go",
+      "disposition": "restored",
+      "reason": "Named source restored by PR #30; runtime NOT_RUN.",
+      "test_sha256": "be2ab29fa9d5187e5f8bcc5528a6d342e808007965ef884f23fe70cb2df1bb0f",
+      "fixture_path": "backend/internal/testutil/pgtest/pgtest.go",
+      "fixture_sha256": "60b2ec331da62f6d0f99baaa5c1251b2b8f5e9873af1120b1b773b9c819d4ddd",
+      "lane": "unit",
       "expected_runs": 1,
       "allowed_skips": [],
-      "postgres_version": "historical 18.1-bookworm; restoration target unverified",
+      "postgres_version": "SCOPED_ADMIN_TEST_DSN override or postgres:18.1-alpine3.23 (mutable tag)",
       "redis_requirement": "not_required_by_recorded_contract",
-      "execution_status": "NOT_RUN"
+      "execution_status": "NOT_RUN",
+      "skip_conditions": [
+        "Without SCOPED_ADMIN_TEST_DSN: disposable PostgreSQL unavailable skips outside CI, fails when CI is nonempty."
+      ],
+      "additional_fixture_inputs": []
     },
     {
       "id": "HDB-12",
       "package": "github.com/Wei-Shaw/sub2api/internal/repository",
       "test": "TestScopedAdminGroupModelsPostgresScopeAndAtomicWrite",
       "historical_path": "backend/internal/repository/custom_admin_key_group_models_test.go",
-      "current_path": null,
-      "disposition": "needs_restoration_or_reviewed_equivalent",
-      "reason": "Named contract absent; relevant production domain remains present. No equivalent replacement established.",
-      "test_sha256": null,
-      "fixture_path": null,
-      "fixture_sha256": null,
-      "lane": "integration",
+      "current_path": "backend/internal/repository/custom_admin_key_group_models_test.go",
+      "disposition": "restored",
+      "reason": "Named source restored by PR #30; runtime NOT_RUN.",
+      "test_sha256": "378c5274a6d38bea04b97f6c144f5fe0ef712dde9f3e97db68bc24acfbd7e692",
+      "fixture_path": "backend/internal/testutil/pgtest/pgtest.go",
+      "fixture_sha256": "60b2ec331da62f6d0f99baaa5c1251b2b8f5e9873af1120b1b773b9c819d4ddd",
+      "lane": "unit",
       "expected_runs": 1,
       "allowed_skips": [],
-      "postgres_version": "historical 18.1-bookworm; restoration target unverified",
+      "postgres_version": "SCOPED_ADMIN_TEST_DSN override or postgres:18.1-alpine3.23 (mutable tag)",
       "redis_requirement": "not_required_by_recorded_contract",
-      "execution_status": "NOT_RUN"
+      "execution_status": "NOT_RUN",
+      "skip_conditions": [
+        "Without SCOPED_ADMIN_TEST_DSN: disposable PostgreSQL unavailable skips outside CI, fails when CI is nonempty."
+      ],
+      "additional_fixture_inputs": []
     },
     {
       "id": "HDB-13",
       "package": "github.com/Wei-Shaw/sub2api/internal/repository",
       "test": "TestScopedAdminReviewGroupPriorityAndStatus",
       "historical_path": "backend/internal/repository/custom_admin_key_review_test.go",
-      "current_path": null,
-      "disposition": "needs_restoration_or_reviewed_equivalent",
-      "reason": "Named contract absent; relevant production domain remains present. No equivalent replacement established.",
-      "test_sha256": null,
-      "fixture_path": null,
-      "fixture_sha256": null,
-      "lane": "integration",
+      "current_path": "backend/internal/repository/custom_admin_key_review_test.go",
+      "disposition": "restored",
+      "reason": "Named source restored by PR #30; runtime NOT_RUN.",
+      "test_sha256": "7a301cdaa8dbc67a7c3fd827fb64da2d5790620be294911611e2ddd9804f968a",
+      "fixture_path": "backend/internal/testutil/pgtest/pgtest.go",
+      "fixture_sha256": "60b2ec331da62f6d0f99baaa5c1251b2b8f5e9873af1120b1b773b9c819d4ddd",
+      "lane": "unit",
       "expected_runs": 1,
       "allowed_skips": [],
-      "postgres_version": "historical 18.1-bookworm; restoration target unverified",
+      "postgres_version": "SCOPED_ADMIN_TEST_DSN override or postgres:18.1-alpine3.23 (mutable tag)",
       "redis_requirement": "not_required_by_recorded_contract",
-      "execution_status": "NOT_RUN"
+      "execution_status": "NOT_RUN",
+      "skip_conditions": [
+        "Without SCOPED_ADMIN_TEST_DSN: disposable PostgreSQL unavailable skips outside CI, fails when CI is nonempty."
+      ],
+      "additional_fixture_inputs": []
     },
     {
       "id": "HDB-14",
       "package": "github.com/Wei-Shaw/sub2api/internal/repository",
       "test": "TestScopedAdminReviewConcurrentRotation",
       "historical_path": "backend/internal/repository/custom_admin_key_review_test.go",
-      "current_path": null,
-      "disposition": "needs_restoration_or_reviewed_equivalent",
-      "reason": "Named contract absent; relevant production domain remains present. No equivalent replacement established.",
-      "test_sha256": null,
-      "fixture_path": null,
-      "fixture_sha256": null,
-      "lane": "integration",
+      "current_path": "backend/internal/repository/custom_admin_key_review_test.go",
+      "disposition": "restored",
+      "reason": "Named source restored by PR #30; runtime NOT_RUN.",
+      "test_sha256": "7a301cdaa8dbc67a7c3fd827fb64da2d5790620be294911611e2ddd9804f968a",
+      "fixture_path": "backend/internal/testutil/pgtest/pgtest.go",
+      "fixture_sha256": "60b2ec331da62f6d0f99baaa5c1251b2b8f5e9873af1120b1b773b9c819d4ddd",
+      "lane": "unit",
       "expected_runs": 1,
       "allowed_skips": [],
-      "postgres_version": "historical 18.1-bookworm; restoration target unverified",
+      "postgres_version": "SCOPED_ADMIN_TEST_DSN override or postgres:18.1-alpine3.23 (mutable tag)",
       "redis_requirement": "not_required_by_recorded_contract",
-      "execution_status": "NOT_RUN"
+      "execution_status": "NOT_RUN",
+      "skip_conditions": [
+        "Without SCOPED_ADMIN_TEST_DSN: disposable PostgreSQL unavailable skips outside CI, fails when CI is nonempty."
+      ],
+      "additional_fixture_inputs": [
+        {
+          "path": "backend/internal/repository/custom_admin_keys_postgres_test.go",
+          "sha256": "be2ab29fa9d5187e5f8bcc5528a6d342e808007965ef884f23fe70cb2df1bb0f"
+        }
+      ]
     },
     {
       "id": "HDB-15",
       "package": "github.com/Wei-Shaw/sub2api/internal/repository",
       "test": "TestScopedAdminAccountListPostgresRulesAndPagination",
       "historical_path": "backend/internal/repository/custom_admin_key_scope_test.go",
-      "current_path": null,
-      "disposition": "needs_restoration_or_reviewed_equivalent",
-      "reason": "Named contract absent; relevant production domain remains present. No equivalent replacement established.",
-      "test_sha256": null,
-      "fixture_path": null,
-      "fixture_sha256": null,
-      "lane": "integration",
+      "current_path": "backend/internal/repository/custom_admin_key_scope_test.go",
+      "disposition": "restored",
+      "reason": "Named source restored by PR #30; runtime NOT_RUN.",
+      "test_sha256": "2b624b6069dc532b18e5c23d4aa43747dd452d97ed41e096c344e57c34239f8f",
+      "fixture_path": "backend/internal/testutil/pgtest/pgtest.go",
+      "fixture_sha256": "60b2ec331da62f6d0f99baaa5c1251b2b8f5e9873af1120b1b773b9c819d4ddd",
+      "lane": "unit",
       "expected_runs": 1,
       "allowed_skips": [],
-      "postgres_version": "historical 18.1-bookworm; restoration target unverified",
+      "postgres_version": "SCOPED_ADMIN_TEST_DSN override or postgres:18.1-alpine3.23 (mutable tag)",
       "redis_requirement": "not_required_by_recorded_contract",
-      "execution_status": "NOT_RUN"
+      "execution_status": "NOT_RUN",
+      "skip_conditions": [
+        "Without SCOPED_ADMIN_TEST_DSN: disposable PostgreSQL unavailable skips outside CI, fails when CI is nonempty."
+      ],
+      "additional_fixture_inputs": []
     },
     {
       "id": "HDB-16",
       "package": "github.com/Wei-Shaw/sub2api/internal/repository",
       "test": "TestScopedAdminCodexCandidatesUseCredentialWriteScope",
       "historical_path": "backend/internal/repository/custom_admin_key_scope_test.go",
-      "current_path": null,
-      "disposition": "needs_restoration_or_reviewed_equivalent",
-      "reason": "Named contract absent; relevant production domain remains present. No equivalent replacement established.",
-      "test_sha256": null,
-      "fixture_path": null,
-      "fixture_sha256": null,
-      "lane": "integration",
+      "current_path": "backend/internal/repository/custom_admin_key_scope_test.go",
+      "disposition": "restored",
+      "reason": "Named source restored by PR #30; runtime NOT_RUN.",
+      "test_sha256": "2b624b6069dc532b18e5c23d4aa43747dd452d97ed41e096c344e57c34239f8f",
+      "fixture_path": "backend/internal/testutil/pgtest/pgtest.go",
+      "fixture_sha256": "60b2ec331da62f6d0f99baaa5c1251b2b8f5e9873af1120b1b773b9c819d4ddd",
+      "lane": "unit",
       "expected_runs": 1,
       "allowed_skips": [],
-      "postgres_version": "historical 18.1-bookworm; restoration target unverified",
+      "postgres_version": "SCOPED_ADMIN_TEST_DSN override or postgres:18.1-alpine3.23 (mutable tag)",
       "redis_requirement": "not_required_by_recorded_contract",
-      "execution_status": "NOT_RUN"
+      "execution_status": "NOT_RUN",
+      "skip_conditions": [
+        "Without SCOPED_ADMIN_TEST_DSN: disposable PostgreSQL unavailable skips outside CI, fails when CI is nonempty."
+      ],
+      "additional_fixture_inputs": [
+        {
+          "path": "backend/internal/repository/custom_admin_keys_postgres_test.go",
+          "sha256": "be2ab29fa9d5187e5f8bcc5528a6d342e808007965ef884f23fe70cb2df1bb0f"
+        }
+      ]
     },
     {
       "id": "HDB-17",
       "package": "github.com/Wei-Shaw/sub2api/internal/repository",
       "test": "TestScopedAdminCodexCandidatesMatchIdentityWithoutLoadingUnrelatedCredentials",
       "historical_path": "backend/internal/repository/custom_admin_key_scope_test.go",
-      "current_path": null,
-      "disposition": "needs_restoration_or_reviewed_equivalent",
-      "reason": "Named contract absent; relevant production domain remains present. No equivalent replacement established.",
-      "test_sha256": null,
-      "fixture_path": null,
-      "fixture_sha256": null,
-      "lane": "integration",
+      "current_path": "backend/internal/repository/custom_admin_key_scope_test.go",
+      "disposition": "restored",
+      "reason": "Named source restored by PR #30; runtime NOT_RUN.",
+      "test_sha256": "2b624b6069dc532b18e5c23d4aa43747dd452d97ed41e096c344e57c34239f8f",
+      "fixture_path": "backend/internal/testutil/pgtest/pgtest.go",
+      "fixture_sha256": "60b2ec331da62f6d0f99baaa5c1251b2b8f5e9873af1120b1b773b9c819d4ddd",
+      "lane": "unit",
       "expected_runs": 1,
       "allowed_skips": [],
-      "postgres_version": "historical 18.1-bookworm; restoration target unverified",
+      "postgres_version": "SCOPED_ADMIN_TEST_DSN override or postgres:18.1-alpine3.23 (mutable tag)",
       "redis_requirement": "not_required_by_recorded_contract",
-      "execution_status": "NOT_RUN"
+      "execution_status": "NOT_RUN",
+      "skip_conditions": [
+        "Without SCOPED_ADMIN_TEST_DSN: disposable PostgreSQL unavailable skips outside CI, fails when CI is nonempty."
+      ],
+      "additional_fixture_inputs": [
+        {
+          "path": "backend/internal/repository/custom_admin_keys_postgres_test.go",
+          "sha256": "be2ab29fa9d5187e5f8bcc5528a6d342e808007965ef884f23fe70cb2df1bb0f"
+        }
+      ]
     },
     {
       "id": "HDB-18",
       "package": "github.com/Wei-Shaw/sub2api/internal/repository",
       "test": "TestAccountProxySelectionLargePoolAndTransactionalLeastUsed",
       "historical_path": "backend/internal/repository/custom_account_proxy_selection_test.go",
-      "current_path": null,
-      "disposition": "needs_restoration_or_reviewed_equivalent",
-      "reason": "Named contract absent; relevant production domain remains present. No equivalent replacement established.",
-      "test_sha256": null,
-      "fixture_path": null,
-      "fixture_sha256": null,
-      "lane": "integration",
+      "current_path": "backend/internal/repository/custom_account_proxy_selection_test.go",
+      "disposition": "restored",
+      "reason": "Named source restored by PR #30; runtime NOT_RUN.",
+      "test_sha256": "8ae25f11abee44b496e482737d1b9909b40a3222c922d7621295619a26f6667b",
+      "fixture_path": "backend/internal/testutil/pgtest/pgtest.go",
+      "fixture_sha256": "60b2ec331da62f6d0f99baaa5c1251b2b8f5e9873af1120b1b773b9c819d4ddd",
+      "lane": "unit",
       "expected_runs": 1,
       "allowed_skips": [],
-      "postgres_version": "historical 18.1-bookworm; restoration target unverified",
+      "postgres_version": "SCOPED_ADMIN_TEST_DSN override or postgres:18.1-alpine3.23 (mutable tag)",
       "redis_requirement": "not_required_by_recorded_contract",
-      "execution_status": "NOT_RUN"
+      "execution_status": "NOT_RUN",
+      "skip_conditions": [
+        "Without SCOPED_ADMIN_TEST_DSN: disposable PostgreSQL unavailable skips outside CI, fails when CI is nonempty."
+      ],
+      "additional_fixture_inputs": [
+        {
+          "path": "backend/internal/repository/custom_admin_keys_postgres_test.go",
+          "sha256": "be2ab29fa9d5187e5f8bcc5528a6d342e808007965ef884f23fe70cb2df1bb0f"
+        }
+      ]
     },
     {
       "id": "HDB-19",
       "package": "github.com/Wei-Shaw/sub2api/internal/repository",
       "test": "TestProxySamplePostgresLargePoolAndEligibility",
       "historical_path": "backend/internal/repository/custom_proxy_sample_test.go",
-      "current_path": null,
-      "disposition": "needs_restoration_or_reviewed_equivalent",
-      "reason": "Named contract absent; relevant production domain remains present. No equivalent replacement established.",
-      "test_sha256": null,
-      "fixture_path": null,
-      "fixture_sha256": null,
-      "lane": "integration",
+      "current_path": "backend/internal/repository/custom_proxy_sample_test.go",
+      "disposition": "restored",
+      "reason": "Named source restored by PR #30; runtime NOT_RUN.",
+      "test_sha256": "f3933e33be3a656f0c0fd01fdce7c0ffa5318ccf031ba612029349732ea4c21c",
+      "fixture_path": "backend/internal/testutil/pgtest/pgtest.go",
+      "fixture_sha256": "60b2ec331da62f6d0f99baaa5c1251b2b8f5e9873af1120b1b773b9c819d4ddd",
+      "lane": "unit",
       "expected_runs": 1,
       "allowed_skips": [],
-      "postgres_version": "historical 18.1-bookworm; restoration target unverified",
+      "postgres_version": "SCOPED_ADMIN_TEST_DSN override or postgres:18.1-alpine3.23 (mutable tag)",
       "redis_requirement": "not_required_by_recorded_contract",
-      "execution_status": "NOT_RUN"
+      "execution_status": "NOT_RUN",
+      "skip_conditions": [
+        "Without SCOPED_ADMIN_TEST_DSN: disposable PostgreSQL unavailable skips outside CI, fails when CI is nonempty."
+      ],
+      "additional_fixture_inputs": [
+        {
+          "path": "backend/internal/repository/custom_admin_keys_postgres_test.go",
+          "sha256": "be2ab29fa9d5187e5f8bcc5528a6d342e808007965ef884f23fe70cb2df1bb0f"
+        }
+      ]
     },
     {
       "id": "HDB-20",
       "package": "github.com/Wei-Shaw/sub2api/internal/service",
       "test": "TestScopedAdminWriteModelMappingEnforcesScopeAndPreservesCredentials",
       "historical_path": "backend/internal/service/custom_admin_key_accounts_test.go",
-      "current_path": null,
-      "disposition": "needs_restoration_or_reviewed_equivalent",
-      "reason": "Named contract absent; relevant production domain remains present. No equivalent replacement established.",
-      "test_sha256": null,
-      "fixture_path": null,
-      "fixture_sha256": null,
-      "lane": "integration",
+      "current_path": "backend/internal/service/custom_admin_key_accounts_test.go",
+      "disposition": "restored",
+      "reason": "Named source restored by PR #30; runtime NOT_RUN.",
+      "test_sha256": "d307a7e128545f3dd38c8185ea9b4eedcc3393e9e07385796c8b1941b09da1fc",
+      "fixture_path": "backend/internal/testutil/pgtest/pgtest.go",
+      "fixture_sha256": "60b2ec331da62f6d0f99baaa5c1251b2b8f5e9873af1120b1b773b9c819d4ddd",
+      "lane": "unit",
       "expected_runs": 1,
       "allowed_skips": [],
-      "postgres_version": "historical 18.1-bookworm; restoration target unverified",
+      "postgres_version": "SCOPED_ADMIN_TEST_DSN override or postgres:18.1-alpine3.23 (mutable tag)",
       "redis_requirement": "not_required_by_recorded_contract",
-      "execution_status": "NOT_RUN"
+      "execution_status": "NOT_RUN",
+      "skip_conditions": [
+        "Without SCOPED_ADMIN_TEST_DSN: disposable PostgreSQL unavailable skips outside CI, fails when CI is nonempty."
+      ],
+      "additional_fixture_inputs": [
+        {
+          "path": "backend/internal/service/custom_admin_key_testdb_test.go",
+          "sha256": "00a5eb77fc4942a83e4af6ab1d65c7fbf9b18757ab839e681838907006a6b580"
+        }
+      ]
     },
     {
       "id": "HDB-21",
       "package": "github.com/Wei-Shaw/sub2api/internal/service",
       "test": "TestScopedAdminWriteEnforcesScopeAndAtomicCreate",
       "historical_path": "backend/internal/service/custom_admin_key_accounts_test.go",
-      "current_path": null,
-      "disposition": "needs_restoration_or_reviewed_equivalent",
-      "reason": "Named contract absent; relevant production domain remains present. No equivalent replacement established.",
-      "test_sha256": null,
-      "fixture_path": null,
-      "fixture_sha256": null,
-      "lane": "integration",
+      "current_path": "backend/internal/service/custom_admin_key_accounts_test.go",
+      "disposition": "restored",
+      "reason": "Named source restored by PR #30; runtime NOT_RUN.",
+      "test_sha256": "d307a7e128545f3dd38c8185ea9b4eedcc3393e9e07385796c8b1941b09da1fc",
+      "fixture_path": "backend/internal/testutil/pgtest/pgtest.go",
+      "fixture_sha256": "60b2ec331da62f6d0f99baaa5c1251b2b8f5e9873af1120b1b773b9c819d4ddd",
+      "lane": "unit",
       "expected_runs": 1,
       "allowed_skips": [],
-      "postgres_version": "historical 18.1-bookworm; restoration target unverified",
+      "postgres_version": "SCOPED_ADMIN_TEST_DSN override or postgres:18.1-alpine3.23 (mutable tag)",
       "redis_requirement": "not_required_by_recorded_contract",
-      "execution_status": "NOT_RUN"
+      "execution_status": "NOT_RUN",
+      "skip_conditions": [
+        "Without SCOPED_ADMIN_TEST_DSN: disposable PostgreSQL unavailable skips outside CI, fails when CI is nonempty."
+      ],
+      "additional_fixture_inputs": [
+        {
+          "path": "backend/internal/service/custom_admin_key_testdb_test.go",
+          "sha256": "00a5eb77fc4942a83e4af6ab1d65c7fbf9b18757ab839e681838907006a6b580"
+        }
+      ]
     },
     {
       "id": "HDB-22",
       "package": "github.com/Wei-Shaw/sub2api/internal/service",
       "test": "TestScopedAdminWriteHidesAccountsOutsideGrantedScope",
       "historical_path": "backend/internal/service/custom_admin_key_accounts_test.go",
-      "current_path": null,
-      "disposition": "needs_restoration_or_reviewed_equivalent",
-      "reason": "Named contract absent; relevant production domain remains present. No equivalent replacement established.",
-      "test_sha256": null,
-      "fixture_path": null,
-      "fixture_sha256": null,
-      "lane": "integration",
+      "current_path": "backend/internal/service/custom_admin_key_accounts_test.go",
+      "disposition": "restored",
+      "reason": "Named source restored by PR #30; runtime NOT_RUN.",
+      "test_sha256": "d307a7e128545f3dd38c8185ea9b4eedcc3393e9e07385796c8b1941b09da1fc",
+      "fixture_path": "backend/internal/testutil/pgtest/pgtest.go",
+      "fixture_sha256": "60b2ec331da62f6d0f99baaa5c1251b2b8f5e9873af1120b1b773b9c819d4ddd",
+      "lane": "unit",
       "expected_runs": 1,
       "allowed_skips": [],
-      "postgres_version": "historical 18.1-bookworm; restoration target unverified",
+      "postgres_version": "SCOPED_ADMIN_TEST_DSN override or postgres:18.1-alpine3.23 (mutable tag)",
       "redis_requirement": "not_required_by_recorded_contract",
-      "execution_status": "NOT_RUN"
+      "execution_status": "NOT_RUN",
+      "skip_conditions": [
+        "Without SCOPED_ADMIN_TEST_DSN: disposable PostgreSQL unavailable skips outside CI, fails when CI is nonempty."
+      ],
+      "additional_fixture_inputs": [
+        {
+          "path": "backend/internal/service/custom_admin_key_testdb_test.go",
+          "sha256": "00a5eb77fc4942a83e4af6ab1d65c7fbf9b18757ab839e681838907006a6b580"
+        }
+      ]
     },
     {
       "id": "HDB-23",
       "package": "github.com/Wei-Shaw/sub2api/internal/service",
       "test": "TestScopedAdminCreateWithCredentialWriteDoesNotRequireRead",
       "historical_path": "backend/internal/service/custom_admin_key_accounts_test.go",
-      "current_path": null,
-      "disposition": "needs_restoration_or_reviewed_equivalent",
-      "reason": "Named contract absent; relevant production domain remains present. No equivalent replacement established.",
-      "test_sha256": null,
-      "fixture_path": null,
-      "fixture_sha256": null,
-      "lane": "integration",
+      "current_path": "backend/internal/service/custom_admin_key_accounts_test.go",
+      "disposition": "restored",
+      "reason": "Named source restored by PR #30; runtime NOT_RUN.",
+      "test_sha256": "d307a7e128545f3dd38c8185ea9b4eedcc3393e9e07385796c8b1941b09da1fc",
+      "fixture_path": "backend/internal/testutil/pgtest/pgtest.go",
+      "fixture_sha256": "60b2ec331da62f6d0f99baaa5c1251b2b8f5e9873af1120b1b773b9c819d4ddd",
+      "lane": "unit",
       "expected_runs": 1,
       "allowed_skips": [],
-      "postgres_version": "historical 18.1-bookworm; restoration target unverified",
+      "postgres_version": "SCOPED_ADMIN_TEST_DSN override or postgres:18.1-alpine3.23 (mutable tag)",
       "redis_requirement": "not_required_by_recorded_contract",
-      "execution_status": "NOT_RUN"
+      "execution_status": "NOT_RUN",
+      "skip_conditions": [
+        "Without SCOPED_ADMIN_TEST_DSN: disposable PostgreSQL unavailable skips outside CI, fails when CI is nonempty."
+      ],
+      "additional_fixture_inputs": [
+        {
+          "path": "backend/internal/service/custom_admin_key_testdb_test.go",
+          "sha256": "00a5eb77fc4942a83e4af6ab1d65c7fbf9b18757ab839e681838907006a6b580"
+        }
+      ]
     },
     {
       "id": "HDB-24",
       "package": "github.com/Wei-Shaw/sub2api/internal/service",
       "test": "TestScopedCodexWriteAuthorizationAndTransactions",
       "historical_path": "backend/internal/service/custom_admin_key_codex_import_test.go",
-      "current_path": null,
-      "disposition": "needs_restoration_or_reviewed_equivalent",
-      "reason": "Named contract absent; relevant production domain remains present. No equivalent replacement established.",
-      "test_sha256": null,
-      "fixture_path": null,
-      "fixture_sha256": null,
-      "lane": "integration",
+      "current_path": "backend/internal/service/custom_admin_key_codex_import_test.go",
+      "disposition": "restored",
+      "reason": "Named source restored by PR #30; runtime NOT_RUN.",
+      "test_sha256": "70c85d09acbe271da27665a9bf1883b19644c325af8812fa6193f149fbbf3d85",
+      "fixture_path": "backend/internal/testutil/pgtest/pgtest.go",
+      "fixture_sha256": "60b2ec331da62f6d0f99baaa5c1251b2b8f5e9873af1120b1b773b9c819d4ddd",
+      "lane": "unit",
       "expected_runs": 1,
       "allowed_skips": [],
-      "postgres_version": "historical 18.1-bookworm; restoration target unverified",
+      "postgres_version": "SCOPED_ADMIN_TEST_DSN override or postgres:18.1-alpine3.23 (mutable tag)",
       "redis_requirement": "not_required_by_recorded_contract",
-      "execution_status": "NOT_RUN"
+      "execution_status": "NOT_RUN",
+      "skip_conditions": [
+        "Without SCOPED_ADMIN_TEST_DSN: disposable PostgreSQL unavailable skips outside CI, fails when CI is nonempty."
+      ],
+      "additional_fixture_inputs": [
+        {
+          "path": "backend/internal/service/custom_admin_key_testdb_test.go",
+          "sha256": "00a5eb77fc4942a83e4af6ab1d65c7fbf9b18757ab839e681838907006a6b580"
+        }
+      ]
     },
     {
       "id": "HDB-25",
       "package": "github.com/Wei-Shaw/sub2api/internal/service",
       "test": "TestScopedAccountProxySelectionPermissionsAndRollback",
       "historical_path": "backend/internal/service/custom_admin_key_proxy_selection_test.go",
-      "current_path": null,
-      "disposition": "needs_restoration_or_reviewed_equivalent",
-      "reason": "Named contract absent; relevant production domain remains present. No equivalent replacement established.",
-      "test_sha256": null,
-      "fixture_path": null,
-      "fixture_sha256": null,
-      "lane": "integration",
+      "current_path": "backend/internal/service/custom_admin_key_proxy_selection_test.go",
+      "disposition": "restored",
+      "reason": "Named source restored by PR #30; runtime NOT_RUN.",
+      "test_sha256": "1a1b6b603e4d0b2027701511147e35dfeac527f811add51995c858b899293fa6",
+      "fixture_path": "backend/internal/testutil/pgtest/pgtest.go",
+      "fixture_sha256": "60b2ec331da62f6d0f99baaa5c1251b2b8f5e9873af1120b1b773b9c819d4ddd",
+      "lane": "unit",
       "expected_runs": 1,
       "allowed_skips": [],
-      "postgres_version": "historical 18.1-bookworm; restoration target unverified",
+      "postgres_version": "SCOPED_ADMIN_TEST_DSN override or postgres:18.1-alpine3.23 (mutable tag)",
       "redis_requirement": "not_required_by_recorded_contract",
-      "execution_status": "NOT_RUN"
+      "execution_status": "NOT_RUN",
+      "skip_conditions": [
+        "Without SCOPED_ADMIN_TEST_DSN: disposable PostgreSQL unavailable skips outside CI, fails when CI is nonempty."
+      ],
+      "additional_fixture_inputs": [
+        {
+          "path": "backend/internal/service/custom_admin_key_testdb_test.go",
+          "sha256": "00a5eb77fc4942a83e4af6ab1d65c7fbf9b18757ab839e681838907006a6b580"
+        }
+      ]
     },
     {
       "id": "HDB-26",
       "package": "github.com/Wei-Shaw/sub2api/internal/handler/admin",
       "test": "TestLegacyAdminKeyRotationPostgres",
       "historical_path": "backend/internal/handler/admin/custom_legacy_admin_key_test.go",
-      "current_path": null,
-      "disposition": "needs_restoration_or_reviewed_equivalent",
-      "reason": "Named contract absent; relevant production domain remains present. No equivalent replacement established.",
-      "test_sha256": null,
-      "fixture_path": null,
-      "fixture_sha256": null,
-      "lane": "integration",
+      "current_path": "backend/internal/handler/admin/custom_legacy_admin_key_test.go",
+      "disposition": "restored",
+      "reason": "Named source restored by PR #30; runtime NOT_RUN.",
+      "test_sha256": "d27fc8bcd31c745954964cf97f7aa2a9fdbfd5e785548a1097977684c0b5e18d",
+      "fixture_path": "backend/internal/testutil/pgtest/pgtest.go",
+      "fixture_sha256": "60b2ec331da62f6d0f99baaa5c1251b2b8f5e9873af1120b1b773b9c819d4ddd",
+      "lane": "unit",
       "expected_runs": 1,
       "allowed_skips": [],
-      "postgres_version": "historical 18.1-bookworm; restoration target unverified",
+      "postgres_version": "SCOPED_ADMIN_TEST_DSN override or postgres:18.1-alpine3.23 (mutable tag)",
       "redis_requirement": "not_required_by_recorded_contract",
-      "execution_status": "NOT_RUN"
+      "execution_status": "NOT_RUN",
+      "skip_conditions": [
+        "Without SCOPED_ADMIN_TEST_DSN: disposable PostgreSQL unavailable skips outside CI, fails when CI is nonempty."
+      ],
+      "additional_fixture_inputs": []
     },
     {
       "id": "HDB-27",
@@ -507,16 +684,20 @@
       "historical_path": "backend/internal/repository/upgrade_019_custom_migrations_integration_test.go",
       "current_path": "backend/internal/repository/upgrade_019_custom_migrations_integration_test.go",
       "disposition": "retained",
-      "reason": "Named contract retained; execution not established by this inventory.",
+      "reason": "Named source retained; fixture bindings refreshed after PR #30; runtime NOT_RUN.",
       "test_sha256": "49e956c5b636e9e38043e18e7388dc6703e8b8d3c4501052375614f4d0ba6e32",
-      "fixture_path": "backend/internal/repository/public_integration_harness_test.go",
-      "fixture_sha256": "d8ffbd5fb07bc33c1b502903cb4880642ed4779582107d90742eec2fdfabf997",
+      "fixture_path": "backend/internal/repository/integration_harness_test.go",
+      "fixture_sha256": "a95d5e3b9047d305bb34b546cdf9d2259512efabd19adcff3ac2f0761016acea",
       "lane": "integration",
       "expected_runs": 1,
       "allowed_skips": [],
-      "postgres_version": "18.1-alpine3.23",
-      "redis_requirement": "not_required_by_recorded_contract",
-      "execution_status": "NOT_RUN"
+      "postgres_version": "postgres:18.1-alpine3.23 default; SUB2API_TEST_POSTGRES_IMAGE override supported",
+      "redis_requirement": "redis:8.4-alpine required by package TestMain, even for PG-only selected tests",
+      "execution_status": "NOT_RUN",
+      "skip_conditions": [
+        "Docker unavailable: TestMain exits 0 without m.Run outside CI, exits 1 when CI is nonempty."
+      ],
+      "additional_fixture_inputs": []
     },
     {
       "id": "HDB-28",
@@ -525,16 +706,20 @@
       "historical_path": "backend/internal/repository/upgrade_019_custom_migrations_integration_test.go",
       "current_path": "backend/internal/repository/upgrade_019_custom_migrations_integration_test.go",
       "disposition": "retained",
-      "reason": "Named contract retained; execution not established by this inventory.",
+      "reason": "Named source retained; fixture bindings refreshed after PR #30; runtime NOT_RUN.",
       "test_sha256": "49e956c5b636e9e38043e18e7388dc6703e8b8d3c4501052375614f4d0ba6e32",
-      "fixture_path": "backend/internal/repository/public_integration_harness_test.go",
-      "fixture_sha256": "d8ffbd5fb07bc33c1b502903cb4880642ed4779582107d90742eec2fdfabf997",
+      "fixture_path": "backend/internal/repository/integration_harness_test.go",
+      "fixture_sha256": "a95d5e3b9047d305bb34b546cdf9d2259512efabd19adcff3ac2f0761016acea",
       "lane": "integration",
       "expected_runs": 1,
       "allowed_skips": [],
-      "postgres_version": "18.1-alpine3.23",
-      "redis_requirement": "not_required_by_recorded_contract",
-      "execution_status": "NOT_RUN"
+      "postgres_version": "postgres:18.1-alpine3.23 default; SUB2API_TEST_POSTGRES_IMAGE override supported",
+      "redis_requirement": "redis:8.4-alpine required by package TestMain, even for PG-only selected tests",
+      "execution_status": "NOT_RUN",
+      "skip_conditions": [
+        "Docker unavailable: TestMain exits 0 without m.Run outside CI, exits 1 when CI is nonempty."
+      ],
+      "additional_fixture_inputs": []
     },
     {
       "id": "HDB-29",
@@ -543,16 +728,20 @@
       "historical_path": "backend/internal/repository/payment_refund_retry_integration_test.go",
       "current_path": "backend/internal/repository/payment_refund_retry_integration_test.go",
       "disposition": "retained",
-      "reason": "Named contract retained; execution not established by this inventory.",
+      "reason": "Named source retained; fixture bindings refreshed after PR #30; runtime NOT_RUN.",
       "test_sha256": "38cba0ada5ba95ff84d1f63192e5e7df6133bd2aebbc3c94a3c47e7e1d933533",
-      "fixture_path": "backend/internal/repository/public_integration_harness_test.go",
-      "fixture_sha256": "d8ffbd5fb07bc33c1b502903cb4880642ed4779582107d90742eec2fdfabf997",
+      "fixture_path": "backend/internal/repository/integration_harness_test.go",
+      "fixture_sha256": "a95d5e3b9047d305bb34b546cdf9d2259512efabd19adcff3ac2f0761016acea",
       "lane": "integration",
       "expected_runs": 1,
       "allowed_skips": [],
-      "postgres_version": "18.1-alpine3.23",
-      "redis_requirement": "not_required_by_recorded_contract",
-      "execution_status": "NOT_RUN"
+      "postgres_version": "postgres:18.1-alpine3.23 default; SUB2API_TEST_POSTGRES_IMAGE override supported",
+      "redis_requirement": "redis:8.4-alpine required by package TestMain, even for PG-only selected tests",
+      "execution_status": "NOT_RUN",
+      "skip_conditions": [
+        "Docker unavailable: TestMain exits 0 without m.Run outside CI, exits 1 when CI is nonempty."
+      ],
+      "additional_fixture_inputs": []
     },
     {
       "id": "HDB-30",
@@ -561,16 +750,20 @@
       "historical_path": "backend/internal/repository/usage_window_distinct_start_integration_test.go",
       "current_path": "backend/internal/repository/usage_window_distinct_start_integration_test.go",
       "disposition": "retained",
-      "reason": "Named contract retained; execution not established by this inventory.",
+      "reason": "Named source retained; fixture bindings refreshed after PR #30; runtime NOT_RUN.",
       "test_sha256": "cf9f6b2029c52b2096bb7c5564f49e4e98dd64cab244d197ea44546833c2c097",
-      "fixture_path": "backend/internal/repository/public_integration_harness_test.go",
-      "fixture_sha256": "d8ffbd5fb07bc33c1b502903cb4880642ed4779582107d90742eec2fdfabf997",
+      "fixture_path": "backend/internal/repository/integration_harness_test.go",
+      "fixture_sha256": "a95d5e3b9047d305bb34b546cdf9d2259512efabd19adcff3ac2f0761016acea",
       "lane": "integration",
       "expected_runs": 1,
       "allowed_skips": [],
-      "postgres_version": "18.1-alpine3.23",
-      "redis_requirement": "not_required_by_recorded_contract",
-      "execution_status": "NOT_RUN"
+      "postgres_version": "postgres:18.1-alpine3.23 default; SUB2API_TEST_POSTGRES_IMAGE override supported",
+      "redis_requirement": "redis:8.4-alpine required by package TestMain, even for PG-only selected tests",
+      "execution_status": "NOT_RUN",
+      "skip_conditions": [
+        "Docker unavailable: TestMain exits 0 without m.Run outside CI, exits 1 when CI is nonempty."
+      ],
+      "additional_fixture_inputs": []
     },
     {
       "id": "HDB-31",
@@ -579,16 +772,20 @@
       "historical_path": "backend/internal/repository/migration_check_custom_integration_test.go",
       "current_path": "backend/internal/repository/migration_check_custom_integration_test.go",
       "disposition": "retained",
-      "reason": "Named contract retained; execution not established by this inventory.",
+      "reason": "Named source retained; fixture bindings refreshed after PR #30; runtime NOT_RUN.",
       "test_sha256": "88ab52396f453c563e053ff530658066d5e22b9f35377ea750bc8fa971ecc8cd",
-      "fixture_path": "backend/internal/repository/public_integration_harness_test.go",
-      "fixture_sha256": "d8ffbd5fb07bc33c1b502903cb4880642ed4779582107d90742eec2fdfabf997",
+      "fixture_path": "backend/internal/repository/integration_harness_test.go",
+      "fixture_sha256": "a95d5e3b9047d305bb34b546cdf9d2259512efabd19adcff3ac2f0761016acea",
       "lane": "integration",
       "expected_runs": 1,
       "allowed_skips": [],
-      "postgres_version": "18.1-alpine3.23",
-      "redis_requirement": "not_required_by_recorded_contract",
-      "execution_status": "NOT_RUN"
+      "postgres_version": "postgres:18.1-alpine3.23 default; SUB2API_TEST_POSTGRES_IMAGE override supported",
+      "redis_requirement": "redis:8.4-alpine required by package TestMain, even for PG-only selected tests",
+      "execution_status": "NOT_RUN",
+      "skip_conditions": [
+        "Docker unavailable: TestMain exits 0 without m.Run outside CI, exits 1 when CI is nonempty."
+      ],
+      "additional_fixture_inputs": []
     },
     {
       "id": "HDB-32",
@@ -597,16 +794,32 @@
       "historical_path": "backend/cmd/server/migration_startup_custom_integration_test.go",
       "current_path": "backend/cmd/server/migration_startup_custom_integration_test.go",
       "disposition": "retained",
-      "reason": "Named contract retained; execution not established by this inventory.",
+      "reason": "Named source retained; fixture bindings refreshed after PR #30; runtime NOT_RUN.",
       "test_sha256": "1afd87fb5261db52f9186673c13413132481809052a6c993da2690860eccdf99",
       "fixture_path": "backend/cmd/server/migration_startup_custom_integration_test.go",
       "fixture_sha256": "1afd87fb5261db52f9186673c13413132481809052a6c993da2690860eccdf99",
       "lane": "integration",
       "expected_runs": 1,
       "allowed_skips": [],
-      "postgres_version": "18.1-alpine3.23",
+      "postgres_version": "postgres:18.1-alpine3.23 (mutable tag)",
       "redis_requirement": "not_required_by_recorded_contract",
-      "execution_status": "NOT_RUN"
+      "execution_status": "NOT_RUN",
+      "skip_conditions": [],
+      "additional_fixture_inputs": []
+    }
+  ],
+  "history": [
+    {
+      "baseline_sha": "f347674975c1bfae5a38c60eed43fdda164fc1de",
+      "baseline_tree": "40df4a2a4fd6971f20fea3e6fd7a7321c1093b89",
+      "recorded_at": "2026-11-01",
+      "present": 6,
+      "missing": 26
+    },
+    {
+      "restored_by_pr": 30,
+      "merge_sha": "bd6d0ea606abde5f0f85698124bd877e3c998f48",
+      "restored_contracts": 26
     }
   ]
 }

@@ -24,6 +24,7 @@ class ContractInventoryTests(unittest.TestCase):
                  self.doc['current_ci']['workflow'], self.doc['current_ci']['critical_list']}
         for item in self.doc['contracts']:
             paths.update(p for p in (item['current_path'], item['fixture_path']) if p)
+            paths.update(f['path'] for f in item['additional_fixture_inputs'])
         for path in paths:
             target = self.root / path
             target.parent.mkdir(parents=True, exist_ok=True)
@@ -51,12 +52,36 @@ class ContractInventoryTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, 'changed input'):
             self.check()
 
-    def test_newly_restored_test_requires_review(self):
+    def test_removed_restored_test_rejected(self):
         test = self.doc['contracts'][0]
-        path = self.root / test['historical_path']
-        path.parent.mkdir(parents=True, exist_ok=True)
-        path.write_text('package securityaudit\nfunc ' + test['test'] + '(t *testing.T) {}\n')
+        path = self.root / test['current_path']
+        path.write_text(path.read_text().replace('func ' + test['test'] + '(',
+                                               'func RemovedContract('))
         with self.assertRaisesRegex(ValueError, 'presence changed'):
+            self.check()
+
+    def test_fixture_change_rejected(self):
+        path = self.root / self.doc['contracts'][26]['fixture_path']
+        path.write_text(path.read_text() + '\n// changed harness\n')
+        with self.assertRaisesRegex(ValueError, 'changed input'):
+            self.check()
+
+    def test_lane_mismatch_rejected(self):
+        self.doc['contracts'][9]['lane'] = 'integration'
+        self.save()
+        with self.assertRaisesRegex(ValueError, 'build lane mismatch'):
+            self.check()
+
+    def test_summary_change_rejected(self):
+        self.doc['coverage']['missing'] = 26
+        self.save()
+        with self.assertRaisesRegex(ValueError, 'coverage summary'):
+            self.check()
+
+    def test_critical_list_change_rejected(self):
+        path = self.root / self.doc['current_ci']['critical_list']
+        path.write_text(path.read_text() + '\n# changed list\n')
+        with self.assertRaisesRegex(ValueError, 'changed input'):
             self.check()
 
     def test_skip_weakening_rejected(self):

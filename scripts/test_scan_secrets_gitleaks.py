@@ -177,6 +177,56 @@ class GitleaksHistoryTests(unittest.TestCase):
             for finding in findings(renamed, token)
         ))
 
+    def test_reviewed_upstream_fixtures_stay_bound_to_path_and_value(self):
+        project = Path(__file__).resolve().parent.parent
+        (self.repo / ".gitleaks.toml").write_bytes((project / ".gitleaks.toml").read_bytes())
+        base = self.commit("reviewed policy")
+
+        def findings(start, end):
+            return scanner.perform_scan(
+                self.repo, self.executable, False, start + ".." + end,
+            )[0]["findings"]
+
+        for path in REVIEWED_UPSTREAM_FIXTURES:
+            target = self.repo / path
+            target.parent.mkdir(parents=True, exist_ok=True)
+            target.write_bytes((project / path).read_bytes())
+        fixtures = self.commit("reviewed upstream fixtures")
+        self.assertEqual(findings(base, fixtures), [])
+
+        # 同一已核验值换到别的文件仍须检出，证明路径与值条件是 AND。
+        reviewed = "0123456789abcdef" * 2
+        (self.repo / "other_test.go").write_text(f'signingSecret := "{reviewed}"\n')
+        elsewhere = self.commit("reviewed value elsewhere")
+        self.assertTrue(any(f["File"] == "other_test.go" for f in findings(fixtures, elsewhere)))
+
+        path = "backend/internal/service/payment_webhook_provider_test.go"
+        with (self.repo / path).open("a") as output:
+            output.write(f'\nconst signingSecret = "{secrets.token_hex(16)}"\n')
+        unreviewed = self.commit("unreviewed value in reviewed file")
+        self.assertTrue(any(f["File"] == path for f in findings(elsewhere, unreviewed)))
+
+
+REVIEWED_UPSTREAM_FIXTURES = (
+    "backend/internal/handler/admin/affiliate_handler_withdraw_test.go",
+    "backend/internal/handler/auth_wechat_oauth_test.go",
+    "backend/internal/handler/openai_gateway_handler_test.go",
+    "backend/internal/handler/payment_handler_resume_test.go",
+    "backend/internal/handler/stream_error_event_test.go",
+    "backend/internal/payment/provider/alipay_test.go",
+    "backend/internal/payment/provider/wxpay_test.go",
+    "backend/internal/repository/migrations_runner_checksum_test.go",
+    "backend/internal/service/affiliate_service_test.go",
+    "backend/internal/service/content_moderation_test.go",
+    "backend/internal/service/gateway_beta_test.go",
+    "backend/internal/service/gateway_context_management_test.go",
+    "backend/internal/service/gateway_fallbacks_sanitize_test.go",
+    "backend/internal/service/payment_order_result_test.go",
+    "backend/internal/service/payment_webhook_provider_test.go",
+    "backend/internal/util/logredact/redact_test.go",
+    "frontend/src/api/__tests__/admin.subscriptions.bulk.spec.ts",
+)
+
 
 if __name__ == "__main__":
     unittest.main()
