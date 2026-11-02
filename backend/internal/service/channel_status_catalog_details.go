@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"log/slog"
 	"sort"
 	"strings"
 )
@@ -25,6 +26,8 @@ type CatalogOverview struct {
 	Health        string                           `json:"health"`
 	SuccessRate   *float64                         `json:"success_rate"`
 	AvgResponseMs *float64                         `json:"avg_response_ms"`
+	CacheRate     *float64                         `json:"cache_rate"`
+	TTFTMs        *float64                         `json:"ttft_ms"`
 	EventCount    int                              `json:"event_count"`
 	Buckets       []CatalogBucket                  `json:"buckets"`
 	Fingerprint   ModelDetectionFingerprintSummary `json:"fingerprint"`
@@ -116,13 +119,16 @@ type CatalogDetails struct {
 	GroupName string `json:"group_name"`
 	Platform  string `json:"platform"`
 	Model     string `json:"model"`
+	// Strip repeats the list's strip rules so the drawer labels match.
+	Strip CatalogStripConfig `json:"strip"`
 
-	Overview CatalogBlock[CatalogOverview] `json:"overview"`
-	Pricing  CatalogBlock[CatalogPricing]  `json:"pricing"`
-	Events   CatalogBlock[CatalogEvents]   `json:"events"`
+	Overview     CatalogBlock[CatalogOverview]     `json:"overview"`
+	Pricing      CatalogBlock[CatalogPricing]      `json:"pricing"`
+	Events       CatalogBlock[CatalogEvents]       `json:"events"`
+	Intelligence CatalogBlock[CatalogIntelligence] `json:"intelligence"`
 }
 
-// Details returns the three detail blocks of one row. The key must resolve to
+// Details returns the detail blocks of one row. The key must resolve to
 // a row of the viewer's own catalog (same visibility scope); anything else is
 // ErrCatalogRowNotFound, so a key can never reveal data the list would hide.
 // Pricing is built without the availability source; Overview and Events share
@@ -140,54 +146,70 @@ func (s *ChannelStatusCatalogService) Details(ctx context.Context, q CatalogQuer
 	}
 
 	name, _ := pg.I18n.Localize(q.AcceptLanguage, pg.Name, pg.Description)
+	strip := s.StripConfig(ctx)
 	out := &CatalogDetails{
 		Key:       key.String(),
 		GroupID:   pg.ID,
 		GroupName: name,
 		Platform:  models[0].Platform,
 		Model:     models[0].Name,
+		Strip:     strip,
 	}
-	out.Pricing = CatalogBlock[CatalogPricing]{Data: buildCatalogPricing(pg, q.UserRates, models)}
+	pricing := buildCatalogPricing(pg, q.UserRates, models)
+	out.Pricing = CatalogBlock[CatalogPricing]{Data: pricing}
 
 	statusFilter := scope
 	statusFilter.GroupIDs = []int64{key.GroupID}
 	statusFilter.Platforms = []string{models[0].Platform}
 	statusFilter.Models = []string{models[0].Name}
-	idx, statusErr := s.loadStatus(ctx, statusFilter)
+	idx, statusErr := s.loadStatus(ctx, statusFilter, strip)
 	if statusErr != nil && isCatalogFatalStatusError(statusErr) {
 		return nil, statusErr
 	}
-	var item *ChannelMonitorV2MatrixRow
+	var st *catalogRowStatus
 	if idx != nil {
-		item = idx.rows[key]
+		st = idx.rows[key]
 	}
 	switch {
 	case statusErr != nil:
 		out.Overview.ErrorCode = CatalogBlockStatusUnavailable
 		out.Events.ErrorCode = CatalogBlockStatusUnavailable
-	case item == nil:
+	case st == nil:
 		out.Overview.ErrorCode = CatalogBlockRowNoData
 		out.Events.ErrorCode = CatalogBlockRowNoData
 	default:
-		buckets := catalogBuckets(item.Buckets, idx.coverage)
-		incidents := catalogIncidents(buckets, idx.coverage.BucketSeconds)
-		health := normalizeCatalogHealth(item.Health.Overall)
-		ov := &CatalogOverview{
-			Health:        health,
-			AvgResponseMs: item.Metrics.Duration.AvgMs,
-			EventCount:    len(incidents),
-			Buckets:       buckets,
+		out.Overview.Data = &CatalogOverview{
+			Health:        st.health,
+			SuccessRate:   st.successRate,
+			AvgResponseMs: st.avgResponseMs,
+			CacheRate:     catalogCacheRateForBilling(st.cacheRate, pricing.BillingMode),
+			TTFTMs:        st.ttftMs,
+			EventCount:    len(st.incidents),
+			Buckets:       catalogBucketsForBilling(st.buckets, pricing.BillingMode),
 			Fingerprint:   NotCheckedFingerprintSummary(),
 		}
-		if health != CatalogHealthUnknown {
-			rate := item.Metrics.SuccessRate
-			ov.SuccessRate = &rate
-		}
-		out.Overview.Data = ov
-		out.Events.Data = recentCatalogEvents(incidents)
+		out.Events.Data = recentCatalogEvents(st.incidents)
 	}
 	s.fillDetailFingerprint(ctx, out, key, statusFilter)
+	out.Intelligence = s.detailIntelligence(ctx, key, models[0].Name)
 	return out, nil
+}
+
+// detailIntelligence builds the intelligence block; it fails on its own like
+// the other blocks.
+func (s *ChannelStatusCatalogService) detailIntelligence(ctx context.Context, key CatalogRowKey, model string) CatalogBlock[CatalogIntelligence] {
+	if s.intelligence == nil {
+		return CatalogBlock[CatalogIntelligence]{ErrorCode: CatalogBlockRowNoData}
+	}
+	data, err := s.intelligence.Details(ctx, key, model)
+	switch {
+	case err != nil:
+		slog.Warn("channel_status_catalog_intelligence_failed", "error", err, "key", key.String())
+		return CatalogBlock[CatalogIntelligence]{ErrorCode: CatalogBlockIntelligenceUnavailable}
+	case data == nil:
+		return CatalogBlock[CatalogIntelligence]{ErrorCode: CatalogBlockRowNoData}
+	}
+	return CatalogBlock[CatalogIntelligence]{Data: data}
 }
 
 func (s *ChannelStatusCatalogService) fillDetailFingerprint(ctx context.Context, d *CatalogDetails, key CatalogRowKey, f ChannelMonitorV2Filter) {
@@ -238,9 +260,9 @@ func buildCatalogPricing(pg *PlazaGroup, userRates map[int64]float64, models []P
 	// Several entries for one key: use the one with the lowest paid price.
 	best := &models[0]
 	for i := 1; i < len(models); i++ {
-		_, bi, bp := catalogRowPrices(pg, userRates, best)
-		_, ci, cp := catalogRowPrices(pg, userRates, &models[i])
-		if lowerPrice(ci, bi) || lowerPrice(cp, bp) {
+		_, b := catalogRowPrices(pg, userRates, best)
+		_, c := catalogRowPrices(pg, userRates, &models[i])
+		if lowerPrice(c.input, b.input) || lowerPrice(c.perRequest, b.perRequest) {
 			best = &models[i]
 		}
 	}

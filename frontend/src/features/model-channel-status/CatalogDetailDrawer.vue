@@ -5,17 +5,29 @@
         <div class="absolute inset-0 bg-black/30" aria-hidden="true" data-testid="detail-backdrop" @click="emit('close')" />
         <aside
           ref="panelRef"
-          class="relative flex h-full w-full max-w-md flex-col overflow-hidden bg-white shadow-2xl dark:bg-dark-800"
+          class="card relative flex h-full w-full max-w-xl flex-col overflow-hidden !rounded-none bg-white dark:!bg-dark-800"
           role="dialog"
           aria-modal="true"
           :aria-labelledby="titleId"
           data-testid="detail-drawer"
         >
-          <header class="flex items-start justify-between gap-3 border-b border-gray-100 px-5 py-4 dark:border-dark-700">
+          <header class="flex items-start justify-between gap-3 border-b-[3px] border-double border-gray-300 px-5 py-4 dark:border-dark-600">
             <div class="min-w-0">
-              <h2 :id="titleId" class="m-0 truncate text-base font-semibold text-gray-900 dark:text-white" data-testid="detail-title">
-                {{ selected.row.name }}
-              </h2>
+              <div class="flex min-w-0 items-center gap-1">
+                <h2 :id="titleId" class="m-0 truncate text-base font-semibold text-gray-900 dark:text-white" data-testid="detail-title">
+                  {{ selected.row.name }}
+                </h2>
+                <button
+                  type="button"
+                  class="shrink-0 p-1 text-gray-400 transition-colors hover:text-gray-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary-500 dark:text-dark-500 dark:hover:text-dark-200"
+                  :title="t('modelChannelStatus.detail.copyName')"
+                  :aria-label="t('modelChannelStatus.detail.copyName')"
+                  data-testid="detail-copy"
+                  @click="copyToClipboard(selected.row.name)"
+                >
+                  <Icon :name="copied ? 'check' : 'copy'" size="sm" />
+                </button>
+              </div>
               <p class="mt-1 flex flex-wrap items-center gap-2 text-xs text-gray-500 dark:text-dark-400">
                 <span
                   class="rounded px-1.5 py-0.5 text-[10px] font-medium"
@@ -38,7 +50,7 @@
             </button>
           </header>
 
-          <div class="flex-1 space-y-6 overflow-y-auto px-5 py-4">
+          <div class="flex-1 space-y-5 divide-y-[3px] divide-double divide-gray-200 overflow-y-auto px-5 py-4 dark:divide-dark-700 [&>*+*]:pt-5">
             <div v-if="loading" class="flex justify-center py-10" data-testid="detail-loading">
               <LoadingSpinner />
             </div>
@@ -49,9 +61,10 @@
               </button>
             </div>
             <template v-else-if="details">
-              <DetailOverview :block="details.overview" />
+              <DetailOverview :block="details.overview" :strip="details.strip" />
+              <DetailIntelligence :block="details.intelligence" />
               <DetailPricing :block="details.pricing" />
-              <DetailEvents :block="details.events" />
+              <DetailEvents :block="details.events" :strip="details.strip" />
             </template>
           </div>
         </aside>
@@ -65,11 +78,13 @@ import { nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import Icon from '@/components/icons/Icon.vue'
 import LoadingSpinner from '@/components/common/LoadingSpinner.vue'
+import { useClipboard } from '@/composables/useClipboard'
 import { extractApiErrorMessage } from '@/utils/apiError'
 import { platformBadgeLightClass, platformLabel } from '@/utils/platformColors'
 import { getCatalogDetails } from '@/api/channelStatusCatalog'
 import type { CatalogDetails } from '@/api/channelStatusCatalog'
 import DetailEvents from './DetailEvents.vue'
+import DetailIntelligence from './DetailIntelligence.vue'
 import DetailOverview from './DetailOverview.vue'
 import DetailPricing from './DetailPricing.vue'
 import type { SelectedCatalogRow } from './catalogFormat'
@@ -78,6 +93,7 @@ const props = defineProps<{ selected: SelectedCatalogRow | null }>()
 const emit = defineEmits<{ close: [] }>()
 
 const { t } = useI18n()
+const { copied, copyToClipboard } = useClipboard()
 const titleId = 'catalog-detail-title'
 
 const details = ref<CatalogDetails | null>(null)

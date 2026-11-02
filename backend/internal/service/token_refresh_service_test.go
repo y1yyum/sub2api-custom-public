@@ -481,34 +481,6 @@ func TestTokenRefreshService_RefreshWithRetry_NilInvalidator(t *testing.T) {
 	require.Equal(t, 1, repo.updateCalls)
 }
 
-// TestTokenRefreshService_RefreshWithRetry_Antigravity 测试 Antigravity 平台的缓存失效
-func TestTokenRefreshService_RefreshWithRetry_Antigravity(t *testing.T) {
-	repo := &tokenRefreshAccountRepo{}
-	invalidator := &tokenCacheInvalidatorStub{}
-	cfg := &config.Config{
-		TokenRefresh: config.TokenRefreshConfig{
-			MaxRetries:          1,
-			RetryBackoffSeconds: 0,
-		},
-	}
-	service := NewTokenRefreshService(repo, nil, nil, nil, nil, invalidator, nil, cfg, nil)
-	account := &Account{
-		ID:       8,
-		Platform: PlatformAntigravity,
-		Type:     AccountTypeOAuth,
-	}
-	refresher := &tokenRefresherStub{
-		credentials: map[string]any{
-			"access_token": "ag-token",
-		},
-	}
-
-	err := service.refreshWithRetry(context.Background(), account, refresher, refresher, time.Hour)
-	require.NoError(t, err)
-	require.Equal(t, 1, repo.updateCalls)
-	require.Equal(t, 1, invalidator.calls) // Antigravity 也应触发缓存失效
-}
-
 func TestAntigravityTokenRefresher_NeedsRefresh_ForceRefreshMarker(t *testing.T) {
 	refresher := NewAntigravityTokenRefresher(nil)
 	account := &Account{

@@ -41,7 +41,7 @@ describe('pixel console shell', () => {
 
   it('keeps the Dock and TopBar markup unchanged apart from pixel icons and logo', () => {
     expect(templateHash(withUpstreamIcon(dockSource))).toBe('68589bed15dea4623a4459fde007fe4441d8ca55733628fd949aa8ae71dd6a3b')
-    expect(templateHash(withUpstreamIcon(topBarSource))).toBe('761c0fef2ad5801b8e344a073ac9f73e0840d0a55a997d60474011c4b8d6c180')
+    expect(templateHash(withUpstreamIcon(topBarSource))).toBe('a418a74ef334df45982ca4aade4c5e34df5b7418e26ea22d4eb502aa8d05d9fa')
   })
 
   it('draws the Dock as a solid pixel bar without blur', () => {

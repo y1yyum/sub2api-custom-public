@@ -118,7 +118,7 @@ const router = useRouter()
 const appStore = useAppStore()
 const authStore = useAuthStore()
 
-const activeChip = 'bg-primary-600 text-white'
+const activeChip = 'bg-primary-500 text-gray-900 dark:bg-primary-400 dark:text-dark-900 font-semibold'
 const idleChip = 'bg-gray-100 text-gray-600 hover:bg-gray-200 dark:bg-dark-700 dark:text-dark-300 dark:hover:bg-dark-600'
 const themeOptions = [
   { dark: false, label: 'shell.avatar.themeLight' },

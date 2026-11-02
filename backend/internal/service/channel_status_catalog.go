@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"log/slog"
 	"sort"
 	"strings"
 	"time"
@@ -29,6 +30,11 @@ type catalogPlazaSource interface {
 
 type catalogStatusSource interface {
 	Matrix(ctx context.Context, filter ChannelMonitorV2Filter, groupBy ChannelMonitorV2GroupBy, admin bool) (*ChannelMonitorV2Matrix, error)
+	RecentCalls(ctx context.Context, filter ChannelMonitorV2Filter, window int) (*ChannelMonitorV2RecentCalls, error)
+}
+
+type catalogStripSource interface {
+	GetCatalogStripConfig(ctx context.Context) CatalogStripConfig
 }
 
 // CatalogQuery carries the viewer-derived inputs of a catalog request.
@@ -48,8 +54,8 @@ type ChannelStatusCatalogCapabilities struct {
 const (
 	// CatalogBucketReasonNoData marks a slot of the timeline without any aggregated traffic.
 	CatalogBucketReasonNoData = "no_data"
-	// CatalogBucketReasonLowSample marks a bucket with traffic below the V2 minimum
-	// sample, which V2 refuses to judge.
+	// CatalogBucketReasonLowSample marks a bucket with fewer calls than the
+	// strip config's min_calls.
 	CatalogBucketReasonLowSample = "low_sample"
 )
 
@@ -58,11 +64,17 @@ const (
 const maxCatalogTimelineBuckets = 2000
 
 type CatalogBucket struct {
-	Start       time.Time `json:"start"`
+	// Start is omitted in calls mode, where blocks are not tied to time.
+	Start       time.Time `json:"start,omitzero"`
 	Health      string    `json:"health"`
 	SuccessRate *float64  `json:"success_rate"`
 	// Reason explains an unknown bucket: no_data or low_sample.
 	Reason string `json:"reason,omitempty"`
+	// CacheLevel is high/mid/low/none; omitted for rows not billed per token.
+	CacheLevel string   `json:"cache_level,omitempty"`
+	CacheRate  *float64 `json:"cache_rate,omitempty"`
+	// TTFTMs is the mean time to first token of the block's successful calls.
+	TTFTMs *float64 `json:"ttft_ms,omitempty"`
 }
 
 type CatalogGroupSummary struct {
@@ -86,6 +98,8 @@ type CatalogModelRow struct {
 	// InputPrice is the paid standard-period first-tier input price per token
 	// (already multiplied by the effective rate); nil means not configured.
 	InputPrice *float64 `json:"input_price"`
+	// OutputPrice is the matching paid output price per token; nil means not configured.
+	OutputPrice *float64 `json:"output_price"`
 	// PerRequestPrice is the lowest paid per-unit price for non-token models.
 	PerRequestPrice *float64                         `json:"per_request_price"`
 	PriceConflict   bool                             `json:"price_conflict"`
@@ -94,6 +108,8 @@ type CatalogModelRow struct {
 	Buckets         []CatalogBucket                  `json:"buckets"`
 	EventCount      int                              `json:"event_count"`
 	Fingerprint     ModelDetectionFingerprintSummary `json:"fingerprint"`
+	// Intelligence is the recent quiz score; nil when the row has no quiz results.
+	Intelligence *CatalogIntelligenceSummary `json:"intelligence"`
 }
 
 type CatalogGroup struct {
@@ -116,6 +132,7 @@ type ChannelStatusCatalog struct {
 	Groups       []CatalogGroup                   `json:"groups"`
 	Coverage     *ChannelMonitorV2Coverage        `json:"coverage"`
 	Capabilities ChannelStatusCatalogCapabilities `json:"capabilities"`
+	Strip        CatalogStripConfig               `json:"strip"`
 	// StatusErrorCode is set when availability data could not be loaded; rows
 	// then carry unknown status and prices remain valid.
 	StatusErrorCode string `json:"status_error_code,omitempty"`
@@ -123,20 +140,34 @@ type ChannelStatusCatalog struct {
 
 // ChannelStatusCatalogService joins model-plaza prices with V2 availability.
 type ChannelStatusCatalogService struct {
-	plaza       catalogPlazaSource
-	status      catalogStatusSource
-	fingerprint ModelDetectionFingerprintProvider
+	plaza        catalogPlazaSource
+	status       catalogStatusSource
+	fingerprint  ModelDetectionFingerprintProvider
+	intelligence *catalogIntelligenceReader
+	strip        catalogStripSource
+	calls        *catalogCallCache
 }
 
-func NewChannelStatusCatalogService(plaza *ModelPlazaService, status *ChannelMonitorV2Service) *ChannelStatusCatalogService {
-	return newChannelStatusCatalogService(plaza, status, NoopModelDetectionFingerprintProvider{})
+func NewChannelStatusCatalogService(plaza *ModelPlazaService, status *ChannelMonitorV2Service, intelligence CatalogIntelligenceRepository, accounts AccountRepository, settings *SettingService) *ChannelStatusCatalogService {
+	s := newChannelStatusCatalogService(plaza, status, NoopModelDetectionFingerprintProvider{})
+	s.intelligence = &catalogIntelligenceReader{repo: intelligence, accounts: accounts}
+	s.strip = settings
+	return s
 }
 
 func newChannelStatusCatalogService(plaza catalogPlazaSource, status catalogStatusSource, fp ModelDetectionFingerprintProvider) *ChannelStatusCatalogService {
 	if fp == nil {
 		fp = NoopModelDetectionFingerprintProvider{}
 	}
-	return &ChannelStatusCatalogService{plaza: plaza, status: status, fingerprint: fp}
+	return &ChannelStatusCatalogService{plaza: plaza, status: status, fingerprint: fp, calls: newCatalogCallCache()}
+}
+
+// StripConfig returns the strip rules shared by the list and the drawer.
+func (s *ChannelStatusCatalogService) StripConfig(ctx context.Context) CatalogStripConfig {
+	if s.strip == nil {
+		return DefaultCatalogStripConfig()
+	}
+	return s.strip.GetCatalogStripConfig(ctx)
 }
 
 // Catalog builds the grouped model list for the viewer described by q.
@@ -145,8 +176,9 @@ func (s *ChannelStatusCatalogService) Catalog(ctx context.Context, q CatalogQuer
 	if err != nil {
 		return nil, err
 	}
-	out := &ChannelStatusCatalog{Groups: []CatalogGroup{}}
-	status, statusErr := s.loadStatus(ctx, q.Filter)
+	strip := s.StripConfig(ctx)
+	out := &ChannelStatusCatalog{Groups: []CatalogGroup{}, Strip: strip}
+	status, statusErr := s.loadStatus(ctx, q.Filter, strip)
 	if statusErr != nil {
 		if isCatalogFatalStatusError(statusErr) {
 			return nil, statusErr
@@ -154,8 +186,7 @@ func (s *ChannelStatusCatalogService) Catalog(ctx context.Context, q CatalogQuer
 		out.StatusErrorCode = CatalogStatusUnavailable
 	}
 	if status != nil {
-		cov := status.coverage
-		out.Coverage = &cov
+		out.Coverage = status.coverage
 	}
 
 	var keys []CatalogRowKey
@@ -177,7 +208,35 @@ func (s *ChannelStatusCatalogService) Catalog(ctx context.Context, q CatalogQuer
 	}
 
 	s.fillFingerprints(ctx, out, keys, q.Filter)
+	s.fillIntelligence(ctx, out)
 	return out, nil
+}
+
+// fillIntelligence adds quiz scores; a failed read only leaves them empty.
+func (s *ChannelStatusCatalogService) fillIntelligence(ctx context.Context, cat *ChannelStatusCatalog) {
+	if s.intelligence == nil {
+		return
+	}
+	rows := map[CatalogRowKey]string{}
+	for gi := range cat.Groups {
+		g := &cat.Groups[gi]
+		for ri := range g.Models {
+			rows[catalogRowKeyOf(g.ID, &g.Models[ri])] = g.Models[ri].Name
+		}
+	}
+	summaries, err := s.intelligence.Summaries(ctx, rows)
+	if err != nil {
+		slog.Warn("channel_status_catalog_intelligence_failed", "error", err)
+		return
+	}
+	for gi := range cat.Groups {
+		g := &cat.Groups[gi]
+		for ri := range g.Models {
+			if sum, ok := summaries[catalogRowKeyOf(g.ID, &g.Models[ri])]; ok {
+				g.Models[ri].Intelligence = &sum
+			}
+		}
+	}
 }
 
 func (s *ChannelStatusCatalogService) fillFingerprints(ctx context.Context, cat *ChannelStatusCatalog, keys []CatalogRowKey, f ChannelMonitorV2Filter) {
@@ -303,21 +362,25 @@ func minPtr(a, b *float64) *float64 {
 	return a
 }
 
-// catalogRowPrices returns (input, perRequest) paid prices; nil when unpriced.
-func catalogRowPrices(pg *PlazaGroup, userRates map[int64]float64, m *PlazaModel) (BillingMode, *float64, *float64) {
+type catalogRowPrice struct {
+	input, output, perRequest *float64
+}
+
+// catalogRowPrices returns the paid list prices of a model; nil when unpriced.
+func catalogRowPrices(pg *PlazaGroup, userRates map[int64]float64, m *PlazaModel) (BillingMode, catalogRowPrice) {
 	mode := catalogBillingMode(m.Pricing)
 	if m.Pricing == nil {
-		return mode, nil, nil
+		return mode, catalogRowPrice{}
 	}
 	rate := catalogEffectiveRate(pg, userRates, mode)
 	if mode == BillingModeToken {
-		return mode, scaledPtr(m.Pricing.InputPrice, rate), nil
+		return mode, catalogRowPrice{input: scaledPtr(m.Pricing.InputPrice, rate), output: scaledPtr(m.Pricing.OutputPrice, rate)}
 	}
 	lowest := m.Pricing.PerRequestPrice
 	for i := range m.Pricing.Intervals {
 		lowest = minPtr(lowest, m.Pricing.Intervals[i].PerRequestPrice)
 	}
-	return mode, nil, scaledPtr(lowest, rate)
+	return mode, catalogRowPrice{perRequest: scaledPtr(lowest, rate)}
 }
 
 // mergeCatalogModels turns a plaza group into rows keyed by platform+model.
@@ -347,14 +410,15 @@ func mergeCatalogModels(pg *PlazaGroup, userRates map[int64]float64, f ChannelMo
 				continue
 			}
 		}
-		mode, input, perReq := catalogRowPrices(pg, userRates, m)
+		mode, price := catalogRowPrices(pg, userRates, m)
 		if at, seen := index[key]; seen {
 			row := &rows[at]
-			if !samePrice(row.InputPrice, input) || !samePrice(row.PerRequestPrice, perReq) {
+			if !samePrice(row.InputPrice, price.input) || !samePrice(row.OutputPrice, price.output) || !samePrice(row.PerRequestPrice, price.perRequest) {
 				row.PriceConflict = true
 			}
-			row.InputPrice = minPtr(row.InputPrice, input)
-			row.PerRequestPrice = minPtr(row.PerRequestPrice, perReq)
+			row.InputPrice = minPtr(row.InputPrice, price.input)
+			row.OutputPrice = minPtr(row.OutputPrice, price.output)
+			row.PerRequestPrice = minPtr(row.PerRequestPrice, price.perRequest)
 			continue
 		}
 		index[key] = len(rows)
@@ -363,8 +427,9 @@ func mergeCatalogModels(pg *PlazaGroup, userRates map[int64]float64, f ChannelMo
 			Name:            m.Name,
 			Platform:        m.Platform,
 			BillingMode:     string(mode),
-			InputPrice:      input,
-			PerRequestPrice: perReq,
+			InputPrice:      price.input,
+			OutputPrice:     price.output,
+			PerRequestPrice: price.perRequest,
 			Health:          CatalogHealthUnknown,
 			Buckets:         []CatalogBucket{},
 			Fingerprint:     NotCheckedFingerprintSummary(),
@@ -384,28 +449,62 @@ func catalogRowKeyOf(groupID int64, row *CatalogModelRow) CatalogRowKey {
 	return NewCatalogRowKey(groupID, row.Platform, row.Name)
 }
 
-// catalogStatusIndex indexes matrix rows by composite key.
+// catalogStatusIndex holds the judged status of every row with traffic.
 type catalogStatusIndex struct {
-	rows     map[CatalogRowKey]*ChannelMonitorV2MatrixRow
-	coverage ChannelMonitorV2Coverage
+	rows     map[CatalogRowKey]*catalogRowStatus
+	coverage *ChannelMonitorV2Coverage
+	strip    CatalogStripConfig
 }
 
-func (s *ChannelStatusCatalogService) loadStatus(ctx context.Context, f ChannelMonitorV2Filter) (*catalogStatusIndex, error) {
-	matrix, err := s.status.Matrix(ctx, f, ChannelMonitorV2GroupByPlatformGroupModel, false)
+// emptyBuckets is the strip of a row without traffic.
+func (idx *catalogStatusIndex) emptyBuckets() []CatalogBucket {
+	if idx.strip.Mode == CatalogStripModeCalls {
+		return catalogEmptyCallBuckets(idx.strip)
+	}
+	var cov ChannelMonitorV2Coverage
+	if idx.coverage != nil {
+		cov = *idx.coverage
+	}
+	return catalogBuckets(nil, cov, catalogStripJudge{cfg: idx.strip})
+}
+
+func (s *ChannelStatusCatalogService) loadStatus(ctx context.Context, f ChannelMonitorV2Filter, strip CatalogStripConfig) (*catalogStatusIndex, error) {
+	if strip.Mode == CatalogStripModeCalls {
+		return s.loadCallStatus(ctx, f, strip)
+	}
+	// The admin view keeps the counts the strip rules need; counts are never returned.
+	matrix, err := s.status.Matrix(ctx, f, ChannelMonitorV2GroupByPlatformGroupModel, true)
 	if err != nil {
 		return nil, err
 	}
-	idx := &catalogStatusIndex{rows: map[CatalogRowKey]*ChannelMonitorV2MatrixRow{}}
+	idx := &catalogStatusIndex{rows: map[CatalogRowKey]*catalogRowStatus{}, strip: strip}
 	if matrix == nil {
 		return idx, nil
 	}
-	idx.coverage = matrix.Coverage
+	cov := matrix.Coverage
+	idx.coverage = &cov
 	for i := range matrix.Items {
 		item := &matrix.Items[i]
 		if item.GroupID == nil {
 			continue
 		}
-		idx.rows[NewCatalogRowKey(*item.GroupID, item.Platform, item.Model)] = item
+		idx.rows[NewCatalogRowKey(*item.GroupID, item.Platform, item.Model)] = catalogTimeStatus(item, cov, strip)
+	}
+	return idx, nil
+}
+
+func (s *ChannelStatusCatalogService) loadCallStatus(ctx context.Context, f ChannelMonitorV2Filter, strip CatalogStripConfig) (*catalogStatusIndex, error) {
+	recent, err := s.calls.get(ctx, f, strip.CallWindow, s.status.RecentCalls)
+	if err != nil {
+		return nil, err
+	}
+	idx := &catalogStatusIndex{rows: map[CatalogRowKey]*catalogRowStatus{}, strip: strip}
+	if recent == nil {
+		return idx, nil
+	}
+	idx.coverage = recent.Coverage
+	for key, minutes := range catalogCallMinutesByRow(recent.Minutes) {
+		idx.rows[key] = catalogCallStatus(minutes, strip)
 	}
 	return idx, nil
 }
@@ -414,65 +513,36 @@ func applyCatalogStatus(row *CatalogModelRow, groupID int64, idx *catalogStatusI
 	if idx == nil {
 		return
 	}
-	item, ok := idx.rows[catalogRowKeyOf(groupID, row)]
+	st, ok := idx.rows[catalogRowKeyOf(groupID, row)]
 	if !ok {
-		row.Buckets = catalogBuckets(nil, idx.coverage)
+		row.Buckets = catalogBucketsForBilling(idx.emptyBuckets(), row.BillingMode)
 		return
 	}
-	row.Health = normalizeCatalogHealth(item.Health.Overall)
-	if row.Health != CatalogHealthUnknown {
-		rate := item.Metrics.SuccessRate
-		row.SuccessRate = &rate
-	}
-	row.Buckets = catalogBuckets(item.Buckets, idx.coverage)
-	row.EventCount = len(catalogIncidents(row.Buckets, idx.coverage.BucketSeconds))
-}
-
-func normalizeCatalogHealth(v string) string {
-	switch v {
-	case CatalogHealthHealthy, CatalogHealthWarning, CatalogHealthCritical:
-		return v
-	}
-	return CatalogHealthUnknown
-}
-
-// catalogBucket converts one aggregated bucket; unknown health means V2 saw
-// traffic but too little of it to judge.
-func catalogBucket(in ChannelMonitorV2TrendPoint) CatalogBucket {
-	b := CatalogBucket{Start: in.BucketStart, Health: normalizeCatalogHealth(in.Health.Overall)}
-	if b.Health == CatalogHealthUnknown {
-		b.Reason = CatalogBucketReasonLowSample
-		return b
-	}
-	rate := in.Metrics.SuccessRate
-	b.SuccessRate = &rate
-	return b
+	row.Health = st.health
+	row.SuccessRate = st.successRate
+	row.Buckets = catalogBucketsForBilling(st.buckets, row.BillingMode)
+	row.EventCount = len(st.incidents)
 }
 
 // catalogBuckets lays the aggregated buckets on the requested window
 // (coverage.requested_start..requested_end in bucket_seconds steps) so every
 // row and the detail drawer share one fixed-length timeline. Slots without
-// aggregated traffic are explicit unknown/no_data placeholders; the V2
-// minimum-sample rule is untouched. Without usable coverage the sparse list
-// is returned as is.
-func catalogBuckets(in []ChannelMonitorV2TrendPoint, cov ChannelMonitorV2Coverage) []CatalogBucket {
+// aggregated traffic are explicit unknown/no_data placeholders. Without
+// usable coverage the sparse list is returned as is.
+func catalogBuckets(in []ChannelMonitorV2TrendPoint, cov ChannelMonitorV2Coverage, judge catalogStripJudge) []CatalogBucket {
 	step := time.Duration(cov.BucketSeconds) * time.Second
 	window := cov.RequestedEnd.Sub(cov.RequestedStart)
 	if step <= 0 || window <= 0 || window/step+1 > maxCatalogTimelineBuckets {
 		out := make([]CatalogBucket, 0, len(in))
 		for i := range in {
-			out = append(out, catalogBucket(in[i]))
+			out = append(out, judge.trendBucket(in[i]))
 		}
 		return out
 	}
 	slots := int((window + step - 1) / step)
 	out := make([]CatalogBucket, slots)
 	for i := range out {
-		out[i] = CatalogBucket{
-			Start:  cov.RequestedStart.Add(time.Duration(i) * step),
-			Health: CatalogHealthUnknown,
-			Reason: CatalogBucketReasonNoData,
-		}
+		out[i] = judge.emptyBucket(cov.RequestedStart.Add(time.Duration(i) * step))
 	}
 	for i := range in {
 		offset := in[i].BucketStart.Sub(cov.RequestedStart)
@@ -487,7 +557,7 @@ func catalogBuckets(in []ChannelMonitorV2TrendPoint, cov ChannelMonitorV2Coverag
 		if slot >= slots {
 			continue
 		}
-		b := catalogBucket(in[i])
+		b := judge.trendBucket(in[i])
 		if cur := out[slot]; cur.Reason != CatalogBucketReasonNoData && catalogSeverity(cur.Health) <= catalogSeverity(b.Health) {
 			continue
 		}
@@ -497,10 +567,11 @@ func catalogBuckets(in []ChannelMonitorV2TrendPoint, cov ChannelMonitorV2Coverag
 }
 
 // CatalogIncident is a run of consecutive degraded or down buckets.
+// DurationSeconds is omitted in calls mode, where it would reveal the call rate.
 type CatalogIncident struct {
 	Start           time.Time `json:"start"`
 	Level           string    `json:"level"`
-	DurationSeconds int64     `json:"duration_seconds"`
+	DurationSeconds int64     `json:"duration_seconds,omitempty"`
 	MinSuccessRate  *float64  `json:"min_success_rate"`
 }
 

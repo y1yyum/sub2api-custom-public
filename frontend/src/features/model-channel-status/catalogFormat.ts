@@ -1,10 +1,12 @@
 import { formatScaled } from '@/utils/pricing'
 import type {
   CatalogBucket,
+  CatalogCacheLevel,
   CatalogGroup,
   CatalogHealth,
   CatalogModelRow,
   CatalogPaidPrices,
+  CatalogStripConfig,
 } from '@/api/channelStatusCatalog'
 
 const PER_MILLION = 1_000_000
@@ -92,25 +94,77 @@ export function formatPercent(rate: number | null | undefined): string {
   return `${(Math.round(rate * 1000) / 10).toFixed(1)}%`
 }
 
+/** Latency for display: `640 ms`, `1.25 s`; missing values render as `-`. */
+export function formatLatency(ms: number | null | undefined): string {
+  if (ms == null || Number.isNaN(ms)) return '-'
+  if (ms < 1000) return `${Math.round(ms)} ms`
+  return `${Number((ms / 1000).toFixed(2))} s`
+}
+
+/** Configured step as a short percentage: 0.95 → `95%`. */
+export function formatStep(step: number): string {
+  return `${Number((step * 100).toFixed(1))}%`
+}
+
 type Translate = (key: string, named?: Record<string, unknown>) => string
 
-/** Tooltip / accessible name of one timeline block; grey blocks say why they are grey. */
-export function bucketLabel(bucket: CatalogBucket, t: Translate, locale: string): string {
-  const time = new Date(bucket.start).toLocaleString(locale, {
+export function isCallsStrip(strip: CatalogStripConfig | null | undefined): strip is CatalogStripConfig {
+  return strip?.mode === 'calls'
+}
+
+/** Calls covered by block `index` (oldest block first), counted back from the newest call. */
+export function callBlockRange(index: number, blocks: number, window: number): { from: number; to: number } {
+  const width = window / blocks
+  const back = blocks - 1 - index
+  return { from: Math.round(back * width) + 1, to: Math.round((back + 1) * width) }
+}
+
+/** Where a block sits: its local start time, or its call range in calls mode. */
+function blockPosition(bucket: CatalogBucket, index: number, count: number, strip: CatalogStripConfig | null | undefined, t: Translate, locale: string): string {
+  if (isCallsStrip(strip)) return t('modelChannelStatus.row.blockCalls', callBlockRange(index, count, strip.call_window))
+  if (!bucket.start) return ''
+  return new Date(bucket.start).toLocaleString(locale, {
     month: 'numeric',
     day: 'numeric',
     hour: '2-digit',
     minute: '2-digit',
   })
+}
+
+/** Tooltip / accessible name of one block; grey blocks say why they are grey. */
+export function bucketLabel(
+  bucket: CatalogBucket,
+  t: Translate,
+  locale: string,
+  position: { index: number; count: number; strip?: CatalogStripConfig | null } = { index: 0, count: 1 },
+): string {
+  const time = blockPosition(bucket, position.index, position.count, position.strip, t, locale)
   if (bucket.health === 'unknown') {
-    const status = bucket.reason === 'low_sample' ? 'modelChannelStatus.row.blockLowSample' : 'modelChannelStatus.row.blockNoData'
+    let status = 'modelChannelStatus.row.blockNoData'
+    if (bucket.reason === 'low_sample') status = 'modelChannelStatus.row.blockLowSample'
+    else if (isCallsStrip(position.strip)) status = 'modelChannelStatus.row.blockNoCalls'
     return t('modelChannelStatus.row.blockUnknown', { time, status: t(status) })
   }
-  return t('modelChannelStatus.row.blockLabel', {
+  const label = t('modelChannelStatus.row.blockLabel', {
     time,
     status: t(`modelChannelStatus.health.${bucket.health}`),
     rate: formatPercent(bucket.success_rate),
   })
+  const cache = bucket.cache_level ? t('modelChannelStatus.row.blockCache', { rate: formatPercent(bucket.cache_rate ?? 0) }) : ''
+  const ttft = bucket.ttft_ms == null ? '' : t('modelChannelStatus.row.blockTTFT', { value: formatLatency(bucket.ttft_ms) })
+  return label + cache + ttft
+}
+
+const CACHE_HEIGHT: Record<CatalogCacheLevel, string> = {
+  high: 'h-full',
+  mid: 'h-[70%]',
+  low: 'h-[45%]',
+  none: 'h-[20%]',
+}
+
+/** Block height class per cache level; rows not billed per token stay full height. */
+export function cacheHeightClass(level: CatalogCacheLevel | undefined): string {
+  return level ? CACHE_HEIGHT[level] : CACHE_HEIGHT.high
 }
 
 export interface InlinePrice {
@@ -120,14 +174,38 @@ export interface InlinePrice {
   conflict: boolean
 }
 
-/** Row price cell: `$2.4 / 1M` for token models, a per-unit price otherwise. */
+/** Row price cell: `$2.50 / $10.00` (input / output per 1M) for token models, a per-unit price otherwise. */
 export function inlinePrice(row: CatalogModelRow): InlinePrice {
   if (row.billing_mode === 'token') {
-    if (row.input_price == null) return { kind: 'unset', text: '', conflict: false }
-    return { kind: 'token', text: formatScaled(row.input_price, PER_MILLION, MIN_DECIMALS), conflict: row.price_conflict }
+    if (row.input_price == null && row.output_price == null) return { kind: 'unset', text: '', conflict: false }
+    return { kind: 'token', text: `${perMillion(row.input_price)} / ${perMillion(row.output_price)}`, conflict: row.price_conflict }
   }
   if (row.per_request_price == null) return { kind: 'unset', text: '', conflict: false }
   return { kind: 'unit', text: formatScaled(row.per_request_price, 1, MIN_DECIMALS), conflict: row.price_conflict }
+}
+
+/** True when no bucket saw any traffic, so the strip would be all grey. */
+export function isNoDataStrip(buckets: CatalogBucket[]): boolean {
+  return buckets.every((bucket) => bucket.health === 'unknown' && bucket.reason !== 'low_sample')
+}
+
+const pad2 = (n: number) => String(n).padStart(2, '0')
+
+function localDay(date: Date): string {
+  return `${date.getFullYear()}-${pad2(date.getMonth() + 1)}-${pad2(date.getDate())}`
+}
+
+/** `HH:mm`, or `MM-DD HH:mm` when `withDate`; local time. */
+export function formatCheckTime(iso: string, withDate: boolean): string {
+  const date = new Date(iso)
+  const clock = `${pad2(date.getHours())}:${pad2(date.getMinutes())}`
+  return withDate ? `${pad2(date.getMonth() + 1)}-${pad2(date.getDate())} ${clock}` : clock
+}
+
+/** Whether any timestamp falls on a local day other than `now`'s, so times need a date. */
+export function spansDays(isoTimes: string[], now: Date = new Date()): boolean {
+  const today = localDay(now)
+  return isoTimes.some((iso) => localDay(new Date(iso)) !== today)
 }
 
 export function perMillion(value: number | null | undefined): string {

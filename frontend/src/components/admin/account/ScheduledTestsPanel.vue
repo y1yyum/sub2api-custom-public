@@ -11,13 +11,18 @@
         <p class="text-sm text-gray-500 dark:text-gray-400">
           {{ t('admin.scheduledTests.title') }}
         </p>
-        <button
-          @click="showAddForm = !showAddForm"
-          class="btn btn-primary flex items-center gap-1.5 text-sm"
-        >
-          <Icon name="plus" size="sm" :stroke-width="2" />
-          {{ t('admin.scheduledTests.addPlan') }}
-        </button>
+        <div class="flex items-center gap-2">
+          <button class="btn btn-secondary text-sm" @click="showQuestionBank = true">
+            {{ t('admin.scheduledTestKinds.openBank') }}
+          </button>
+          <button
+            @click="showAddForm = !showAddForm"
+            class="btn btn-primary flex items-center gap-1.5 text-sm"
+          >
+            <Icon name="plus" size="sm" :stroke-width="2" />
+            {{ t('admin.scheduledTests.addPlan') }}
+          </button>
+        </div>
       </div>
 
       <!-- Add Plan Form -->
@@ -28,6 +33,17 @@
         <div class="mb-3 text-sm font-medium text-gray-700 dark:text-gray-300">
           {{ t('admin.scheduledTests.addPlan') }}
         </div>
+        <ScheduledTestKindFields
+          v-model:kind="newPlan.kind"
+          v-model:prompt="newPlan.prompt"
+          v-model:pick-mode="newPlan.pick_mode"
+          v-model:show-in-catalog="newPlan.show_in_catalog"
+          v-model:question-ids="newPlan.question_ids"
+          class="mb-3"
+          kind-editable
+          :questions="questions"
+          @open-bank="showQuestionBank = true"
+        />
         <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
           <div>
             <label class="mb-1 block text-xs font-medium text-gray-600 dark:text-gray-400">
@@ -35,9 +51,9 @@
             </label>
             <Select
               v-model="newPlan.model_id"
-              :options="modelOptions"
+              :options="newPlanModelOptions"
               :placeholder="t('admin.scheduledTests.model')"
-              :searchable="modelOptions.length > 5"
+              :searchable="newPlanModelOptions.length > 5"
             />
           </div>
           <div>
@@ -96,7 +112,7 @@
               {{ t('admin.scheduledTests.enabled') }}
             </label>
           </div>
-          <div class="flex items-end">
+          <div v-if="newPlan.kind === 'probe'" class="flex items-end">
             <div>
               <label class="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
                 <Toggle v-model="newPlan.auto_recover" />
@@ -117,7 +133,7 @@
           </button>
           <button
             @click="handleCreate"
-            :disabled="!newPlan.model_id || !newPlan.cron_expression || creating"
+            :disabled="!canSubmitPlan(newPlan) || creating"
             class="flex items-center gap-1.5 rounded-lg bg-primary-500 px-3 py-1.5 text-sm font-medium text-white transition-colors hover:bg-primary-600 disabled:cursor-not-allowed disabled:opacity-50"
           >
             <Icon v-if="creating" name="refresh" size="sm" class="animate-spin" :stroke-width="2" />
@@ -158,8 +174,14 @@
             <div class="flex flex-1 items-center gap-4">
               <!-- Model -->
               <div class="min-w-0">
-                <div class="text-sm font-medium text-gray-900 dark:text-gray-100">
-                  {{ plan.model_id }}
+                <div class="flex items-center gap-2 text-sm font-medium text-gray-900 dark:text-gray-100">
+                  <span>{{ mappedModelLabel(plan.model_id, mappedModels) }}</span>
+                  <span
+                    v-if="plan.kind && plan.kind !== 'probe'"
+                    class="inline-flex items-center rounded-full bg-violet-100 px-2 py-0.5 text-xs font-medium text-violet-700 dark:bg-violet-500/20 dark:text-violet-300"
+                  >
+                    {{ t(`admin.scheduledTestKinds.kinds.${plan.kind}`) }}
+                  </span>
                 </div>
                 <div class="mt-0.5 font-mono text-xs text-gray-500 dark:text-gray-400">
                   {{ plan.cron_expression }}
@@ -238,6 +260,17 @@
             <div class="mb-2 text-xs font-medium text-gray-600 dark:text-gray-400">
               {{ t('admin.scheduledTests.editPlan') }}
             </div>
+            <ScheduledTestKindFields
+              v-model:kind="editForm.kind"
+              v-model:prompt="editForm.prompt"
+              v-model:pick-mode="editForm.pick_mode"
+              v-model:show-in-catalog="editForm.show_in_catalog"
+              v-model:question-ids="editForm.question_ids"
+              class="mb-3"
+              :kind-editable="false"
+              :questions="questions"
+              @open-bank="showQuestionBank = true"
+            />
             <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
               <div>
                 <label class="mb-1 block text-xs font-medium text-gray-600 dark:text-gray-400">
@@ -245,9 +278,9 @@
                 </label>
                 <Select
                   v-model="editForm.model_id"
-                  :options="modelOptions"
+                  :options="editModelOptions"
                   :placeholder="t('admin.scheduledTests.model')"
-                  :searchable="modelOptions.length > 5"
+                  :searchable="editModelOptions.length > 5"
                 />
               </div>
               <div>
@@ -306,7 +339,7 @@
                   {{ t('admin.scheduledTests.enabled') }}
                 </label>
               </div>
-              <div class="flex items-end">
+              <div v-if="editForm.kind === 'probe'" class="flex items-end">
                 <div>
                   <label class="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
                     <Toggle v-model="editForm.auto_recover" />
@@ -327,7 +360,7 @@
               </button>
               <button
                 @click="handleEdit"
-                :disabled="!editForm.model_id || !editForm.cron_expression || updating"
+                :disabled="!canSubmitPlan(editForm) || updating"
                 class="flex items-center gap-1.5 rounded-lg bg-primary-500 px-3 py-1.5 text-sm font-medium text-white transition-colors hover:bg-primary-600 disabled:cursor-not-allowed disabled:opacity-50"
               >
                 <Icon v-if="updating" name="refresh" size="sm" class="animate-spin" :stroke-width="2" />
@@ -399,6 +432,7 @@
                     {{ formatDateTime(result.started_at) }}
                   </span>
                 </div>
+                <ScheduledTestResultMeta :result="result" />
 
                 <!-- Response / Error (collapsible) -->
                 <div v-if="result.error_message" class="mt-2">
@@ -459,11 +493,16 @@
       @confirm="handleDelete"
       @cancel="showDeleteConfirm = false"
     />
+    <IntelligenceQuestionBankModal
+      :show="showQuestionBank"
+      @close="showQuestionBank = false"
+      @changed="(list) => (questions = list)"
+    />
   </BaseDialog>
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, watch, onBeforeUnmount } from 'vue'
+import { ref, reactive, watch, computed, onBeforeUnmount } from 'vue'
 import { useI18n } from 'vue-i18n'
 import BaseDialog from '@/components/common/BaseDialog.vue'
 import ConfirmDialog from '@/components/common/ConfirmDialog.vue'
@@ -475,6 +514,11 @@ import { Icon } from '@/components/icons'
 import { adminAPI } from '@/api/admin'
 import { useAppStore } from '@/stores/app'
 import { formatDateTime } from '@/utils/format'
+import ScheduledTestKindFields from './ScheduledTestKindFields.vue'
+import ScheduledTestResultMeta from './ScheduledTestResultMeta.vue'
+import IntelligenceQuestionBankModal from './IntelligenceQuestionBankModal.vue'
+import { useScheduledTestKinds, newKindFields, kindFieldsFromPlan, kindFieldsRequest } from './useScheduledTestKinds'
+import { mappedModelLabel } from '@/utils/scheduledTestModels'
 import type { ScheduledTestPlan, ScheduledTestResult } from '@/types'
 
 const { t } = useI18n()
@@ -515,7 +559,8 @@ const editForm = reactive({
   cron_expression: '' as string,
   max_results: '100' as string,
   enabled: true,
-  auto_recover: false
+  auto_recover: false,
+  ...newKindFields()
 })
 
 const newPlan = reactive({
@@ -523,7 +568,8 @@ const newPlan = reactive({
   cron_expression: '' as string,
   max_results: '100' as string,
   enabled: true,
-  auto_recover: false
+  auto_recover: false,
+  ...newKindFields()
 })
 
 const resetNewPlan = () => {
@@ -532,7 +578,18 @@ const resetNewPlan = () => {
   newPlan.max_results = '100'
   newPlan.enabled = true
   newPlan.auto_recover = false
+  Object.assign(newPlan, newKindFields())
 }
+
+const { questions, mappedModels, showQuestionBank, canSubmitPlan, modelOptionsFor } = useScheduledTestKinds({
+  show: () => props.show,
+  accountId: () => props.accountId,
+  modelOptions: () => props.modelOptions,
+  newPlan,
+  editForm
+})
+const newPlanModelOptions = computed(() => modelOptionsFor(newPlan.kind, newPlan.model_id))
+const editModelOptions = computed(() => modelOptionsFor(editForm.kind, editForm.model_id))
 
 // Load plans when dialog opens
 watch(
@@ -574,7 +631,9 @@ const handleCreate = async () => {
       cron_expression: newPlan.cron_expression,
       enabled: newPlan.enabled,
       max_results: maxResults,
-      auto_recover: newPlan.auto_recover
+      auto_recover: newPlan.auto_recover,
+      kind: newPlan.kind,
+      ...kindFieldsRequest(newPlan)
     })
     appStore.showSuccess(t('admin.scheduledTests.createSuccess'))
     showAddForm.value = false
@@ -607,6 +666,7 @@ const startEdit = (plan: ScheduledTestPlan) => {
   editForm.max_results = String(plan.max_results)
   editForm.enabled = plan.enabled
   editForm.auto_recover = plan.auto_recover
+  Object.assign(editForm, kindFieldsFromPlan(plan))
 }
 
 const cancelEdit = () => {
@@ -622,7 +682,8 @@ const handleEdit = async () => {
       cron_expression: editForm.cron_expression,
       max_results: Number(editForm.max_results) || 100,
       enabled: editForm.enabled,
-      auto_recover: editForm.auto_recover
+      auto_recover: editForm.auto_recover,
+      ...kindFieldsRequest(editForm)
     })
     const index = plans.value.findIndex((p) => p.id === editingPlanId.value)
     if (index !== -1) {
