@@ -81,7 +81,7 @@ release:
 
     **Docker (x86_64 only):**
     ```bash
-    docker pull ghcr.io/{{ .Env.GITHUB_REPO_OWNER_LOWER }}/sub2api:{{ .Version }}
+    docker pull ghcr.io/{{ .Env.GITHUB_REPO_OWNER_LOWER }}/{{ tolower .Env.GITHUB_REPO_NAME }}:{{ .Version }}
     ```
 
     ## 📚 Documentation
