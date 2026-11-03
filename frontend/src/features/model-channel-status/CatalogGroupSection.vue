@@ -1,7 +1,6 @@
 <template>
   <section
-    class="overflow-hidden rounded-2xl border bg-white shadow-card dark:bg-dark-800/50"
-    :class="platformBorderStrongClass(group.platform)"
+    class="card overflow-hidden"
     :data-testid="`catalog-group-${group.id}`"
   >
     <h2 class="m-0">
@@ -37,21 +36,27 @@
         >
           {{ t('modelChannelStatus.group.exclusive') }}
         </span>
-        <span class="ml-auto flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-gray-500 dark:text-dark-400">
+        <span class="ml-auto flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-gray-500 dark:text-dark-400" data-testid="group-summary">
+          <span class="h-2 w-2 rounded-full" :class="healthBlockClass(group.summary.health)" aria-hidden="true" data-testid="group-health" :data-health="group.summary.health" />
           <span data-testid="group-model-count">{{ t('modelChannelStatus.group.models', { count: group.models.length }) }}</span>
-          <span v-if="group.summary.down_count > 0" class="font-medium text-red-600 dark:text-red-400">
-            {{ t('modelChannelStatus.group.down', { count: group.summary.down_count }) }}
-          </span>
-          <span v-if="group.summary.degraded_count > 0" class="font-medium text-amber-600 dark:text-amber-400">
-            {{ t('modelChannelStatus.group.degraded', { count: group.summary.degraded_count }) }}
-          </span>
-          <span class="inline-flex items-center gap-1.5 font-medium" :class="healthTextClass(group.summary.health)" data-testid="group-health">
-            <span class="h-2 w-2 rounded-full" :class="healthBlockClass(group.summary.health)" aria-hidden="true" />
-            {{ t(`modelChannelStatus.health.${group.summary.health}`) }}
-          </span>
-          <span v-if="group.summary.availability_rate != null" class="tabular-nums" data-testid="group-availability">
-            {{ t('modelChannelStatus.group.availability', { rate: formatPercent(group.summary.availability_rate) }) }}
-          </span>
+          <template v-if="group.summary.availability_rate != null">
+            <span aria-hidden="true">·</span>
+            <span class="tabular-nums" data-testid="group-availability">
+              {{ t('modelChannelStatus.group.availability', { rate: formatPercent(group.summary.availability_rate) }) }}
+            </span>
+          </template>
+          <template v-if="group.summary.degraded_count > 0">
+            <span aria-hidden="true">·</span>
+            <span class="font-medium text-amber-600 dark:text-amber-400">
+              {{ t('modelChannelStatus.group.degraded', { count: group.summary.degraded_count }) }}
+            </span>
+          </template>
+          <template v-if="group.summary.down_count > 0">
+            <span aria-hidden="true">·</span>
+            <span class="font-medium text-red-600 dark:text-red-400" data-testid="group-down">
+              {{ t('modelChannelStatus.group.down', { count: group.summary.down_count }) }}
+            </span>
+          </template>
         </span>
       </button>
     </h2>
@@ -60,7 +65,9 @@
         v-for="row in group.models"
         :key="row.key"
         :row="row"
+        :group-platform="group.platform"
         :selected="row.key === selectedKey"
+        :strip="strip"
         @select="emit('select', $event, group)"
       />
     </ul>
@@ -71,16 +78,16 @@
 import { useI18n } from 'vue-i18n'
 import Icon from '@/components/icons/Icon.vue'
 import GroupBadge from '@/components/common/GroupBadge.vue'
-import { platformBorderStrongClass } from '@/utils/platformColors'
 import type { GroupPlatform } from '@/types'
-import type { CatalogGroup, CatalogModelRow as CatalogRow } from '@/api/channelStatusCatalog'
+import type { CatalogGroup, CatalogModelRow as CatalogRow, CatalogStripConfig } from '@/api/channelStatusCatalog'
 import CatalogModelRow from './CatalogModelRow.vue'
-import { formatPercent, healthBlockClass, healthTextClass } from './catalogFormat'
+import { formatPercent, healthBlockClass } from './catalogFormat'
 
 const props = defineProps<{
   group: CatalogGroup
   expanded: boolean
   selectedKey?: string | null
+  strip?: CatalogStripConfig | null
 }>()
 const emit = defineEmits<{
   toggle: [groupId: number]

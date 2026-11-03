@@ -213,6 +213,7 @@ function onKeydown(event: KeyboardEvent) {
   background-color: var(--metric-tint);
   border-color: var(--metric-rule);
   border-image-source: var(--metric-frame);
+  transition: background-color 80ms steps(2), border-color 80ms steps(2);
 }
 
 :where(html.dark) .metric-card.card {

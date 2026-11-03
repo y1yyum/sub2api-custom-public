@@ -64,12 +64,19 @@ onBeforeUnmount(() => document.removeEventListener('click', onDocumentClick))
 <style scoped>
 .portal-dropdown-enter-active,
 .portal-dropdown-leave-active {
-  transition: opacity 0.15s ease, transform 0.15s ease;
+  transition: opacity 120ms steps(2), transform 120ms steps(2);
 }
 
 .portal-dropdown-enter-from,
 .portal-dropdown-leave-to {
   opacity: 0;
   transform: translateY(-4px);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .portal-dropdown-enter-active,
+  .portal-dropdown-leave-active {
+    transition: none;
+  }
 }
 </style>

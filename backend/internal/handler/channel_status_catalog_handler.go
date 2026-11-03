@@ -33,14 +33,16 @@ type ChannelStatusCatalogHandler struct {
 	catalog channelStatusCatalogProvider
 	parser  channelStatusFilterParser
 	viewer  channelStatusViewerScope
+	strip   catalogStripConfigStore
 }
 
 func NewChannelStatusCatalogHandler(
 	catalog *service.ChannelStatusCatalogService,
 	monitor *service.ChannelMonitorV2Service,
 	apiKeyService *service.APIKeyService,
+	settings *service.SettingService,
 ) *ChannelStatusCatalogHandler {
-	return &ChannelStatusCatalogHandler{catalog: catalog, parser: monitor, viewer: apiKeyService}
+	return &ChannelStatusCatalogHandler{catalog: catalog, parser: monitor, viewer: apiKeyService, strip: settings}
 }
 
 // catalogDetailRange is the fixed window of the detail view.

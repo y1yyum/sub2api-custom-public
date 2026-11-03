@@ -10,6 +10,7 @@
   html {
     @apply scroll-smooth antialiased;
     color-scheme: light;
+    scrollbar-gutter: stable;
   }
 
   .dark {

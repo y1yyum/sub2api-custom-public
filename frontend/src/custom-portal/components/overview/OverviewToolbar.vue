@@ -148,7 +148,7 @@
       />
     </button>
 
-    <DateRangePicker :start-date="state.range.value.start" :end-date="state.range.value.end" @change="applyRange" />
+    <DateRangePicker align="right" :start-date="state.range.value.start" :end-date="state.range.value.end" @change="applyRange" />
   </div>
 </template>
 

@@ -1,28 +1,39 @@
 <template>
   <section :aria-labelledby="headingId" data-testid="detail-pricing">
-    <h3 :id="headingId" class="mb-2 text-sm font-semibold text-gray-900 dark:text-white">
+    <h3 :id="headingId" class="mb-2 flex flex-wrap items-baseline gap-x-2 text-sm font-semibold text-gray-900 dark:text-white">
       {{ t('modelChannelStatus.detail.pricing.title') }}
+      <template v-if="block.data && !block.error_code">
+        <span class="text-xs font-normal text-gray-500 dark:text-dark-400">{{ unitLabel }}</span>
+        <span class="ml-auto text-xs font-normal tabular-nums text-gray-500 dark:text-dark-400" :title="rateNote" data-testid="pricing-rate-note">
+          {{ t('modelChannelStatus.detail.pricing.rate', { effective: formatMultiplier(pricing.rate.effective_rate) }) }}
+        </span>
+      </template>
     </h3>
     <p v-if="block.error_code || !block.data" class="text-sm text-amber-700 dark:text-amber-300" data-testid="pricing-unavailable">
       {{ t('modelChannelStatus.detail.loadFailed') }}
     </p>
     <template v-else>
-      <p class="mb-2 text-xs text-gray-500 dark:text-dark-400" data-testid="pricing-rate-note">{{ rateNote }}</p>
-
       <p v-if="!anyPrice" class="text-sm text-gray-500 dark:text-dark-400" data-testid="pricing-unset">
         {{ t('modelChannelStatus.detail.pricing.unset') }}
       </p>
 
       <template v-else>
-        <p class="mb-1 text-xs font-medium text-gray-500 dark:text-dark-400">
-          {{ t('modelChannelStatus.detail.pricing.paid') }} · {{ unitLabel }}
-        </p>
-        <dl class="m-0 grid grid-cols-[auto_1fr] gap-x-6 gap-y-1 text-sm" data-testid="pricing-paid">
-          <template v-for="(line, index) in paidLines" :key="`${index}:${line.label}`">
-            <dt class="text-gray-600 dark:text-dark-300">{{ line.label }}</dt>
-            <dd class="m-0 text-right font-medium tabular-nums text-gray-900 dark:text-white">{{ line.value }}</dd>
-          </template>
-        </dl>
+        <table v-if="paidLines.length > 0" class="w-full text-left text-sm tabular-nums" data-testid="pricing-paid">
+          <thead>
+            <tr class="text-xs text-gray-500 dark:text-dark-400">
+              <th scope="col" class="py-1 pr-2 font-medium">{{ t('modelChannelStatus.detail.pricing.item') }}</th>
+              <th scope="col" class="py-1 pr-2 text-right font-medium">{{ t('modelChannelStatus.detail.pricing.paid') }}</th>
+              <th v-if="hasOfficial" scope="col" class="py-1 text-right font-medium">{{ t('modelChannelStatus.detail.pricing.official') }}</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="(line, index) in paidLines" :key="`${index}:${line.label}`">
+              <th scope="row" class="py-0.5 pr-2 font-normal text-gray-600 dark:text-dark-300">{{ line.label }}</th>
+              <td class="py-0.5 pr-2 text-right font-medium text-gray-900 dark:text-white">{{ line.value }}</td>
+              <td v-if="hasOfficial" class="py-0.5 text-right text-gray-500 dark:text-dark-400" data-testid="pricing-official">{{ line.official ?? '-' }}</td>
+            </tr>
+          </tbody>
+        </table>
 
         <div v-if="pricing.request_tiers && pricing.request_tiers.length > 0" class="mt-3" data-testid="pricing-request-tiers">
           <p class="mb-1 text-xs font-medium text-gray-500 dark:text-dark-400">{{ t('modelChannelStatus.detail.pricing.requestTiers') }}</p>
@@ -68,18 +79,6 @@
           </li>
         </ul>
 
-        <details v-if="officialLines.length > 0" class="mt-3" data-testid="pricing-official">
-          <summary class="cursor-pointer text-xs text-primary-600 dark:text-primary-300">
-            {{ t('modelChannelStatus.detail.pricing.official') }}
-          </summary>
-          <p class="mt-1 text-xs text-gray-500 dark:text-dark-400">{{ t('modelChannelStatus.detail.pricing.officialHint') }}</p>
-          <dl class="m-0 mt-1 grid grid-cols-[auto_1fr] gap-x-6 gap-y-1 text-sm">
-            <template v-for="line in officialLines" :key="line.label">
-              <dt class="text-gray-600 dark:text-dark-300">{{ line.label }}</dt>
-              <dd class="m-0 text-right tabular-nums text-gray-700 dark:text-dark-200">{{ line.value }}</dd>
-            </template>
-          </dl>
-        </details>
       </template>
     </template>
   </section>
@@ -99,6 +98,7 @@ const headingId = 'catalog-detail-pricing-heading'
 interface Line {
   label: string
   value: string
+  official?: string
 }
 
 // The template only renders these once `block.data` is present.
@@ -130,26 +130,22 @@ const rateNote = computed(() => {
   return t('modelChannelStatus.detail.pricing.rateNoteGroup', { effective })
 })
 
-function tokenLines(prices: CatalogPaidPrices): Line[] {
-  const lines: Line[] = [
-    { label: t('modelChannelStatus.detail.pricing.input'), value: perMillion(prices.input) },
-    { label: t('modelChannelStatus.detail.pricing.output'), value: perMillion(prices.output) },
-  ]
-  if (prices.cache_read != null) {
-    lines.push({ label: t('modelChannelStatus.detail.pricing.cacheRead'), value: perMillion(prices.cache_read) })
-  }
-  if (prices.cache_write != null) {
-    lines.push({ label: t('modelChannelStatus.detail.pricing.cacheWrite'), value: perMillion(prices.cache_write) })
-  }
-  if (prices.cache_write_1h != null) {
-    lines.push({ label: t('modelChannelStatus.detail.pricing.cacheWrite1h'), value: perMillion(prices.cache_write_1h) })
-  }
+function tokenLines(prices: CatalogPaidPrices, official: CatalogPaidPrices | null): Line[] {
+  const line = (key: string, pick: (p: CatalogPaidPrices) => number | null): Line => ({
+    label: t(`modelChannelStatus.detail.pricing.${key}`),
+    value: perMillion(pick(prices)),
+    official: official ? perMillion(pick(official)) : undefined,
+  })
+  const lines = [line('input', (p) => p.input), line('output', (p) => p.output)]
+  if (prices.cache_read != null) lines.push(line('cacheRead', (p) => p.cache_read))
+  if (prices.cache_write != null) lines.push(line('cacheWrite', (p) => p.cache_write))
+  if (prices.cache_write_1h != null) lines.push(line('cacheWrite1h', (p) => p.cache_write_1h))
   return lines
 }
 
 const paidLines = computed<Line[]>(() => {
   const p = pricing.value
-  if (isToken.value) return tokenLines(p.paid)
+  if (isToken.value) return tokenLines(p.paid, p.official)
   const lines: Line[] = []
   if (p.per_request != null) {
     const label =
@@ -175,11 +171,7 @@ const anyPrice = computed(() => {
   return paidLines.value.length > 0 || (p.request_tiers?.some((tier) => tier.price != null) ?? false)
 })
 
-const officialLines = computed<Line[]>(() => {
-  const official = pricing.value.official
-  if (!official || !isToken.value) return []
-  return tokenLines(official).filter((line) => line.value !== '-')
-})
+const hasOfficial = computed(() => paidLines.value.some((line) => line.official != null && line.official !== '-'))
 
 function tierRange(min: number, max: number | null): string {
   if (max == null) return t('modelChannelStatus.detail.pricing.tierOpen', { min: formatTokens(min) })

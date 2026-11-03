@@ -1,5 +1,5 @@
 <template>
-  <div class="relative" ref="containerRef">
+  <div :class="['relative', isOpen ? 'z-40' : '']" ref="containerRef">
     <button
       type="button"
       @click="toggle"
@@ -21,7 +21,7 @@
     </button>
 
     <Transition name="date-picker-dropdown">
-      <div v-if="isOpen" class="date-picker-dropdown">
+      <div v-if="isOpen" :class="['date-picker-dropdown', align === 'right' ? 'right-0 left-auto' : 'left-0']">
         <!-- Quick presets -->
         <div class="date-picker-presets">
           <button
@@ -89,6 +89,7 @@ interface DatePreset {
 interface Props {
   startDate: string
   endDate: string
+  align?: 'left' | 'right'
 }
 
 interface Emits {
@@ -351,13 +352,13 @@ onUnmounted(() => {
 }
 
 .date-picker-dropdown {
-  @apply absolute left-0 z-[100] mt-2;
+  @apply absolute z-[100] mt-2;
   @apply bg-white dark:bg-dark-800;
   @apply rounded-xl;
   @apply border border-gray-200 dark:border-dark-700;
-  @apply shadow-lg shadow-black/10 dark:shadow-black/30;
+  @apply shadow-xl shadow-black/10 dark:shadow-black/30;
   @apply overflow-hidden;
-  @apply min-w-[320px];
+  @apply min-w-[320px] max-w-[calc(100vw-2rem)];
 }
 
 .date-picker-presets {

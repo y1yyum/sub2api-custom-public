@@ -153,6 +153,13 @@ vi.mock('@/api/admin/adminAccessKeys', () => ({
   list: contract.scopedList,
   create: vi.fn(), update: vi.fn(), rotate: vi.fn(), revoke: vi.fn(), deleteRecord: vi.fn(),
 }))
+vi.mock('@/api/admin/catalogStripConfig', () => ({
+  get: vi.fn().mockResolvedValue({
+    mode: 'time', call_window: 100, blocks: 20, min_calls: 1,
+    availability: { green: 0.95, yellow: 0.8 }, cache: { high: 0.5, mid: 0.2, low: 0.01 },
+  }),
+  update: vi.fn(),
+}))
 vi.mock('@/api/admin/groups', () => {
   const getAllIncludingInactive = vi.fn().mockResolvedValue([])
   return { getAllIncludingInactive, default: { getAllIncludingInactive } }
@@ -643,6 +650,7 @@ describe('custom .19 Settings mounted contracts', () => {
     const toggle = wrapper.findAll<HTMLInputElement>('input.toggle-stub').find(node => section.contains(node.element))
     expect(toggle).toBeDefined()
     expect(toggle!.element.checked).toBe(true)
+    expect(wrapper.find('[data-testid="strip-config"]').exists()).toBe(true)
     await toggle!.setValue(false)
     await wrapper.get('form').trigger('submit')
     await flushPromises()

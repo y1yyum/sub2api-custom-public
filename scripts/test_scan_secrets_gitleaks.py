@@ -200,9 +200,12 @@ class GitleaksHistoryTests(unittest.TestCase):
         elsewhere = self.commit("reviewed value elsewhere")
         self.assertTrue(any(f["File"] == "other_test.go" for f in findings(fixtures, elsewhere)))
 
+        # generic-api-key 只在熵 ≥ 3.5 时命中；token_hex(16) 约 19% 低于该阈值导致偶发失败。
+        # 每个十六进制字符恰好出现两次，熵固定为 4.0，取值仍每次随机。
+        unreviewed_value = "".join(secrets.SystemRandom().sample("0123456789abcdef" * 2, 32))
         path = "backend/internal/service/payment_webhook_provider_test.go"
         with (self.repo / path).open("a") as output:
-            output.write(f'\nconst signingSecret = "{secrets.token_hex(16)}"\n')
+            output.write(f'\nconst signingSecret = "{unreviewed_value}"\n')
         unreviewed = self.commit("unreviewed value in reviewed file")
         self.assertTrue(any(f["File"] == path for f in findings(elsewhere, unreviewed)))
 

@@ -12,8 +12,9 @@ var scheduledTestCronParser = cron.NewParser(cron.Minute | cron.Hour | cron.Dom 
 
 // ScheduledTestService provides CRUD operations for scheduled test plans and results.
 type ScheduledTestService struct {
-	planRepo   ScheduledTestPlanRepository
-	resultRepo ScheduledTestResultRepository
+	planRepo     ScheduledTestPlanRepository
+	resultRepo   ScheduledTestResultRepository
+	questionRepo IntelligenceQuestionRepository
 }
 
 // NewScheduledTestService creates a new ScheduledTestService.
@@ -38,6 +39,9 @@ func (s *ScheduledTestService) CreatePlan(ctx context.Context, plan *ScheduledTe
 	if plan.MaxResults <= 0 {
 		plan.MaxResults = 50
 	}
+	if err := normalizeScheduledTestPlan(plan); err != nil {
+		return nil, err
+	}
 
 	return s.planRepo.Create(ctx, plan)
 }
@@ -49,11 +53,18 @@ func (s *ScheduledTestService) GetPlan(ctx context.Context, id int64) (*Schedule
 
 // ListPlansByAccount returns all plans for a given account.
 func (s *ScheduledTestService) ListPlansByAccount(ctx context.Context, accountID int64) ([]*ScheduledTestPlan, error) {
-	return s.planRepo.ListByAccountID(ctx, accountID)
+	plans, err := s.planRepo.ListByAccountID(ctx, accountID)
+	if err != nil {
+		return nil, err
+	}
+	return plans, s.attachPlanQuestionIDs(ctx, plans)
 }
 
 // UpdatePlan validates cron and updates the plan.
 func (s *ScheduledTestService) UpdatePlan(ctx context.Context, plan *ScheduledTestPlan) (*ScheduledTestPlan, error) {
+	if err := normalizeScheduledTestPlan(plan); err != nil {
+		return nil, err
+	}
 	nextRun, err := computeNextRun(plan.CronExpression, time.Now())
 	if err != nil {
 		return nil, fmt.Errorf("invalid cron expression: %w", err)

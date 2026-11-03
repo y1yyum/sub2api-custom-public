@@ -7247,6 +7247,7 @@
                   </div>
                   <Toggle v-model="form.unified_model_channel_status_enabled" />
                 </div>
+                <StripConfigSettings v-if="form.unified_model_channel_status_enabled" />
               </div>
 
               <div v-if="form.channel_monitor_mode === 'v1'" class="flex items-start justify-between gap-4">
@@ -8999,6 +9000,7 @@ import PaymentProviderDialog from "@/components/payment/PaymentProviderDialog.vu
 import GroupBadge from "@/components/common/GroupBadge.vue";
 import GroupOptionItem from "@/components/common/GroupOptionItem.vue";
 import Toggle from "@/components/common/Toggle.vue";
+import StripConfigSettings from "@/features/model-channel-status/StripConfigSettings.vue";
 import ProxySelector from "@/components/common/ProxySelector.vue";
 import ImageUpload from "@/components/common/ImageUpload.vue";
 import BackupSettings from "@/views/admin/BackupView.vue";

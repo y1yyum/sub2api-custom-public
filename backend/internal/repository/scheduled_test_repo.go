@@ -10,6 +10,9 @@ import (
 
 // --- Plan Repository ---
 
+const scheduledTestPlanColumns = `id, account_id, model_id, cron_expression, enabled, max_results, auto_recover,
+	kind, prompt, pick_mode, rotation_cursor, show_in_catalog, last_run_at, next_run_at, created_at, updated_at`
+
 type scheduledTestPlanRepository struct {
 	db *sql.DB
 }
@@ -20,16 +23,18 @@ func NewScheduledTestPlanRepository(db *sql.DB) service.ScheduledTestPlanReposit
 
 func (r *scheduledTestPlanRepository) Create(ctx context.Context, plan *service.ScheduledTestPlan) (*service.ScheduledTestPlan, error) {
 	row := r.db.QueryRowContext(ctx, `
-		INSERT INTO scheduled_test_plans (account_id, model_id, cron_expression, enabled, max_results, auto_recover, next_run_at, created_at, updated_at)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, NOW(), NOW())
-		RETURNING id, account_id, model_id, cron_expression, enabled, max_results, auto_recover, last_run_at, next_run_at, created_at, updated_at
-	`, plan.AccountID, plan.ModelID, plan.CronExpression, plan.Enabled, plan.MaxResults, plan.AutoRecover, plan.NextRunAt)
+		INSERT INTO scheduled_test_plans (account_id, model_id, cron_expression, enabled, max_results, auto_recover,
+			kind, prompt, pick_mode, show_in_catalog, next_run_at, created_at, updated_at)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, NOW(), NOW())
+		RETURNING `+scheduledTestPlanColumns,
+		plan.AccountID, plan.ModelID, plan.CronExpression, plan.Enabled, plan.MaxResults, plan.AutoRecover,
+		scheduledTestKindOrProbe(plan.Kind), plan.Prompt, scheduledTestPickModeOrRotate(plan.PickMode), plan.ShowInCatalog, plan.NextRunAt)
 	return scanPlan(row)
 }
 
 func (r *scheduledTestPlanRepository) GetByID(ctx context.Context, id int64) (*service.ScheduledTestPlan, error) {
 	row := r.db.QueryRowContext(ctx, `
-		SELECT id, account_id, model_id, cron_expression, enabled, max_results, auto_recover, last_run_at, next_run_at, created_at, updated_at
+		SELECT `+scheduledTestPlanColumns+`
 		FROM scheduled_test_plans WHERE id = $1
 	`, id)
 	return scanPlan(row)
@@ -37,7 +42,7 @@ func (r *scheduledTestPlanRepository) GetByID(ctx context.Context, id int64) (*s
 
 func (r *scheduledTestPlanRepository) ListByAccountID(ctx context.Context, accountID int64) ([]*service.ScheduledTestPlan, error) {
 	rows, err := r.db.QueryContext(ctx, `
-		SELECT id, account_id, model_id, cron_expression, enabled, max_results, auto_recover, last_run_at, next_run_at, created_at, updated_at
+		SELECT `+scheduledTestPlanColumns+`
 		FROM scheduled_test_plans WHERE account_id = $1
 		ORDER BY created_at DESC
 	`, accountID)
@@ -50,7 +55,7 @@ func (r *scheduledTestPlanRepository) ListByAccountID(ctx context.Context, accou
 
 func (r *scheduledTestPlanRepository) ListDue(ctx context.Context, now time.Time) ([]*service.ScheduledTestPlan, error) {
 	rows, err := r.db.QueryContext(ctx, `
-		SELECT id, account_id, model_id, cron_expression, enabled, max_results, auto_recover, last_run_at, next_run_at, created_at, updated_at
+		SELECT `+scheduledTestPlanColumns+`
 		FROM scheduled_test_plans
 		WHERE enabled = true AND next_run_at <= $1
 		ORDER BY next_run_at ASC
@@ -62,13 +67,16 @@ func (r *scheduledTestPlanRepository) ListDue(ctx context.Context, now time.Time
 	return scanPlans(rows)
 }
 
+// Update leaves kind untouched: a plan's kind is fixed at creation.
 func (r *scheduledTestPlanRepository) Update(ctx context.Context, plan *service.ScheduledTestPlan) (*service.ScheduledTestPlan, error) {
 	row := r.db.QueryRowContext(ctx, `
 		UPDATE scheduled_test_plans
-		SET model_id = $2, cron_expression = $3, enabled = $4, max_results = $5, auto_recover = $6, next_run_at = $7, updated_at = NOW()
+		SET model_id = $2, cron_expression = $3, enabled = $4, max_results = $5, auto_recover = $6, next_run_at = $7,
+			prompt = $8, pick_mode = $9, show_in_catalog = $10, updated_at = NOW()
 		WHERE id = $1
-		RETURNING id, account_id, model_id, cron_expression, enabled, max_results, auto_recover, last_run_at, next_run_at, created_at, updated_at
-	`, plan.ID, plan.ModelID, plan.CronExpression, plan.Enabled, plan.MaxResults, plan.AutoRecover, plan.NextRunAt)
+		RETURNING `+scheduledTestPlanColumns,
+		plan.ID, plan.ModelID, plan.CronExpression, plan.Enabled, plan.MaxResults, plan.AutoRecover, plan.NextRunAt,
+		plan.Prompt, scheduledTestPickModeOrRotate(plan.PickMode), plan.ShowInCatalog)
 	return scanPlan(row)
 }
 
@@ -86,6 +94,9 @@ func (r *scheduledTestPlanRepository) UpdateAfterRun(ctx context.Context, id int
 
 // --- Result Repository ---
 
+const scheduledTestResultColumns = `id, plan_id, kind, model_id, question_id, prompt, expected_answer, verdict,
+	status, response_text, error_message, latency_ms, started_at, finished_at, created_at`
+
 type scheduledTestResultRepository struct {
 	db *sql.DB
 }
@@ -96,24 +107,19 @@ func NewScheduledTestResultRepository(db *sql.DB) service.ScheduledTestResultRep
 
 func (r *scheduledTestResultRepository) Create(ctx context.Context, result *service.ScheduledTestResult) (*service.ScheduledTestResult, error) {
 	row := r.db.QueryRowContext(ctx, `
-		INSERT INTO scheduled_test_results (plan_id, status, response_text, error_message, latency_ms, started_at, finished_at, created_at)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, NOW())
-		RETURNING id, plan_id, status, response_text, error_message, latency_ms, started_at, finished_at, created_at
-	`, result.PlanID, result.Status, result.ResponseText, result.ErrorMessage, result.LatencyMs, result.StartedAt, result.FinishedAt)
-
-	out := &service.ScheduledTestResult{}
-	if err := row.Scan(
-		&out.ID, &out.PlanID, &out.Status, &out.ResponseText, &out.ErrorMessage,
-		&out.LatencyMs, &out.StartedAt, &out.FinishedAt, &out.CreatedAt,
-	); err != nil {
-		return nil, err
-	}
-	return out, nil
+		INSERT INTO scheduled_test_results (plan_id, kind, model_id, question_id, prompt, expected_answer, verdict,
+			status, response_text, error_message, latency_ms, started_at, finished_at, created_at)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, NOW())
+		RETURNING `+scheduledTestResultColumns,
+		result.PlanID, scheduledTestKindOrProbe(result.Kind), result.ModelID, result.QuestionID, result.Prompt,
+		result.ExpectedAnswer, result.Verdict, result.Status, result.ResponseText, result.ErrorMessage,
+		result.LatencyMs, result.StartedAt, result.FinishedAt)
+	return scanResult(row)
 }
 
 func (r *scheduledTestResultRepository) ListByPlanID(ctx context.Context, planID int64, limit int) ([]*service.ScheduledTestResult, error) {
 	rows, err := r.db.QueryContext(ctx, `
-		SELECT id, plan_id, status, response_text, error_message, latency_ms, started_at, finished_at, created_at
+		SELECT `+scheduledTestResultColumns+`
 		FROM scheduled_test_results
 		WHERE plan_id = $1
 		ORDER BY created_at DESC
@@ -126,11 +132,8 @@ func (r *scheduledTestResultRepository) ListByPlanID(ctx context.Context, planID
 
 	var results []*service.ScheduledTestResult
 	for rows.Next() {
-		r := &service.ScheduledTestResult{}
-		if err := rows.Scan(
-			&r.ID, &r.PlanID, &r.Status, &r.ResponseText, &r.ErrorMessage,
-			&r.LatencyMs, &r.StartedAt, &r.FinishedAt, &r.CreatedAt,
-		); err != nil {
+		r, err := scanResult(rows)
+		if err != nil {
 			return nil, err
 		}
 		results = append(results, r)
@@ -163,6 +166,7 @@ func scanPlan(row scannable) (*service.ScheduledTestPlan, error) {
 	p := &service.ScheduledTestPlan{}
 	if err := row.Scan(
 		&p.ID, &p.AccountID, &p.ModelID, &p.CronExpression, &p.Enabled, &p.MaxResults, &p.AutoRecover,
+		&p.Kind, &p.Prompt, &p.PickMode, &p.RotationCursor, &p.ShowInCatalog,
 		&p.LastRunAt, &p.NextRunAt, &p.CreatedAt, &p.UpdatedAt,
 	); err != nil {
 		return nil, err
@@ -180,4 +184,29 @@ func scanPlans(rows *sql.Rows) ([]*service.ScheduledTestPlan, error) {
 		plans = append(plans, p)
 	}
 	return plans, rows.Err()
+}
+
+func scanResult(row scannable) (*service.ScheduledTestResult, error) {
+	r := &service.ScheduledTestResult{}
+	if err := row.Scan(
+		&r.ID, &r.PlanID, &r.Kind, &r.ModelID, &r.QuestionID, &r.Prompt, &r.ExpectedAnswer, &r.Verdict,
+		&r.Status, &r.ResponseText, &r.ErrorMessage, &r.LatencyMs, &r.StartedAt, &r.FinishedAt, &r.CreatedAt,
+	); err != nil {
+		return nil, err
+	}
+	return r, nil
+}
+
+func scheduledTestKindOrProbe(kind string) string {
+	if kind == "" {
+		return service.ScheduledTestKindProbe
+	}
+	return kind
+}
+
+func scheduledTestPickModeOrRotate(mode string) string {
+	if mode == "" {
+		return service.ScheduledTestPickRotate
+	}
+	return mode
 }

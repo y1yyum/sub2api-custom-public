@@ -2524,6 +2524,11 @@ export interface ScheduledTestPlan {
   enabled: boolean
   max_results: number
   auto_recover: boolean
+  kind: ScheduledTestKind
+  prompt: string
+  pick_mode: ScheduledTestPickMode
+  show_in_catalog: boolean
+  question_ids?: number[]
   last_run_at: string | null
   next_run_at: string | null
   created_at: string
@@ -2533,6 +2538,12 @@ export interface ScheduledTestPlan {
 export interface ScheduledTestResult {
   id: number
   plan_id: number
+  kind: ScheduledTestKind
+  model_id: string
+  question_id: number | null
+  prompt: string
+  expected_answer: string
+  verdict: '' | 'pass' | 'fail'
   status: string
   response_text: string
   error_message: string
@@ -2549,6 +2560,11 @@ export interface CreateScheduledTestPlanRequest {
   enabled?: boolean
   max_results?: number
   auto_recover?: boolean
+  kind?: ScheduledTestKind
+  prompt?: string
+  pick_mode?: ScheduledTestPickMode
+  show_in_catalog?: boolean
+  question_ids?: number[]
 }
 
 export interface UpdateScheduledTestPlanRequest {
@@ -2557,6 +2573,41 @@ export interface UpdateScheduledTestPlanRequest {
   enabled?: boolean
   max_results?: number
   auto_recover?: boolean
+  prompt?: string
+  pick_mode?: ScheduledTestPickMode
+  show_in_catalog?: boolean
+  question_ids?: number[]
+}
+
+export type ScheduledTestKind = 'probe' | 'char_art' | 'quiz'
+export type ScheduledTestPickMode = 'rotate' | 'random'
+export type IntelligenceAnswerRule = 'exact' | 'number' | 'regex'
+
+export interface IntelligenceQuestion {
+  id: number
+  prompt: string
+  answer_rule: IntelligenceAnswerRule
+  expected_answers: string[]
+  tolerance: number
+  enabled: boolean
+  plan_count: number
+  created_at: string
+  updated_at: string
+}
+
+export interface IntelligenceQuestionRequest {
+  prompt: string
+  answer_rule: IntelligenceAnswerRule
+  expected_answers: string[]
+  tolerance: number
+  enabled?: boolean
+}
+
+export interface IntelligenceGradeRequest {
+  answer_rule: IntelligenceAnswerRule
+  expected_answers: string[]
+  tolerance: number
+  response_text: string
 }
 
 // Payment types

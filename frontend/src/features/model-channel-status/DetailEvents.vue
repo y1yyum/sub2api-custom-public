@@ -7,11 +7,11 @@
       {{ t('modelChannelStatus.detail.statusUnavailable') }}
     </p>
     <p v-else-if="!block.data || block.data.items.length === 0" class="text-sm text-gray-500 dark:text-dark-400" data-testid="events-empty">
-      {{ t('modelChannelStatus.detail.events.none') }}
+      {{ callsWindow ? t('modelChannelStatus.detail.events.callsNone', { count: callsWindow }) : t('modelChannelStatus.detail.events.none') }}
     </p>
     <template v-else>
       <p class="mb-2 text-xs text-gray-500 dark:text-dark-400">
-        {{ t('modelChannelStatus.detail.events.total', { total: block.data.total, shown: block.data.items.length }) }}
+        {{ t(callsWindow ? 'modelChannelStatus.detail.events.callsTotal' : 'modelChannelStatus.detail.events.total', { count: callsWindow, total: block.data.total, shown: block.data.items.length }) }}
       </p>
       <ul class="m-0 list-none divide-y divide-gray-100 p-0 dark:divide-dark-700/60">
         <li v-for="(item, index) in block.data.items" :key="index" class="flex flex-wrap items-center gap-x-3 gap-y-1 py-2 text-sm" data-testid="event-item">
@@ -20,7 +20,7 @@
             {{ levelLabel(item.level) }}
           </span>
           <time class="text-xs tabular-nums text-gray-500 dark:text-dark-400" :datetime="item.start">{{ formatStart(item.start) }}</time>
-          <span class="text-xs text-gray-500 dark:text-dark-400">
+          <span v-if="item.duration_seconds != null" class="text-xs text-gray-500 dark:text-dark-400" data-testid="event-duration">
             {{ t('modelChannelStatus.detail.events.duration', { duration: formatDuration(item.duration_seconds) }) }}
           </span>
           <span v-if="item.min_success_rate != null" class="text-xs tabular-nums text-gray-500 dark:text-dark-400">
@@ -28,14 +28,6 @@
           </span>
         </li>
       </ul>
-      <router-link
-        v-if="block.data.total > block.data.items.length"
-        :to="classicLocation"
-        class="mt-2 inline-block text-xs text-primary-600 hover:underline dark:text-primary-300"
-        data-testid="events-view-all"
-      >
-        {{ t('modelChannelStatus.detail.events.viewAll') }}
-      </router-link>
     </template>
   </section>
 </template>
@@ -43,17 +35,14 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { useRoute } from 'vue-router'
-import type { CatalogBlock, CatalogEvents, CatalogHealth } from '@/api/channelStatusCatalog'
-import { formatDuration, formatPercent, healthBlockClass, healthTextClass } from './catalogFormat'
+import type { CatalogBlock, CatalogEvents, CatalogHealth, CatalogStripConfig } from '@/api/channelStatusCatalog'
+import { formatDuration, formatPercent, healthBlockClass, healthTextClass, isCallsStrip } from './catalogFormat'
 
-defineProps<{ block: CatalogBlock<CatalogEvents> }>()
+const props = defineProps<{ block: CatalogBlock<CatalogEvents>; strip?: CatalogStripConfig | null }>()
 
 const { t, locale } = useI18n()
-const route = useRoute()
 const headingId = 'catalog-detail-events-heading'
-
-const classicLocation = computed(() => ({ path: route.path, query: { ...route.query, view: 'classic' } }))
+const callsWindow = computed(() => (isCallsStrip(props.strip) ? props.strip.call_window : 0))
 
 function levelLabel(level: CatalogHealth): string {
   return level === 'critical'

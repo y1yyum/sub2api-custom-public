@@ -1,52 +1,47 @@
 <template>
   <AppLayout>
-    <div class="space-y-5 pb-12" data-testid="model-channel-status">
-      <section class="card !rounded-3xl !border-0 p-0 shadow-sm ring-1 ring-gray-900/5 dark:!bg-dark-800 dark:ring-dark-700">
-        <header class="flex flex-wrap items-start justify-between gap-4 border-b border-gray-100 px-5 py-4 dark:border-dark-700 sm:px-6">
-          <div class="min-w-0">
-            <h1 class="flex items-center gap-2 text-xl font-black text-gray-900 dark:text-white">
-              <span class="inline-flex h-8 w-8 items-center justify-center rounded-xl bg-blue-50 text-blue-500 dark:bg-blue-900/30 dark:text-blue-400">
-                <Icon name="chart" size="sm" />
-              </span>
-              {{ t('modelChannelStatus.title') }}
-            </h1>
-            <p class="mt-1.5 flex flex-wrap items-center gap-2 text-xs text-gray-500 dark:text-gray-400">
-              <span v-if="refreshing" class="inline-flex items-center gap-1 text-primary-600 dark:text-primary-300">
-                <LoadingSpinner size="sm" />
-                {{ t('modelChannelStatus.updating') }}
-              </span>
-              <span v-else-if="catalog?.coverage?.data_through" data-testid="updated-to">
-                {{ t('modelChannelStatus.updatedTo', { time: formatTime(catalog.coverage.data_through) }) }}
-              </span>
-              <span v-else>{{ t('modelChannelStatus.description') }}</span>
-              <span v-if="catalog?.coverage && !catalog.coverage.coverage_complete" class="badge badge-warning">
-                {{ t('modelChannelStatus.partialCoverage') }}
-              </span>
-            </p>
-          </div>
-          <div class="flex items-center gap-2">
-            <router-link
-              :to="classicLocation"
-              class="btn btn-ghost btn-sm !px-2 !py-1 text-xs"
-              data-testid="classic-link"
-            >
-              {{ t('modelChannelStatus.classicView') }}
-            </router-link>
-            <button
-              type="button"
-              class="btn btn-secondary btn-icon flex h-8 w-8 items-center justify-center rounded-lg bg-gray-100 text-gray-500 hover:bg-gray-200 dark:bg-dark-700 dark:text-gray-400 dark:hover:bg-dark-600"
-              :title="t('common.refresh')"
-              :aria-label="t('common.refresh')"
-              :disabled="loading"
-              @click="load(false)"
-            >
-              <Icon name="refresh" size="sm" :class="loading ? 'animate-spin' : ''" />
-            </button>
-          </div>
-        </header>
+    <div class="space-y-4 pb-[calc(3rem+env(safe-area-inset-bottom))]" data-testid="model-channel-status">
+      <header class="flex flex-wrap items-center gap-x-3 gap-y-1">
+        <h1 class="m-0 flex items-center gap-2 text-lg font-black text-gray-900 dark:text-white">
+          <Icon name="chart" size="sm" class="text-primary-500 dark:text-primary-400" />
+          {{ t('modelChannelStatus.title') }}
+        </h1>
+        <span v-if="refreshing" class="inline-flex items-center gap-1 text-xs text-primary-600 dark:text-primary-300">
+          <LoadingSpinner size="sm" />
+          {{ t('modelChannelStatus.updating') }}
+        </span>
+        <span v-else-if="catalog?.coverage?.data_through" class="text-xs tabular-nums text-gray-500 dark:text-dark-400" data-testid="updated-to">
+          {{ t('modelChannelStatus.updatedTo', { time: formatCheckTime(catalog.coverage.data_through, true) }) }}
+        </span>
+        <span v-if="catalog?.coverage && !catalog.coverage.coverage_complete" class="badge badge-warning">
+          {{ t('modelChannelStatus.partialCoverage') }}
+        </span>
+        <span class="ml-auto flex items-center gap-2">
+          <button
+            type="button"
+            class="btn btn-secondary btn-icon flex h-8 w-8 items-center justify-center"
+            :title="t('common.refresh')"
+            :aria-label="t('common.refresh')"
+            :disabled="loading"
+            data-testid="refresh"
+            @click="load(false)"
+          >
+            <Icon name="refresh" size="sm" :class="loading ? 'animate-spin' : ''" />
+          </button>
+        </span>
+      </header>
 
-        <div class="flex flex-wrap items-center gap-2 px-4 py-3 sm:px-5">
-          <div class="tabs inline-flex shrink-0" role="group" :aria-label="t('modelChannelStatus.rangeLabel')">
+      <section class="card px-4 py-3">
+        <div class="flex flex-wrap items-center gap-2">
+          <span
+            v-if="callsStrip"
+            class="badge badge-gray shrink-0"
+            :title="t('modelChannelStatus.callsWindowHint', callsWindowParams)"
+            data-testid="calls-window"
+          >
+            {{ t('modelChannelStatus.callsWindow', { count: callsStrip.call_window }) }}
+          </span>
+          <div v-else class="tabs inline-flex shrink-0" role="group" :aria-label="t('modelChannelStatus.rangeLabel')">
             <button
               v-for="option in ranges"
               :key="option"
@@ -89,38 +84,54 @@
           <button
             type="button"
             class="btn btn-ghost btn-sm !px-2 !py-1 text-xs"
-            :disabled="!filtersActive"
-            :class="!filtersActive ? 'opacity-40' : ''"
+            :disabled="visibleGroups.length === 0 || filtersActive"
+            data-testid="toggle-all"
+            @click="allExpanded ? collapseAll() : expandAll()"
+          >
+            {{ allExpanded ? t('modelChannelStatus.collapseAll') : t('modelChannelStatus.expandAll') }}
+          </button>
+
+          <button
+            v-if="filtersActive"
+            type="button"
+            class="btn btn-ghost btn-sm !px-2 !py-1 text-xs text-primary-600 dark:text-primary-300"
+            data-testid="clear-filters"
             @click="clearFilters"
           >
             {{ t('modelChannelStatus.filters.clear') }}
           </button>
-
-          <div class="ml-auto flex items-center gap-3">
-            <ul class="m-0 hidden list-none items-center gap-2 p-0 text-[11px] text-gray-500 dark:text-dark-400 md:flex" :aria-label="t('modelChannelStatus.legend.title')">
-              <li class="font-medium">{{ t('modelChannelStatus.legend.title') }}</li>
-              <li
-                v-for="state in legendStates"
-                :key="state"
-                class="inline-flex items-center gap-1"
-                :title="state === 'unknown' ? t('modelChannelStatus.legend.unknownHint') : undefined"
-                :data-testid="`legend-${state}`"
-              >
-                <span class="h-2.5 w-2.5 rounded-sm" :class="healthBlockClass(state)" aria-hidden="true" />
-                {{ state === 'unknown' ? t('modelChannelStatus.legend.unknown') : t(`modelChannelStatus.health.${state}`) }}
-              </li>
-            </ul>
-            <button
-              type="button"
-              class="btn btn-ghost btn-sm !px-2 !py-1 text-xs"
-              :disabled="visibleGroups.length === 0 || filtersActive"
-              data-testid="toggle-all"
-              @click="allExpanded ? collapseAll() : expandAll()"
-            >
-              {{ allExpanded ? t('modelChannelStatus.collapseAll') : t('modelChannelStatus.expandAll') }}
-            </button>
-          </div>
         </div>
+
+        <ul
+          class="m-0 mt-2 flex list-none flex-wrap items-center gap-x-3 gap-y-1 p-0 text-[11px] text-gray-500 dark:text-dark-400"
+          :aria-label="t('modelChannelStatus.legend.title')"
+        >
+          <li
+            v-for="state in legendStates"
+            :key="state"
+            class="inline-flex items-center gap-1"
+            :title="healthLegendTitle(state)"
+            :data-testid="`legend-${state}`"
+          >
+            <span class="h-2.5 w-2.5 rounded-sm" :class="healthBlockClass(state)" aria-hidden="true" />
+            {{ state === 'unknown' ? t('modelChannelStatus.legend.unknown') : t(`modelChannelStatus.health.${state}`) }}
+          </li>
+          <li class="inline-flex items-center gap-2" data-testid="legend-cache">
+            <span>{{ t('modelChannelStatus.legend.cache') }}</span>
+            <span
+              v-for="level in cacheLevels"
+              :key="level"
+              class="inline-flex items-center gap-1"
+              :title="cacheLegendTitle(level)"
+              :data-testid="`legend-cache-${level}`"
+            >
+              <span class="flex h-2.5 w-1.5 items-end" aria-hidden="true">
+                <span class="w-full rounded-[1px] bg-gray-400 dark:bg-dark-400" :class="cacheHeightClass(level)" />
+              </span>
+              {{ t(`modelChannelStatus.legend.cacheLevel.${level}`) }}
+            </span>
+          </li>
+        </ul>
       </section>
 
       <div
@@ -163,6 +174,7 @@
           :group="group"
           :expanded="filtersActive || isExpanded(group.id)"
           :selected-key="selected?.row.key ?? null"
+          :strip="catalog?.strip"
           @toggle="toggle"
           @select="onSelect"
         />
@@ -176,30 +188,37 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, reactive, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { useRoute } from 'vue-router'
 import AppLayout from '@/components/layout/AppLayout.vue'
 import Icon from '@/components/icons/Icon.vue'
 import LoadingSpinner from '@/components/common/LoadingSpinner.vue'
 import FilterMultiSelect from '@/features/channel-monitor-v2/FilterMultiSelect.vue'
 import { useAppStore } from '@/stores/app'
 import { extractApiErrorMessage } from '@/utils/apiError'
-import { formatTime } from '@/utils/format'
 import { platformLabel } from '@/utils/platformColors'
 import { getCatalog } from '@/api/channelStatusCatalog'
-import type { CatalogGroup, CatalogHealth, CatalogModelRow, ChannelStatusCatalog } from '@/api/channelStatusCatalog'
+import type { CatalogCacheLevel, CatalogGroup, CatalogHealth, CatalogModelRow, ChannelStatusCatalog } from '@/api/channelStatusCatalog'
 import type { MonitorRange } from '@/api/channelMonitorV2'
 import CatalogGroupSection from './CatalogGroupSection.vue'
 import CatalogDetailDrawer from './CatalogDetailDrawer.vue'
-import { EMPTY_FILTERS, filterGroups, healthBlockClass, sortGroups } from './catalogFormat'
+import {
+  EMPTY_FILTERS,
+  cacheHeightClass,
+  filterGroups,
+  formatCheckTime,
+  formatStep,
+  healthBlockClass,
+  isCallsStrip,
+  sortGroups,
+} from './catalogFormat'
 import type { SelectedCatalogRow } from './catalogFormat'
 import { useGroupExpansion } from './useGroupExpansion'
 
 const AUTO_REFRESH_MS = 60_000
 const ranges: MonitorRange[] = ['90m', '24h', '7d', '30d']
 const legendStates: CatalogHealth[] = ['healthy', 'warning', 'critical', 'unknown']
+const cacheLevels: CatalogCacheLevel[] = ['high', 'mid', 'low', 'none']
 
 const { t } = useI18n()
-const route = useRoute()
 const appStore = useAppStore()
 
 const range = ref<MonitorRange>('24h')
@@ -213,6 +232,35 @@ const selected = ref<SelectedCatalogRow | null>(null)
 let controller: AbortController | null = null
 let sequence = 0
 let timer: number | null = null
+
+const callsStrip = computed(() => {
+  const strip = catalog.value?.strip
+  return isCallsStrip(strip) ? strip : null
+})
+const callsWindowParams = computed(() => {
+  const strip = callsStrip.value
+  if (!strip) return {}
+  return { count: strip.call_window, blocks: strip.blocks, per: Number((strip.call_window / strip.blocks).toFixed(1)) }
+})
+
+function healthLegendTitle(state: CatalogHealth): string | undefined {
+  const strip = catalog.value?.strip
+  if (state === 'unknown') return t('modelChannelStatus.legend.unknownHint', { min: strip?.min_calls ?? 1 })
+  if (!strip) return undefined
+  const { green, yellow } = strip.availability
+  if (state === 'healthy') return t('modelChannelStatus.legend.successAtLeast', { rate: formatStep(green) })
+  if (state === 'warning') return t('modelChannelStatus.legend.successBetween', { low: formatStep(yellow), high: formatStep(green) })
+  return t('modelChannelStatus.legend.successBelow', { rate: formatStep(yellow) })
+}
+
+function cacheLegendTitle(level: CatalogCacheLevel): string | undefined {
+  const steps = catalog.value?.strip?.cache
+  if (!steps) return undefined
+  if (level === 'high') return t('modelChannelStatus.legend.cacheAtLeast', { rate: formatStep(steps.high) })
+  if (level === 'mid') return t('modelChannelStatus.legend.cacheBetween', { low: formatStep(steps.mid), high: formatStep(steps.high) })
+  if (level === 'low') return t('modelChannelStatus.legend.cacheBetween', { low: formatStep(steps.low), high: formatStep(steps.mid) })
+  return t('modelChannelStatus.legend.cacheNone', { rate: formatStep(steps.low) })
+}
 
 const sortedGroups = computed(() => sortGroups(catalog.value?.groups ?? []))
 const issuesOnly = computed({
@@ -234,8 +282,6 @@ const platformOptions = computed(() => {
 })
 
 const { isExpanded, toggle, expandAll, collapseAll, allExpanded } = useGroupExpansion(sortedGroups)
-
-const classicLocation = computed(() => ({ path: route.path, query: { ...route.query, view: 'classic' } }))
 
 async function load(silent: boolean) {
   controller?.abort()

@@ -17,6 +17,7 @@ import (
 	"time"
 
 	"github.com/Wei-Shaw/sub2api/internal/pkg/apicompat"
+	"github.com/Wei-Shaw/sub2api/internal/pkg/httpresponse"
 	"github.com/Wei-Shaw/sub2api/internal/pkg/logger"
 	"github.com/Wei-Shaw/sub2api/internal/util/responseheaders"
 	"github.com/gin-gonic/gin"
@@ -1985,8 +1986,7 @@ func (s *OpenAIGatewayService) handleStreamingResponsePassthrough(
 	}
 
 	w := c.Writer
-	flusher, ok := w.(http.Flusher)
-	if !ok {
+	if _, ok := w.(http.Flusher); !ok {
 		return nil, errors.New("streaming not supported")
 	}
 
@@ -2098,7 +2098,9 @@ func (s *OpenAIGatewayService) handleStreamingResponsePassthrough(
 		if clientDisconnected || !flushPending {
 			return
 		}
-		flusher.Flush()
+		if err := httpresponse.Flush(w); err != nil {
+			startDisconnectDrain()
+		}
 		flushPending = false
 	}
 	defer flushPendingOutput()
@@ -2469,6 +2471,9 @@ scanLoop:
 		}
 	}
 	observeClientCancellation()
+	// EOF may leave a final SSE line without a blank boundary. Observe its
+	// flush failure before classifying the stream and snapshotting usage.
+	flushPendingOutput()
 	if clientDisconnected {
 		// The terminal may have been parsed before a downstream blank-line
 		// write failed. A later queued EOF/read error cannot undo completion.

@@ -5,7 +5,7 @@
   >
     <div class="flex h-16 items-center justify-between gap-2 px-3 sm:px-4 md:px-6">
       <div class="flex min-w-0 items-center gap-3">
-        <router-link to="/dashboard" class="flex shrink-0 items-center gap-2" data-testid="portal-brand">
+        <router-link to="/home" class="flex shrink-0 items-center gap-2" data-testid="portal-brand">
           <span
             class="flex h-8 w-8 items-center justify-center overflow-hidden rounded-lg"
             :class="siteLogo ? 'bg-gray-900 dark:bg-white' : 'pixel-logo'"
@@ -102,6 +102,10 @@
           </span>
         </component>
 
+        <ThemeToggle />
+
+        <LocaleSwitcher />
+
         <PortalAvatarMenu :links="avatar" />
       </div>
     </div>
@@ -115,6 +119,8 @@ import { useI18n } from 'vue-i18n'
 import AnnouncementBell from '@/components/common/AnnouncementBell.vue'
 import SubscriptionProgressMini from '@/components/common/SubscriptionProgressMini.vue'
 import PixelIcon from '../components/common/PixelIcon.vue'
+import LocaleSwitcher from '@/components/common/LocaleSwitcher.vue'
+import ThemeToggle from '@/components/common/ThemeToggle.vue'
 import { PURCHASE_ROUTE_NAME, resolveRouteMetaKeys } from '@/router/title'
 import { useAppStore } from '@/stores/app'
 import { useAuthStore } from '@/stores/auth'

@@ -72,6 +72,44 @@ type AccountTestOptions struct {
 	AudioDataURL string
 }
 
+// accountTestPromptKey carries the caller's prompt to text probes whose payload
+// builders do not take a prompt parameter (Claude, Bedrock, Responses, Grok text).
+const accountTestPromptKey = "account_test_prompt"
+
+const defaultAccountTestTextPrompt = "hi"
+
+// accountTestTextPrompt returns the caller's prompt, or "hi" when none was given.
+func accountTestTextPrompt(c *gin.Context) string {
+	if prompt := strings.TrimSpace(c.GetString(accountTestPromptKey)); prompt != "" {
+		return prompt
+	}
+	return defaultAccountTestTextPrompt
+}
+
+// bedrockTestMaxTokens keeps the short budget for the default probe and gives
+// custom prompts the same budget as the streaming Claude probe.
+func bedrockTestMaxTokens(c *gin.Context) int {
+	if accountTestTextPrompt(c) == defaultAccountTestTextPrompt {
+		return 256
+	}
+	return 1024
+}
+
+// buildGrokTextTestBody reuses the quota probe body and swaps in the caller's prompt.
+func buildGrokTextTestBody(c *gin.Context, model string) ([]byte, error) {
+	raw, err := buildGrokQuotaProbeBody(model)
+	prompt := strings.TrimSpace(c.GetString(accountTestPromptKey))
+	if err != nil || prompt == "" {
+		return raw, err
+	}
+	var body map[string]any
+	if err := json.Unmarshal(raw, &body); err != nil {
+		return nil, err
+	}
+	body["input"] = prompt
+	return json.Marshal(body)
+}
+
 func firstAccountTestOptions(opts []AccountTestOptions) AccountTestOptions {
 	if len(opts) == 0 {
 		return AccountTestOptions{}
@@ -302,7 +340,7 @@ func generateSessionString() (string, error) {
 }
 
 // createTestPayload creates a Claude Code style test request payload
-func createTestPayload(modelID string) (map[string]any, error) {
+func createTestPayload(modelID string, prompt string) (map[string]any, error) {
 	sessionID, err := generateSessionString()
 	if err != nil {
 		return nil, err
@@ -316,7 +354,7 @@ func createTestPayload(modelID string) (map[string]any, error) {
 				"content": []map[string]any{
 					{
 						"type": "text",
-						"text": "hi",
+						"text": prompt,
 						"cache_control": map[string]string{
 							"type": "ephemeral",
 						},
@@ -349,6 +387,7 @@ func createTestPayload(modelID string) (map[string]any, error) {
 // opts is optional media (image/audio data URLs for real generation / STT).
 func (s *AccountTestService) TestAccountConnection(c *gin.Context, accountID int64, modelID string, prompt string, mode string, opts ...AccountTestOptions) error {
 	initAccountTestLogger(c, accountID, modelID, mode)
+	c.Set(accountTestPromptKey, prompt)
 	ctx := c.Request.Context()
 	testOpts := firstAccountTestOptions(opts)
 
@@ -549,7 +588,7 @@ func (s *AccountTestService) testClaudeAccountConnection(c *gin.Context, account
 	c.Writer.Flush()
 
 	// Create Claude Code style payload (same for all account types)
-	payload, err := createTestPayload(testModelID)
+	payload, err := createTestPayload(testModelID, accountTestTextPrompt(c))
 	if err != nil {
 		return s.sendErrorAndEnd(c, "Failed to create test payload")
 	}
@@ -627,7 +666,7 @@ func (s *AccountTestService) testClaudeVertexServiceAccountConnection(c *gin.Con
 	c.Writer.Header().Set("X-Accel-Buffering", "no")
 	c.Writer.Flush()
 
-	payload, err := createTestPayload(testModelID)
+	payload, err := createTestPayload(testModelID, accountTestTextPrompt(c))
 	if err != nil {
 		return s.sendErrorAndEnd(c, "Failed to create test payload")
 	}
@@ -707,12 +746,12 @@ func (s *AccountTestService) testBedrockAccountConnection(c *gin.Context, ctx co
 				"content": []map[string]any{
 					{
 						"type": "text",
-						"text": "hi",
+						"text": accountTestTextPrompt(c),
 					},
 				},
 			},
 		},
-		"max_tokens":  256,
+		"max_tokens":  bedrockTestMaxTokens(c),
 		"temperature": 1,
 	}
 	bedrockBody, _ := json.Marshal(bedrockPayload)
@@ -879,7 +918,7 @@ func (s *AccountTestService) testOpenAIAccountConnection(c *gin.Context, account
 	if isOAuth {
 		upstreamTestModelID = normalizeOpenAIModelForUpstream(credentialAccount, testModelID)
 	}
-	payload := createOpenAITestPayload(upstreamTestModelID, isOAuth)
+	payload := createOpenAITestPayload(upstreamTestModelID, isOAuth, accountTestTextPrompt(c))
 	payloadBytes, _ := json.Marshal(payload)
 
 	// Send test_start event once. A task-invalid Agent Identity response may
@@ -1242,7 +1281,7 @@ func (s *AccountTestService) testGrokResponsesConnection(c *gin.Context, ctx con
 
 	s.prepareGrokTestSSE(c)
 
-	payloadBytes, err := buildGrokQuotaProbeBody(testModelID)
+	payloadBytes, err := buildGrokTextTestBody(c, testModelID)
 	if err != nil {
 		return s.sendErrorAndEnd(c, "Failed to create Grok test payload")
 	}
@@ -2771,7 +2810,7 @@ func (s *AccountTestService) processGeminiStream(c *gin.Context, body io.Reader)
 }
 
 // createOpenAITestPayload creates a test payload for OpenAI Responses API
-func createOpenAITestPayload(modelID string, isOAuth bool) map[string]any {
+func createOpenAITestPayload(modelID string, isOAuth bool, prompt string) map[string]any {
 	payload := map[string]any{
 		"model": modelID,
 		"input": []map[string]any{
@@ -2780,7 +2819,7 @@ func createOpenAITestPayload(modelID string, isOAuth bool) map[string]any {
 				"content": []map[string]any{
 					{
 						"type": "input_text",
-						"text": "hi",
+						"text": prompt,
 					},
 				},
 			},
@@ -3290,7 +3329,9 @@ func (s *AccountTestService) sendErrorAndEnd(c *gin.Context, errorMsg string) er
 
 // RunTestBackground executes an account test in-memory (no real HTTP client),
 // capturing SSE output via httptest.NewRecorder, then parses the result.
-func (s *AccountTestService) RunTestBackground(ctx context.Context, accountID int64, modelID string) (*ScheduledTestResult, error) {
+// An empty prompt keeps each platform's default probe. ModelID on the result is
+// the model actually sent upstream (after account mapping), from test_start.
+func (s *AccountTestService) RunTestBackground(ctx context.Context, accountID int64, modelID string, prompt string) (*ScheduledTestResult, error) {
 	startedAt := time.Now()
 
 	w := httptest.NewRecorder()
@@ -3298,11 +3339,15 @@ func (s *AccountTestService) RunTestBackground(ctx context.Context, accountID in
 	ginCtx.Request = (&http.Request{}).WithContext(ctx)
 	ginCtx.Set(accountTestBackgroundKey, true)
 
-	testErr := s.TestAccountConnection(ginCtx, accountID, modelID, "", AccountTestModeDefault)
+	testErr := s.TestAccountConnection(ginCtx, accountID, modelID, prompt, AccountTestModeDefault)
 
 	finishedAt := time.Now()
 	body := w.Body.String()
 	responseText, errMsg := parseTestSSEOutput(body)
+	upstreamModel := parseTestSSEStartModel(body)
+	if upstreamModel == "" {
+		upstreamModel = modelID
+	}
 
 	status := "success"
 	if testErr != nil || errMsg != "" {
@@ -3313,13 +3358,36 @@ func (s *AccountTestService) RunTestBackground(ctx context.Context, accountID in
 	}
 
 	return &ScheduledTestResult{
+		ModelID:      upstreamModel,
+		Prompt:       strings.TrimSpace(prompt),
 		Status:       status,
-		ResponseText: responseText,
+		ResponseText: truncateString(responseText, scheduledTestResponseMaxBytes),
 		ErrorMessage: errMsg,
 		LatencyMs:    finishedAt.Sub(startedAt).Milliseconds(),
 		StartedAt:    startedAt,
 		FinishedAt:   finishedAt,
 	}, nil
+}
+
+// scheduledTestResponseMaxBytes caps stored replies; char_art replies are shown to users.
+const scheduledTestResponseMaxBytes = 8 << 10
+
+// parseTestSSEStartModel returns the model reported by the first test_start event.
+func parseTestSSEStartModel(body string) string {
+	for _, line := range strings.Split(body, "\n") {
+		line = strings.TrimSpace(line)
+		if !strings.HasPrefix(line, "data: ") {
+			continue
+		}
+		var event TestEvent
+		if err := json.Unmarshal([]byte(strings.TrimPrefix(line, "data: ")), &event); err != nil {
+			continue
+		}
+		if event.Type == "test_start" {
+			return event.Model
+		}
+	}
+	return ""
 }
 
 // parseTestSSEOutput extracts response text and error message from captured SSE output.

@@ -26,6 +26,8 @@ type createScheduledTestPlanRequest struct {
 	Enabled        *bool  `json:"enabled"`
 	MaxResults     int    `json:"max_results"`
 	AutoRecover    *bool  `json:"auto_recover"`
+	scheduledTestPlanKindFields
+	Kind string `json:"kind"`
 }
 
 type updateScheduledTestPlanRequest struct {
@@ -34,6 +36,7 @@ type updateScheduledTestPlanRequest struct {
 	Enabled        *bool  `json:"enabled"`
 	MaxResults     int    `json:"max_results"`
 	AutoRecover    *bool  `json:"auto_recover"`
+	scheduledTestPlanKindFields
 }
 
 // ListByAccount GET /admin/accounts/:id/scheduled-test-plans
@@ -73,10 +76,13 @@ func (h *ScheduledTestHandler) Create(c *gin.Context) {
 	if req.AutoRecover != nil {
 		plan.AutoRecover = *req.AutoRecover
 	}
+	plan.Kind = req.Kind
+	plan.ShowInCatalog = req.Kind != "" && req.Kind != service.ScheduledTestKindProbe
+	req.apply(plan)
 
-	created, err := h.scheduledTestSvc.CreatePlan(c.Request.Context(), plan)
+	created, err := h.scheduledTestSvc.CreatePlanWithQuestions(c.Request.Context(), plan, req.QuestionIDs)
 	if err != nil {
-		response.BadRequest(c, err.Error())
+		respondScheduledTestError(c, err)
 		return
 	}
 	c.JSON(http.StatusOK, created)
@@ -117,10 +123,11 @@ func (h *ScheduledTestHandler) Update(c *gin.Context) {
 	if req.AutoRecover != nil {
 		existing.AutoRecover = *req.AutoRecover
 	}
+	req.apply(existing)
 
-	updated, err := h.scheduledTestSvc.UpdatePlan(c.Request.Context(), existing)
+	updated, err := h.scheduledTestSvc.UpdatePlanWithQuestions(c.Request.Context(), existing, req.QuestionIDs)
 	if err != nil {
-		response.BadRequest(c, err.Error())
+		respondScheduledTestError(c, err)
 		return
 	}
 	c.JSON(http.StatusOK, updated)
