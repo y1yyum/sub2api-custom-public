@@ -227,6 +227,23 @@ jobs:
           export GIT_CONFIG_VALUE_0
           git fetch --force --prune origin '+refs/heads/*:refs/remotes/origin/*' '+refs/tags/*:refs/tags/*' '+refs/pull/*:refs/remotes/public-review/pull/*'
           echo "refs: $(git for-each-ref | wc -l)"
+      # A new tag has an all-zero `before`, which would fall back to scanning all
+      # history. Scan what the tag adds beyond main instead; main commits were
+      # already scanned as PR ranges.
+      - name: Resolve tag scan base
+        if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/')
+        shell: bash
+        env:
+          JOB_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          export GIT_CONFIG_COUNT=1 GIT_CONFIG_KEY_0=http.extraHeader
+          GIT_CONFIG_VALUE_0="Authorization: basic $(printf 'x-access-token:%s' "$JOB_TOKEN" | base64 -w0)"
+          export GIT_CONFIG_VALUE_0
+          git fetch --no-tags origin '+refs/heads/main:refs/remotes/origin/main'
+          base=$(git merge-base HEAD refs/remotes/origin/main)
+          echo "Scanning ${base}..$(git rev-parse HEAD)"
+          echo "TAG_BASE_SHA=$base" >> "$GITHUB_ENV"
       - name: Secret scan (blocking)
         shell: bash
         env:
@@ -236,7 +253,7 @@ jobs:
         run: |
           set -euo pipefail
           ARGS=(--fail-on-findings --report "$RUNNER_TEMP/gitleaks.json")
-          BASE_SHA="${PR_BASE_SHA:-${PUSH_BEFORE_SHA:-}}"
+          BASE_SHA="${PR_BASE_SHA:-${TAG_BASE_SHA:-${PUSH_BEFORE_SHA:-}}}"
           if [ "$STRICT_SECRETS" = "true" ]; then
             ARGS+=(--strict)
           elif [ -n "$BASE_SHA" ] && git cat-file -e "${BASE_SHA}^{commit}" 2>/dev/null; then
