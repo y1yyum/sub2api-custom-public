@@ -16,16 +16,19 @@ export interface ShellContext {
   override?: string | null
 }
 
+/** User pages that upstream `AppSidebar` also lists in the admin menu in simple mode. */
+export const ADMIN_SIMPLE_MODE_PATHS: readonly string[] = ['/keys', '/settings/mcp']
+
 /**
  * Picks the layout for a page. Admin-owned pages keep the upstream sidebar
  * until the admin archive shell lands; the ownership exceptions match where
- * upstream `AppSidebar` lists them: `/keys` for admins in simple mode and
- * custom pages whose visibility is `admin`.
+ * upstream `AppSidebar` lists them: `ADMIN_SIMPLE_MODE_PATHS` for admins in
+ * simple mode and custom pages whose visibility is `admin`.
  */
 export function resolveShellKind(ctx: ShellContext): ShellKind {
   if (ctx.override === 'upstream') return 'upstream'
   if (ctx.path === '/admin' || ctx.path.startsWith('/admin/')) return 'upstream'
-  if (ctx.isAdmin && ctx.isSimpleMode && ctx.path === '/keys') return 'upstream'
+  if (ctx.isAdmin && ctx.isSimpleMode && ADMIN_SIMPLE_MODE_PATHS.includes(ctx.path)) return 'upstream'
   if (ctx.isAdmin && ctx.routeName === 'CustomPage' && ctx.customPageId) {
     if (ctx.adminCustomPageIds.includes(ctx.customPageId)) return 'upstream'
     // A failed load falls back to the portal rather than blanking the page.

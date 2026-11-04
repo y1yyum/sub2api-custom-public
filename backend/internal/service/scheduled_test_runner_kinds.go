@@ -41,7 +41,11 @@ func (s *ScheduledTestRunnerService) runPlanTest(ctx context.Context, plan *Sche
 }
 
 func (s *ScheduledTestRunnerService) runKindTest(ctx context.Context, plan *ScheduledTestPlan, prompt string) (*ScheduledTestResult, error) {
-	result, err := s.accountTestSvc.RunTestBackground(ctx, plan.AccountID, plan.ModelID, prompt)
+	testSvc := s.accountTestSvc
+	if plan.Kind == ScheduledTestKindQuiz {
+		testSvc = testSvc.forScheduledQuiz()
+	}
+	result, err := testSvc.RunTestBackground(ctx, plan.AccountID, plan.ModelID, prompt)
 	if err != nil {
 		return nil, err
 	}

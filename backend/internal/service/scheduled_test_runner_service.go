@@ -131,10 +131,14 @@ func (s *ScheduledTestRunnerService) runOnePlan(ctx context.Context, plan *Sched
 	default:
 		if err := s.scheduledSvc.SaveResult(ctx, plan.ID, plan.MaxResults, result); err != nil {
 			logger.LegacyPrintf("service.scheduled_test_runner", "[ScheduledTestRunner] plan=%d SaveResult error: %v", plan.ID, err)
+		} else if plan.Kind == ScheduledTestKindQuiz && plan.FailureAction != "" && plan.FailureAction != ScheduledTestFailureNone {
+			if err := s.planRepo.ApplyQuizOutcome(ctx, plan, result); err != nil {
+				logger.LegacyPrintf("service.scheduled_test_runner", "[ScheduledTestRunner] plan=%d ApplyQuizOutcome error: %v", plan.ID, err)
+			}
 		}
 
 		// Auto-recover account if test succeeded and auto_recover is enabled.
-		if result.Status == "success" && plan.AutoRecover {
+		if (plan.Kind == "" || plan.Kind == ScheduledTestKindProbe) && result.Status == "success" && plan.AutoRecover {
 			s.tryRecoverAccount(ctx, plan.AccountID, plan.ID)
 		}
 	}

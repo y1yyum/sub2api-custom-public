@@ -10,6 +10,13 @@ export default {
     pickMode: 'Pick mode',
     pickRotate: 'Rotate',
     pickRandom: 'Random',
+    failureAction: 'On incorrect answer',
+    failureActions: {
+      none: 'Record only',
+      disable_model: 'Disable corresponding model',
+      disable_account: 'Disable entire account'
+    },
+    failureActionHelp: 'An incorrect answer stops request scheduling for the selected scope. A later correct answer from the same plan automatically lifts this restriction. Request failures leave it unchanged; automatic recovery does not undo manual disabling.',
     showInCatalog: 'Show to users',
     questions: 'Questions',
     questionsSelected: '{count} selected',

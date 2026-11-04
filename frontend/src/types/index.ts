@@ -288,6 +288,8 @@ export interface PublicSettings {
   service_quota_enabled: boolean
   affiliate_enabled: boolean
   allow_user_view_error_requests?: boolean
+  /** True when the deployment configures MCP_PUBLIC_URL; MCP is disabled otherwise. */
+  mcp_enabled?: boolean
 }
 
 export interface AuthResponse {
@@ -2527,6 +2529,7 @@ export interface ScheduledTestPlan {
   kind: ScheduledTestKind
   prompt: string
   pick_mode: ScheduledTestPickMode
+  failure_action: ScheduledTestFailureAction
   show_in_catalog: boolean
   question_ids?: number[]
   last_run_at: string | null
@@ -2563,6 +2566,7 @@ export interface CreateScheduledTestPlanRequest {
   kind?: ScheduledTestKind
   prompt?: string
   pick_mode?: ScheduledTestPickMode
+  failure_action?: ScheduledTestFailureAction
   show_in_catalog?: boolean
   question_ids?: number[]
 }
@@ -2575,12 +2579,14 @@ export interface UpdateScheduledTestPlanRequest {
   auto_recover?: boolean
   prompt?: string
   pick_mode?: ScheduledTestPickMode
+  failure_action?: ScheduledTestFailureAction
   show_in_catalog?: boolean
   question_ids?: number[]
 }
 
 export type ScheduledTestKind = 'probe' | 'char_art' | 'quiz'
 export type ScheduledTestPickMode = 'rotate' | 'random'
+export type ScheduledTestFailureAction = 'none' | 'disable_model' | 'disable_account'
 export type IntelligenceAnswerRule = 'exact' | 'number' | 'regex'
 
 export interface IntelligenceQuestion {

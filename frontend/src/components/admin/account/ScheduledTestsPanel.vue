@@ -37,6 +37,7 @@
           v-model:kind="newPlan.kind"
           v-model:prompt="newPlan.prompt"
           v-model:pick-mode="newPlan.pick_mode"
+          v-model:failure-action="newPlan.failure_action"
           v-model:show-in-catalog="newPlan.show_in_catalog"
           v-model:question-ids="newPlan.question_ids"
           class="mb-3"
@@ -186,6 +187,9 @@
                 <div class="mt-0.5 font-mono text-xs text-gray-500 dark:text-gray-400">
                   {{ plan.cron_expression }}
                 </div>
+                <div v-if="plan.kind === 'quiz'" class="mt-0.5 text-xs text-gray-500 dark:text-gray-400">
+                  {{ t('admin.scheduledTestKinds.failureAction') }}: {{ t(`admin.scheduledTestKinds.failureActions.${plan.failure_action}`) }}
+                </div>
               </div>
 
               <!-- Enabled Toggle -->
@@ -264,6 +268,7 @@
               v-model:kind="editForm.kind"
               v-model:prompt="editForm.prompt"
               v-model:pick-mode="editForm.pick_mode"
+              v-model:failure-action="editForm.failure_action"
               v-model:show-in-catalog="editForm.show_in_catalog"
               v-model:question-ids="editForm.question_ids"
               class="mb-3"

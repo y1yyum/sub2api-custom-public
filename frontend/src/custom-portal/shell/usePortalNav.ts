@@ -28,6 +28,7 @@ export function usePortalNavContext() {
     flagSubscription: makeSidebarFlag(FeatureFlags.subscription),
     flagPayment: makeSidebarFlag(FeatureFlags.payment),
     flagAffiliate: makeSidebarFlag(FeatureFlags.affiliate),
+    flagMCP: makeSidebarFlag(FeatureFlags.mcp),
     // The unified Models & Channels page already carries prices, so the standalone pricing tab goes away.
     flagModelPlaza: () => (isUnifiedModelChannelStatusEnabled() ? false : modelPlazaFlag())
   }

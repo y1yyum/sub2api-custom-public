@@ -86,6 +86,33 @@
           </button>
         </div>
       </div>
+      <fieldset class="space-y-1">
+        <legend class="text-xs font-medium text-gray-600 dark:text-gray-400">
+          {{ t('admin.scheduledTestKinds.failureAction') }}
+        </legend>
+        <div class="flex flex-wrap gap-1" role="radiogroup" :aria-label="t('admin.scheduledTestKinds.failureAction')">
+          <button
+            v-for="action in FAILURE_ACTIONS"
+            :key="action"
+            type="button"
+            role="radio"
+            :aria-checked="failureAction === action"
+            :data-failure-action="action"
+            :class="[
+              'rounded-md px-3 py-1 text-xs font-medium transition-colors',
+              failureAction === action
+                ? 'bg-primary-500 text-white'
+                : 'bg-gray-100 text-gray-600 hover:bg-gray-200 dark:bg-dark-700 dark:text-gray-300'
+            ]"
+            @click="failureAction = action"
+          >
+            {{ t(`admin.scheduledTestKinds.failureActions.${action}`) }}
+          </button>
+        </div>
+        <p class="text-xs text-gray-500 dark:text-gray-400">
+          {{ t('admin.scheduledTestKinds.failureActionHelp') }}
+        </p>
+      </fieldset>
     </div>
 
     <label v-if="kind !== 'probe'" class="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
@@ -99,10 +126,11 @@
 import { useI18n } from 'vue-i18n'
 import TextArea from '@/components/common/TextArea.vue'
 import Toggle from '@/components/common/Toggle.vue'
-import type { IntelligenceQuestion, ScheduledTestKind, ScheduledTestPickMode } from '@/types'
+import type { IntelligenceQuestion, ScheduledTestFailureAction, ScheduledTestKind, ScheduledTestPickMode } from '@/types'
 
 const KIND_OPTIONS: ScheduledTestKind[] = ['probe', 'char_art', 'quiz']
 const PICK_MODES: ScheduledTestPickMode[] = ['rotate', 'random']
+const FAILURE_ACTIONS: ScheduledTestFailureAction[] = ['none', 'disable_model', 'disable_account']
 
 defineProps<{
   kindEditable: boolean
@@ -116,6 +144,7 @@ const emit = defineEmits<{
 const kind = defineModel<ScheduledTestKind>('kind', { required: true })
 const prompt = defineModel<string>('prompt', { required: true })
 const pickMode = defineModel<ScheduledTestPickMode>('pickMode', { required: true })
+const failureAction = defineModel<ScheduledTestFailureAction>('failureAction', { required: true })
 const showInCatalog = defineModel<boolean>('showInCatalog', { required: true })
 const questionIds = defineModel<number[]>('questionIds', { required: true })
 

@@ -143,13 +143,14 @@ func createAccountRecord(ctx context.Context, client *dbent.Client, account *ser
 		return service.ErrAccountNilInput
 	}
 
+	extra := stripScheduledTestRestrictionsFromExtra(account.Extra)
 	builder := client.Account.Create().
 		SetName(account.Name).
 		SetNillableNotes(account.Notes).
 		SetPlatform(account.Platform).
 		SetType(account.Type).
 		SetCredentials(normalizeJSONMap(account.Credentials)).
-		SetExtra(normalizeJSONMap(account.Extra)).
+		SetExtra(normalizeJSONMap(extra)).
 		SetConcurrency(account.Concurrency).
 		SetPriority(account.Priority).
 		SetStatus(account.Status).
@@ -202,6 +203,7 @@ func createAccountRecord(ctx context.Context, client *dbent.Client, account *ser
 		return translatePersistenceError(err, service.ErrAccountNotFound, nil)
 	}
 
+	account.Extra = extra
 	account.ID = created.ID
 	account.CreatedAt = created.CreatedAt
 	account.UpdatedAt = created.UpdatedAt
@@ -682,7 +684,8 @@ func lockAndMergeAccountProbeExtra(
 			extra -> 'opencode_go_usage_auto_refresh',
 			extra -> 'opencode_go_usage_snapshot',
 			extra -> 'grok_observed_models',
-			extra -> 'upstream_model_metadata'
+			extra -> 'upstream_model_metadata',
+			extra -> 'scheduled_test_restrictions'
 		FROM accounts
 		WHERE id = $1 AND deleted_at IS NULL
 		FOR NO KEY UPDATE
@@ -713,6 +716,7 @@ func lockAndMergeAccountProbeExtra(
 		currentOpenCodeSnapshot        []byte
 		currentGrokObservedModels      []byte
 		currentUpstreamModelMetadata   []byte
+		currentScheduledRestrictions   []byte
 	)
 	if err := rows.Scan(
 		&identityUnchanged,
@@ -729,6 +733,7 @@ func lockAndMergeAccountProbeExtra(
 		&currentOpenCodeSnapshot,
 		&currentGrokObservedModels,
 		&currentUpstreamModelMetadata,
+		&currentScheduledRestrictions,
 	); err != nil {
 		return nil, err
 	}
@@ -842,11 +847,12 @@ func lockAndMergeAccountProbeExtra(
 			}
 		}
 	}
-	// Grok 目录和能力 metadata 是同步写入的受管状态。普通更新在行锁内采用最新
-	// 数据库值，忽略表单旧值、缺键和注入。来源身份变化不删除已有成功快照。
+	// Grok 目录、能力 metadata 和智力测试限制是运行时受管状态。普通更新采用
+	// 行锁内的最新数据库值，忽略表单旧值、缺键和注入；已删除的键不会复活。
 	for key, raw := range map[string][]byte{
-		"grok_observed_models":                currentGrokObservedModels,
-		service.UpstreamModelMetadataExtraKey: currentUpstreamModelMetadata,
+		"grok_observed_models":                        currentGrokObservedModels,
+		service.UpstreamModelMetadataExtraKey:         currentUpstreamModelMetadata,
+		service.AccountExtraScheduledTestRestrictions: currentScheduledRestrictions,
 	} {
 		delete(extra, key)
 		value, ok, err := decodeAccountExtraJSON(raw)
@@ -1969,7 +1975,7 @@ func (r *accountRepository) BindGroups(ctx context.Context, accountID int64, gro
 	if scoped := r.accountTransactionScope(ctx); scoped != r {
 		return scoped.BindGroups(ctx, accountID, groupIDs)
 	}
-	if adminaccess.FromContext(ctx) != nil {
+	if adminaccess.RestrictedFromContext(ctx) != nil {
 		return r.scopedAdminBindGroups(ctx, accountID, groupIDs)
 	}
 	existingGroupIDs, err := r.loadAccountGroupIDs(ctx, accountID)
@@ -2792,6 +2798,7 @@ func (r *accountRepository) UpdateExtra(ctx context.Context, id int64, updates m
 	if scoped := r.accountTransactionScope(ctx); scoped != r {
 		return scoped.UpdateExtra(ctx, id, updates)
 	}
+	updates = stripScheduledTestRestrictionsFromExtra(updates)
 	updates = stripCodexFingerprintSeedFromExtraUpdate(updates)
 	if len(updates) == 0 {
 		return nil
@@ -3069,6 +3076,7 @@ func (r *accountRepository) BulkUpdate(ctx context.Context, ids []int64, updates
 	if len(ids) == 0 {
 		return 0, nil
 	}
+	updates.Extra = stripScheduledTestRestrictionsFromExtra(updates.Extra)
 	updates.Extra = stripCodexFingerprintSeedFromExtraUpdate(updates.Extra)
 
 	setClauses := make([]string, 0, 8)
