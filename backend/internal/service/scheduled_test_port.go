@@ -26,6 +26,12 @@ const (
 	ScheduledTestVerdictFail = "fail"
 )
 
+const (
+	ScheduledTestFailureNone           = "none"
+	ScheduledTestFailureDisableModel   = "disable_model"
+	ScheduledTestFailureDisableAccount = "disable_account"
+)
+
 // ScheduledTestPlan represents a scheduled test plan domain model.
 type ScheduledTestPlan struct {
 	ID             int64      `json:"id"`
@@ -36,6 +42,8 @@ type ScheduledTestPlan struct {
 	MaxResults     int        `json:"max_results"`
 	AutoRecover    bool       `json:"auto_recover"`
 	Kind           string     `json:"kind"`
+	FailureAction  string     `json:"failure_action"`
+	PolicyVersion  int64      `json:"-"`
 	Prompt         string     `json:"prompt"`
 	PickMode       string     `json:"pick_mode"`
 	RotationCursor int        `json:"rotation_cursor"`
@@ -74,6 +82,7 @@ type ScheduledTestPlanRepository interface {
 	ListDue(ctx context.Context, now time.Time) ([]*ScheduledTestPlan, error)
 	Update(ctx context.Context, plan *ScheduledTestPlan) (*ScheduledTestPlan, error)
 	Delete(ctx context.Context, id int64) error
+	ApplyQuizOutcome(ctx context.Context, plan *ScheduledTestPlan, result *ScheduledTestResult) error
 	UpdateAfterRun(ctx context.Context, id int64, lastRunAt time.Time, nextRunAt time.Time) error
 }
 

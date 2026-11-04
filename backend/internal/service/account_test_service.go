@@ -924,7 +924,7 @@ func (s *AccountTestService) testOpenAIAccountConnection(c *gin.Context, account
 	// Send test_start event once. A task-invalid Agent Identity response may
 	// restart this probe after registering a replacement task.
 	if !agentIdentityTaskRecoveryWasTried(ctx) {
-		s.sendEvent(c, TestEvent{Type: "test_start", Model: testModelID})
+		s.sendEvent(c, TestEvent{Type: "test_start", Model: upstreamTestModelID})
 	}
 
 	req, err := http.NewRequestWithContext(ctx, "POST", apiURL, bytes.NewReader(payloadBytes))
@@ -2522,7 +2522,7 @@ func (s *AccountTestService) testAntigravityAccountConnection(c *gin.Context, ac
 	c.Writer.Flush()
 
 	// Send test_start event
-	s.sendEvent(c, TestEvent{Type: "test_start", Model: testModelID})
+	s.sendEvent(c, TestEvent{Type: "test_start", Model: s.antigravityGatewayService.getMappedModel(account, testModelID)})
 
 	// 调用 AntigravityGatewayService.TestConnectionWithPrompt（复用协议转换逻辑）
 	result, err := s.antigravityGatewayService.TestConnectionWithPrompt(ctx, account, testModelID, prompt)

@@ -10,6 +10,13 @@ export default {
     pickMode: '抽题方式',
     pickRotate: '轮换',
     pickRandom: '随机',
+    failureAction: '未通过时',
+    failureActions: {
+      none: '仅记录',
+      disable_model: '禁用对应模型',
+      disable_account: '禁用整个账号'
+    },
+    failureActionHelp: '答错后停止对应范围的请求调度，后续同一计划答对自动解除；请求失败不改变该限制，手工禁用不受自动恢复影响。',
     showInCatalog: '用户端展示',
     questions: '题目',
     questionsSelected: '已选 {count} 题',

@@ -4,6 +4,7 @@ import { intelligenceQuestionsAPI } from '@/api/admin/intelligenceQuestions'
 import { buildScheduledTestModelOptions, isTextTestModel } from '@/utils/scheduledTestModels'
 import type {
   IntelligenceQuestion,
+  ScheduledTestFailureAction,
   ScheduledTestKind,
   ScheduledTestPickMode,
   ScheduledTestPlan,
@@ -17,6 +18,7 @@ export interface KindFields {
   kind: ScheduledTestKind
   prompt: string
   pick_mode: ScheduledTestPickMode
+  failure_action: ScheduledTestFailureAction
   show_in_catalog: boolean
   question_ids: number[]
 }
@@ -31,6 +33,7 @@ export const newKindFields = (): KindFields => ({
   kind: 'probe',
   prompt: '',
   pick_mode: 'rotate',
+  failure_action: 'none',
   show_in_catalog: true,
   question_ids: []
 })
@@ -39,6 +42,7 @@ export const kindFieldsFromPlan = (plan: ScheduledTestPlan): KindFields => ({
   kind: plan.kind || 'probe',
   prompt: plan.prompt ?? '',
   pick_mode: plan.pick_mode || 'rotate',
+  failure_action: plan.failure_action,
   show_in_catalog: Boolean(plan.show_in_catalog),
   question_ids: [...(plan.question_ids ?? [])]
 })
@@ -46,13 +50,18 @@ export const kindFieldsFromPlan = (plan: ScheduledTestPlan): KindFields => ({
 /** Only sends the fields the plan kind uses; the backend rejects question IDs on non-quiz plans. */
 export const kindFieldsRequest = (fields: KindFields): Pick<
   UpdateScheduledTestPlanRequest,
-  'prompt' | 'pick_mode' | 'show_in_catalog' | 'question_ids'
+  'prompt' | 'pick_mode' | 'failure_action' | 'show_in_catalog' | 'question_ids'
 > => {
   switch (fields.kind) {
     case 'char_art':
       return { prompt: fields.prompt, show_in_catalog: fields.show_in_catalog }
     case 'quiz':
-      return { pick_mode: fields.pick_mode, show_in_catalog: fields.show_in_catalog, question_ids: [...fields.question_ids] }
+      return {
+        pick_mode: fields.pick_mode,
+        failure_action: fields.failure_action,
+        show_in_catalog: fields.show_in_catalog,
+        question_ids: [...fields.question_ids]
+      }
     default:
       return {}
   }

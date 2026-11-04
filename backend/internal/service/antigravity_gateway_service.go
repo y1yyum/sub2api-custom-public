@@ -283,7 +283,7 @@ func mapAntigravityModel(account *Account, requestedModel string) string {
 	// 1. 映射表中有 "model-a": "model-a"（显式透传）→ 返回 model-a
 	// 2. 通配符匹配 "claude-*": "claude-sonnet-4-5" 恰好目标等于请求名 → 返回 model-a
 	// 3. 映射表中没有 model-a 的配置 → 返回空（不支持）
-	if account.IsModelSupported(requestedModel) {
+	if account.isModelMappingSupported(requestedModel) {
 		return requestedModel
 	}
 
@@ -368,7 +368,7 @@ func (s *AntigravityGatewayService) TestConnection(ctx context.Context, account 
 	return s.TestConnectionWithPrompt(ctx, account, modelID, "")
 }
 
-// TestConnectionWithPrompt 测试 Antigravity 账号连接，支持为图片生成模型指定测试提示词。
+// TestConnectionWithPrompt 测试 Antigravity 账号连接，支持文本和图片测试提示词。
 func (s *AntigravityGatewayService) TestConnectionWithPrompt(ctx context.Context, account *Account, modelID string, prompt string) (*TestConnectionResult, error) {
 
 	// 获取 token
@@ -396,7 +396,7 @@ func (s *AntigravityGatewayService) TestConnectionWithPrompt(ctx context.Context
 	if shouldUseAntigravityGeminiTestRequest(modelID, mappedModel) {
 		requestBody, err = s.buildGeminiTestRequestWithPrompt(projectID, mappedModel, prompt)
 	} else {
-		requestBody, err = s.buildClaudeTestRequest(projectID, mappedModel)
+		requestBody, err = s.buildClaudeTestRequest(projectID, mappedModel, prompt)
 	}
 	if err != nil {
 		return nil, fmt.Errorf("构建请求失败: %w", err)
@@ -468,7 +468,7 @@ func testConnectionHandleError(
 }
 
 // buildGeminiTestRequestWithPrompt 构建 Gemini 格式测试请求
-// 文本模型使用最小 token 消耗：输入 "." + maxOutputTokens: 1；图片模型使用图片生成配置
+// 无提示词时保留最小连通性探测；文本题目允许完整回答，图片模型使用图片生成配置。
 func (s *AntigravityGatewayService) buildGeminiTestRequestWithPrompt(projectID, model, prompt string) ([]byte, error) {
 	if isImageGenerationModel(model) {
 		imagePrompt := strings.TrimSpace(prompt)
@@ -500,12 +500,16 @@ func (s *AntigravityGatewayService) buildGeminiTestRequestWithPrompt(projectID, 
 		return s.wrapV1InternalRequest(projectID, model, payloadBytes)
 	}
 
+	text, maxTokens := ".", 1
+	if strings.TrimSpace(prompt) != "" {
+		text, maxTokens = strings.TrimSpace(prompt), 1024
+	}
 	payload := map[string]any{
 		"contents": []map[string]any{
 			{
 				"role": "user",
 				"parts": []map[string]any{
-					{"text": "."},
+					{"text": text},
 				},
 			},
 		},
@@ -516,7 +520,7 @@ func (s *AntigravityGatewayService) buildGeminiTestRequestWithPrompt(projectID, 
 			},
 		},
 		"generationConfig": map[string]any{
-			"maxOutputTokens": 1,
+			"maxOutputTokens": maxTokens,
 		},
 		"toolConfig": map[string]any{
 			"functionCallingConfig": map[string]any{
@@ -529,17 +533,22 @@ func (s *AntigravityGatewayService) buildGeminiTestRequestWithPrompt(projectID, 
 }
 
 // buildClaudeTestRequest 构建 Claude 格式测试请求并转换为 Gemini 格式
-// 使用最小 token 消耗：输入 "." + MaxTokens: 1
-func (s *AntigravityGatewayService) buildClaudeTestRequest(projectID, mappedModel string) ([]byte, error) {
+// 无提示词时保留最小连通性探测；文本题目允许完整回答。
+func (s *AntigravityGatewayService) buildClaudeTestRequest(projectID, mappedModel, prompt string) ([]byte, error) {
+	text, maxTokens := ".", 1
+	if strings.TrimSpace(prompt) != "" {
+		text, maxTokens = strings.TrimSpace(prompt), 1024
+	}
+	content, _ := json.Marshal(text)
 	claudeReq := &antigravity.ClaudeRequest{
 		Model: mappedModel,
 		Messages: []antigravity.ClaudeMessage{
 			{
 				Role:    "user",
-				Content: json.RawMessage(`"."`),
+				Content: content,
 			},
 		},
-		MaxTokens: 1,
+		MaxTokens: maxTokens,
 		Stream:    false,
 	}
 	return antigravity.TransformClaudeToGemini(claudeReq, projectID, mappedModel)

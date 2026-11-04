@@ -13,18 +13,17 @@ const i18n = createI18n({
   messages: {
     en: {
       payment: {
-        // 单位和购买按钮显式返回 key，避免断言依赖 runtime-only 的字符串编译行为。
-        days: () => "payment.days",
-        weeks: () => "payment.weeks",
-        months: () => "payment.months",
-        perMonth: () => "payment.perMonth",
+        days: "days",
+        weeks: "weeks",
+        months: "months",
+        perMonth: "month",
         models: "Models",
         planCard: {
           quota: "Quota",
           rate: "Rate",
           unlimited: "Unlimited",
         },
-        subscribeNow: () => "payment.subscribeNow",
+        subscribeNow: "Subscribe now",
       },
     },
   },
@@ -70,13 +69,13 @@ describe("SubscriptionPlanCard", () => {
   });
 
   // #4607：管理端保存的单位是复数（months/weeks），此前用户侧只匹配单数
-  // 'month'，「1 个月」的套餐卡片被显示成「1天」。夹具显式返回翻译 key，
-  // 故按 key 断言单位分支。
+  // 'month'，「1 个月」的套餐卡片被显示成「1天」。按上方测试消息渲染出的
+  // 单位文案断言各分支。
   it("renders plural admin-form validity units instead of mislabeled days (#4607)", () => {
-    expect(mountPlanCard("openai", { validity_days: 1, validity_unit: "months" }).text()).toContain("/ payment.perMonth");
-    expect(mountPlanCard("openai", { validity_days: 3, validity_unit: "months" }).text()).toContain("/ 3payment.months");
-    expect(mountPlanCard("openai", { validity_days: 2, validity_unit: "weeks" }).text()).toContain("/ 2payment.weeks");
-    expect(mountPlanCard("openai", { validity_days: 30, validity_unit: "day" }).text()).toContain("/ 30payment.days");
+    expect(mountPlanCard("openai", { validity_days: 1, validity_unit: "months" }).text()).toContain("/ month");
+    expect(mountPlanCard("openai", { validity_days: 3, validity_unit: "months" }).text()).toContain("/ 3months");
+    expect(mountPlanCard("openai", { validity_days: 2, validity_unit: "weeks" }).text()).toContain("/ 2weeks");
+    expect(mountPlanCard("openai", { validity_days: 30, validity_unit: "day" }).text()).toContain("/ 30days");
   });
 
   it("uses the configured currency symbol while preserving USD for legacy plans", () => {
@@ -127,11 +126,11 @@ describe("SubscriptionPlanCard", () => {
       "items-center",
       "justify-end",
     ]));
-    expect(badge?.element.parentElement?.textContent).toContain("/ 30payment.days");
+    expect(badge?.element.parentElement?.textContent).toContain("/ 30days");
     expect(badge?.element.parentElement?.parentElement?.classList).toContain("shrink-0");
     expect(price?.element.parentElement?.parentElement?.classList).toContain("shrink-0");
     expect(wrapper.get("p").text()).toBe("Includes advanced models and priority support.");
-    expect(wrapper.get("button").text()).toBe("payment.subscribeNow");
+    expect(wrapper.get("button").text()).toBe("Subscribe now");
   });
 
   it("keeps short plan titles compact and aligned", () => {
@@ -147,6 +146,6 @@ describe("SubscriptionPlanCard", () => {
       "items-center",
       "justify-end",
     ]));
-    expect(badge?.element.parentElement?.textContent).toContain("/ 30payment.days");
+    expect(badge?.element.parentElement?.textContent).toContain("/ 30days");
   });
 });

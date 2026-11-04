@@ -25,6 +25,17 @@ func normalizeScheduledTestPlan(plan *ScheduledTestPlan) error {
 	if plan.Kind == "" {
 		plan.Kind = ScheduledTestKindProbe
 	}
+	if plan.FailureAction == "" {
+		plan.FailureAction = ScheduledTestFailureNone
+	}
+	switch plan.FailureAction {
+	case ScheduledTestFailureNone, ScheduledTestFailureDisableModel, ScheduledTestFailureDisableAccount:
+	default:
+		return invalidScheduledTestPlan("failure_action must be none, disable_model or disable_account")
+	}
+	if plan.Kind != ScheduledTestKindQuiz && plan.FailureAction != ScheduledTestFailureNone {
+		return invalidScheduledTestPlan("failure_action is only supported for quiz plans")
+	}
 	if plan.PickMode == "" {
 		plan.PickMode = ScheduledTestPickRotate
 	}

@@ -22,7 +22,8 @@ const zh = {
       affiliate: '邀请返利',
       batchImage: '批量图像指南',
       docs: '接入文档',
-      profile: '个人资料与安全'
+      profile: '个人资料与安全',
+      mcp: 'MCP 接入'
     },
     topbar: {
       docs: '文档',

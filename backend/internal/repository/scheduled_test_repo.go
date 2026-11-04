@@ -5,30 +5,36 @@ import (
 	"database/sql"
 	"time"
 
+	dbent "github.com/Wei-Shaw/sub2api/ent"
+
 	"github.com/Wei-Shaw/sub2api/internal/service"
 )
 
 // --- Plan Repository ---
 
 const scheduledTestPlanColumns = `id, account_id, model_id, cron_expression, enabled, max_results, auto_recover,
-	kind, prompt, pick_mode, rotation_cursor, show_in_catalog, last_run_at, next_run_at, created_at, updated_at`
+	kind, prompt, pick_mode, rotation_cursor, show_in_catalog, failure_action, policy_version, last_run_at, next_run_at, created_at, updated_at`
 
 type scheduledTestPlanRepository struct {
-	db *sql.DB
+	db       *sql.DB
+	accounts *accountRepository
 }
 
-func NewScheduledTestPlanRepository(db *sql.DB) service.ScheduledTestPlanRepository {
-	return &scheduledTestPlanRepository{db: db}
+func NewScheduledTestPlanRepository(db *sql.DB, client *dbent.Client, schedulerCache service.SchedulerCache) service.ScheduledTestPlanRepository {
+	return &scheduledTestPlanRepository{db: db, accounts: newAccountRepositoryWithSQL(client, db, schedulerCache)}
 }
 
 func (r *scheduledTestPlanRepository) Create(ctx context.Context, plan *service.ScheduledTestPlan) (*service.ScheduledTestPlan, error) {
+	if plan.FailureAction == "" {
+		plan.FailureAction = service.ScheduledTestFailureNone
+	}
 	row := r.db.QueryRowContext(ctx, `
 		INSERT INTO scheduled_test_plans (account_id, model_id, cron_expression, enabled, max_results, auto_recover,
-			kind, prompt, pick_mode, show_in_catalog, next_run_at, created_at, updated_at)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, NOW(), NOW())
+			kind, prompt, pick_mode, show_in_catalog, next_run_at, failure_action, created_at, updated_at)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, NOW(), NOW())
 		RETURNING `+scheduledTestPlanColumns,
 		plan.AccountID, plan.ModelID, plan.CronExpression, plan.Enabled, plan.MaxResults, plan.AutoRecover,
-		scheduledTestKindOrProbe(plan.Kind), plan.Prompt, scheduledTestPickModeOrRotate(plan.PickMode), plan.ShowInCatalog, plan.NextRunAt)
+		scheduledTestKindOrProbe(plan.Kind), plan.Prompt, scheduledTestPickModeOrRotate(plan.PickMode), plan.ShowInCatalog, plan.NextRunAt, plan.FailureAction)
 	return scanPlan(row)
 }
 
@@ -69,20 +75,24 @@ func (r *scheduledTestPlanRepository) ListDue(ctx context.Context, now time.Time
 
 // Update leaves kind untouched: a plan's kind is fixed at creation.
 func (r *scheduledTestPlanRepository) Update(ctx context.Context, plan *service.ScheduledTestPlan) (*service.ScheduledTestPlan, error) {
-	row := r.db.QueryRowContext(ctx, `
+	return r.updateWithQuizRestriction(ctx, plan)
+}
+
+func updateScheduledTestPlan(ctx context.Context, tx *sql.Tx, plan *service.ScheduledTestPlan) (*service.ScheduledTestPlan, error) {
+	row := tx.QueryRowContext(ctx, `
 		UPDATE scheduled_test_plans
 		SET model_id = $2, cron_expression = $3, enabled = $4, max_results = $5, auto_recover = $6, next_run_at = $7,
-			prompt = $8, pick_mode = $9, show_in_catalog = $10, updated_at = NOW()
+			prompt = $8, pick_mode = $9, show_in_catalog = $10, failure_action = $11,
+            policy_version = policy_version + 1, updated_at = NOW()
 		WHERE id = $1
 		RETURNING `+scheduledTestPlanColumns,
 		plan.ID, plan.ModelID, plan.CronExpression, plan.Enabled, plan.MaxResults, plan.AutoRecover, plan.NextRunAt,
-		plan.Prompt, scheduledTestPickModeOrRotate(plan.PickMode), plan.ShowInCatalog)
+		plan.Prompt, scheduledTestPickModeOrRotate(plan.PickMode), plan.ShowInCatalog, plan.FailureAction)
 	return scanPlan(row)
 }
 
 func (r *scheduledTestPlanRepository) Delete(ctx context.Context, id int64) error {
-	_, err := r.db.ExecContext(ctx, `DELETE FROM scheduled_test_plans WHERE id = $1`, id)
-	return err
+	return r.deleteWithQuizRestriction(ctx, id)
 }
 
 func (r *scheduledTestPlanRepository) UpdateAfterRun(ctx context.Context, id int64, lastRunAt time.Time, nextRunAt time.Time) error {
@@ -166,7 +176,7 @@ func scanPlan(row scannable) (*service.ScheduledTestPlan, error) {
 	p := &service.ScheduledTestPlan{}
 	if err := row.Scan(
 		&p.ID, &p.AccountID, &p.ModelID, &p.CronExpression, &p.Enabled, &p.MaxResults, &p.AutoRecover,
-		&p.Kind, &p.Prompt, &p.PickMode, &p.RotationCursor, &p.ShowInCatalog,
+		&p.Kind, &p.Prompt, &p.PickMode, &p.RotationCursor, &p.ShowInCatalog, &p.FailureAction, &p.PolicyVersion,
 		&p.LastRunAt, &p.NextRunAt, &p.CreatedAt, &p.UpdatedAt,
 	); err != nil {
 		return nil, err

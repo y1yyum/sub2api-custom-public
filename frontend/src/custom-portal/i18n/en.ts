@@ -24,7 +24,8 @@ const en: typeof zh = {
       affiliate: 'Referral rewards',
       batchImage: 'Batch image guide',
       docs: 'Integration docs',
-      profile: 'Profile & security'
+      profile: 'Profile & security',
+      mcp: 'MCP connection'
     },
     topbar: {
       docs: 'Docs',

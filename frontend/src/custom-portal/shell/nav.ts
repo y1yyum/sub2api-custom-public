@@ -15,6 +15,7 @@ export type SidebarFlagName =
   | 'flagPayment'
   | 'flagAffiliate'
   | 'flagModelPlaza'
+  | 'flagMCP'
 
 export type PortalIconName =
   | 'home'
@@ -24,6 +25,7 @@ export type PortalIconName =
   | 'creditCard'
   | 'grid'
   | 'globe'
+  | 'swap'
   | 'bolt'
   | 'gift'
   | 'users'
@@ -98,7 +100,10 @@ export const docsLinks: PortalNavLink[] = [
   }
 ]
 
-export const avatarLinks: PortalNavLink[] = [{ id: 'profile', path: '/profile', icon: 'user' }]
+export const avatarLinks: PortalNavLink[] = [
+  { id: 'profile', path: '/profile', icon: 'user' },
+  { id: 'mcp', path: '/settings/mcp', icon: 'swap', sidebarFlag: 'flagMCP' }
+]
 
 /** Custom pages with `visibility === 'user'` populate the top-bar "More" menu. */
 export const CUSTOM_PAGE_PREFIX = '/custom/'

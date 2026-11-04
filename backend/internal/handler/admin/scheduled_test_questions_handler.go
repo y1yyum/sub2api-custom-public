@@ -14,6 +14,7 @@ import (
 // scheduledTestPlanKindFields are the char_art / quiz settings shared by the
 // create and update requests. Nil QuestionIDs keeps the current links.
 type scheduledTestPlanKindFields struct {
+	FailureAction *string `json:"failure_action"`
 	Prompt        *string `json:"prompt"`
 	PickMode      string  `json:"pick_mode"`
 	ShowInCatalog *bool   `json:"show_in_catalog"`
@@ -21,6 +22,9 @@ type scheduledTestPlanKindFields struct {
 }
 
 func (f scheduledTestPlanKindFields) apply(plan *service.ScheduledTestPlan) {
+	if f.FailureAction != nil {
+		plan.FailureAction = *f.FailureAction
+	}
 	if f.Prompt != nil {
 		plan.Prompt = *f.Prompt
 	}

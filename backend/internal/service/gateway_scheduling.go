@@ -2620,6 +2620,9 @@ func summarizeSelectionFailureStats(stats selectionFailureStats) string {
 // isModelSupportedByAccountWithContext 根据账户平台检查模型支持（带 context）
 // 对于 Antigravity 平台，会先获取映射后的最终模型名（包括 thinking 后缀）再检查支持
 func (s *GatewayService) isModelSupportedByAccountWithContext(ctx context.Context, account *Account, requestedModel string) bool {
+	if account.isScheduledTestModelBlocked(requestedModel, "") {
+		return false
+	}
 	if source, ok := CompositeRouteSourceFromContext(ctx); ok && source == CompositeRouteSourceAccount {
 		if publicModel, modelOK := RequestedPublicModelFromContext(ctx); modelOK && !explicitModelMappingClaims(*account, publicModel) {
 			return false
@@ -2637,18 +2640,24 @@ func (s *GatewayService) isModelSupportedByAccountWithContext(ctx context.Contex
 		// 应用 thinking 后缀后检查最终模型是否在账号映射中
 		if enabled, ok := ThinkingEnabledFromContext(ctx); ok {
 			finalModel := applyThinkingModelSuffix(mapped, enabled)
+			if account.isScheduledTestModelBlocked(requestedModel, finalModel) {
+				return false
+			}
 			if finalModel == mapped {
 				return true // thinking 后缀未改变模型名，映射已通过
 			}
-			return account.IsModelSupported(finalModel)
+			return account.isModelMappingSupported(finalModel)
 		}
-		return true
+		return !account.isScheduledTestModelBlocked(requestedModel, mapped)
 	}
 	return s.isModelSupportedByAccount(account, requestedModel)
 }
 
 // isModelSupportedByAccount 根据账户平台检查模型支持（无 context，用于非 Antigravity 平台）
 func (s *GatewayService) isModelSupportedByAccount(account *Account, requestedModel string) bool {
+	if account.IsScheduledTestModelBlocked(requestedModel) {
+		return false
+	}
 	if account.Platform == PlatformAntigravity {
 		if strings.TrimSpace(requestedModel) == "" {
 			return true
