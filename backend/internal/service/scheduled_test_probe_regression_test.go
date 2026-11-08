@@ -14,7 +14,7 @@ import (
 )
 
 func TestScheduledQuizAntigravityImageAndUpstreamSnapshot(t *testing.T) {
-	for _, model := range []string{"gemini-2.5-flash", "claude-sonnet-4-6"} {
+	for _, model := range []string{"gemini-2.5-flash", "gemini-3.1-flash-image", "claude-sonnet-4-6"} {
 		t.Run(model, func(t *testing.T) {
 			account := &Account{ID: 41, Platform: PlatformAntigravity, Type: AccountTypeUpstream,
 				Credentials: map[string]any{"api_key": "test-key", "project_id": "test-project", "model_mapping": map[string]any{"public-model": model}},

@@ -125,6 +125,7 @@ func TestScheduledQuizImageRequests(t *testing.T) {
 		{"responses", PlatformOpenAI, "gpt-5.4", "/v1/responses", "input.0.content.0.type", "data: {\"type\":\"response.completed\"}\n\n", false},
 		{"chat fallback", PlatformOpenAI, "gpt-5.4", "/v1/chat/completions", "messages.0.content.0.type", "data: [DONE]\n\n", true},
 		{"gemini", PlatformGemini, "gemini-2.5-flash", "/v1beta/models/gemini-2.5-flash:streamGenerateContent", "contents.0.parts.0.inlineData.mimeType", "data: {\"candidates\":[{\"content\":{\"parts\":[{\"text\":\"42\"}]}}]}\n\n", false},
+		{"gemini image alias", PlatformGemini, "gemini-3.1-flash-image", "/v1beta/models/gemini-3.1-flash-image:streamGenerateContent", "contents.0.parts.0.inlineData.mimeType", "data: {\"candidates\":[{\"content\":{\"parts\":[{\"text\":\"42\"}]}}]}\n\n", false},
 		{"grok", PlatformGrok, "grok-4.3", "/v1/responses", "input.0.content.0.type", "data: {\"type\":\"response.completed\"}\n\n", false},
 	} {
 		t.Run(tc.name, func(t *testing.T) {

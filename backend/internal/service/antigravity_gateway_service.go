@@ -470,7 +470,7 @@ func testConnectionHandleError(
 // buildGeminiTestRequestWithPrompt 构建 Gemini 格式测试请求
 // 无提示词时保留最小连通性探测；文本题目允许完整回答，图片模型使用图片生成配置。
 func (s *AntigravityGatewayService) buildGeminiTestRequestWithPrompt(projectID, model, prompt string, opts ...AccountTestOptions) ([]byte, error) {
-	if isImageGenerationModel(model) {
+	if isImageGenerationModel(model) && firstAccountTestOptions(opts).ImageDataURL == "" {
 		imagePrompt := strings.TrimSpace(prompt)
 		if imagePrompt == "" {
 			imagePrompt = defaultGeminiImageTestPrompt
