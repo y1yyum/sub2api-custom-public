@@ -510,6 +510,23 @@ export default {
 
     // Usage Records
     usage: {
+      diagnostics: {
+        title: 'Upstream response diagnostics', details: 'Diagnostics', usage: 'Usage', initial: 'Initial declaration', final: 'Final declaration',
+        scaled: 'Scaled', scaledHint: 'The upstream marked usage as custom scaled',
+        change: 'Input usage change', changeHint: '(Final total input - initial total input) / initial total input; upstream figures',
+        upstreamHint: 'These figures are declared by the upstream. Initial values may already be scaled and are not independently measured consumption. Missing fields are not treated as zero.',
+        notRecorded: 'No response diagnostics were recorded. Historical records and unsupported response paths are not backfilled with inferred values.',
+        notReturned: 'Not returned', yes: 'Yes', no: 'No',
+        ended: 'Ended', stopSequence: 'Stop sequence', toolStop: 'Tool call', outputLimit: 'Output limit', contextLimit: 'Context limit', paused: 'Paused', filtered: 'Content filtered',
+        totalInput: 'Total input (including cache)', messageId: 'Upstream message ID', protocol: 'Response protocol', stopReason: 'Stop reason',
+        integrity: 'Upstream stream integrity', complete: 'Complete ending observed', incomplete: 'Incomplete ending or stream error',
+        integrityHint: 'Integrity means an upstream terminal event was observed without an unresolved stream error; it does not confirm complete delivery to the client.',
+        thinking: 'Reported thinking tokens (included in output)', serviceTier: 'Reported service tier', inferenceGeo: 'Reported inference region',
+        tools: 'Declared tool calls', clientTool: 'Client tool', serverTool: 'Server tool', iterations: 'Inference iterations', kind: 'Type', model: 'Declared model',
+        events: 'Observed events', error: 'Stream error type', truncated: 'Only the first 32 iteration summaries are retained to bound diagnostic size.',
+        blocks: 'Content block summary',
+        cache5m: '5-minute cache writes', cache1h: '1-hour cache writes',
+      },
       title: 'Usage Records',
       description: 'View and manage all user usage records',
       userFilter: 'User',

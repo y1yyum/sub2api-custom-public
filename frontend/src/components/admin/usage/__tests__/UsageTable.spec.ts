@@ -116,6 +116,25 @@ const DataTableStub = {
   `,
 }
 
+describe('response diagnostics visibility', () => {
+  it('keeps the shared user table free of diagnostics unless the administrator view enables them', async () => {
+    const wrapper = mount(UsageTable, {
+      props: {
+        data: [{ request_id: 'visibility', model: 'claude-example', input_tokens: 4, output_tokens: 10,
+          response_diagnostics: { protocol: 'anthropic', display_scaled: true, stream_complete: true, event_count: 3 } }],
+        columns: [{ key: 'tokens', label: 'Tokens' }],
+      },
+      global: { stubs: { DataTable: DataTableStub, Icon: true, Teleport: true } },
+    })
+    expect(wrapper.find('[data-testid="usage-diagnostics"]').exists()).toBe(false)
+    await wrapper.setProps({ showResponseDiagnostics: true })
+    expect(wrapper.find('[data-testid="usage-diagnostics"]').exists()).toBe(true)
+    await wrapper.setProps({ showResponseDiagnostics: false })
+    expect(wrapper.find('[data-testid="usage-diagnostics"]').exists()).toBe(false)
+    wrapper.unmount()
+  })
+})
+
 const baseImageRow = {
   request_id: 'req-admin-image',
   model: 'gpt-image-2',

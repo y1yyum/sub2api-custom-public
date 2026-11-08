@@ -413,6 +413,7 @@ func (s *AntigravityGatewayService) consumeAntigravityCompatResponse(
 		Model:                         call.request.originalModel,
 		UpstreamModel:                 call.billingModel,
 		UpstreamResponseModel:         observedUpstreamResponseModel(c),
+		ResponseDiagnostics:           observedResponseDiagnostics(c),
 		UpstreamResponseModelConflict: observedUpstreamResponseModelConflict(c),
 		Stream:                        call.request.clientStream,
 		Duration:                      time.Since(call.request.startTime),

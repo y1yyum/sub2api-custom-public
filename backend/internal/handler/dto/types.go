@@ -679,6 +679,7 @@ type UsageLog struct {
 
 // AdminUsageLog 是管理员接口使用的 usage log DTO（包含管理员字段）。
 type AdminUsageLog struct {
+	ResponseDiagnostics *service.ResponseDiagnostics `json:"response_diagnostics,omitempty"`
 	UsageLog
 
 	// UpstreamModel is the actual model sent to the upstream provider after mapping.

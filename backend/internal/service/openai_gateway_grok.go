@@ -265,6 +265,7 @@ func (s *OpenAIGatewayService) forwardGrokResponses(
 		Model:                         originalModel,
 		UpstreamModel:                 upstreamModel,
 		UpstreamResponseModel:         observedUpstreamResponseModel(c),
+		ResponseDiagnostics:           observedResponseDiagnostics(c),
 		UpstreamResponseModelConflict: observedUpstreamResponseModelConflict(c),
 		ReasoningEffort:               reasoningEffort,
 		Stream:                        reqStream,

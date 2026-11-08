@@ -507,6 +507,23 @@ export default {
 
     // Usage Records
     usage: {
+      diagnostics: {
+        title: '上游响应诊断', details: '诊断', usage: '用量项', initial: '初始声明', final: '最终声明',
+        scaled: '已缩放', scaledHint: '上游声明用量已被自定义缩放',
+        change: '输入用量变化率', changeHint: '最终与初始输入总量之差 / 初始输入总量；采用上游口径',
+        upstreamHint: '这些数值由上游声明。初始值也可能已经缩放，不能当作独立测量的真实消耗。未返回的字段不按零处理。',
+        notRecorded: '此记录没有响应诊断数据。历史日志及未支持的响应路径不会补造数据。',
+        notReturned: '未返回', yes: '是', no: '否',
+        ended: '结束', stopSequence: '停止序列', toolStop: '工具调用', outputLimit: '输出上限', contextLimit: '上下文上限', paused: '暂停', filtered: '内容过滤',
+        totalInput: '输入总量（含缓存）', messageId: '上游消息 ID', protocol: '响应协议', stopReason: '结束原因',
+        integrity: '上游流完整性', complete: '已观测到完整结束', incomplete: '未完整结束或流内错误',
+        integrityHint: '完整性表示已观测到上游终止事件且无未恢复的流内错误，不代表客户端已完整收到响应。',
+        thinking: '上游声明思考 token（包含在输出内）', serviceTier: '上游声明服务档位', inferenceGeo: '上游声明推理区域',
+        tools: '工具调用声明', clientTool: '客户端工具', serverTool: '服务端工具', iterations: '推理轮次', kind: '类型', model: '声明模型',
+        events: '已观测事件数', error: '流内错误类型', truncated: '为限制诊断数据体积，仅保留前 32 轮摘要。',
+        blocks: '内容块摘要',
+        cache5m: '5 分钟缓存写入', cache1h: '1 小时缓存写入',
+      },
       title: '使用记录',
       description: '查看和管理所有用户的使用记录',
       userFilter: '用户',

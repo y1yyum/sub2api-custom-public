@@ -146,6 +146,7 @@
         </template>
 
         <template #cell-tokens="{ row }">
+          <UsageDiagnostics v-if="showResponseDiagnostics" :diagnostics="row.response_diagnostics" />
           <!-- 图片生成请求（仅按次计费时显示图片格式） -->
           <div v-if="isImageUsage(row)" class="flex items-center gap-1.5">
             <svg class="h-4 w-4 text-indigo-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -535,6 +536,7 @@
 </template>
 
 <script setup lang="ts">
+import UsageDiagnostics from './UsageDiagnostics.vue'
 import { computed, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useAppStore } from '@/stores/app'
@@ -599,6 +601,7 @@ interface Props {
   defaultSortOrder?: 'asc' | 'desc'
   showAccountBilling?: boolean
   showUpstreamEndpoint?: boolean
+  showResponseDiagnostics?: boolean
   /** 嵌入统一卡片内使用：去掉自身卡片外观 */
   flat?: boolean
 }
@@ -610,6 +613,7 @@ const props = withDefaults(defineProps<Props>(), {
   defaultSortOrder: 'asc',
   showAccountBilling: true,
   showUpstreamEndpoint: true,
+  showResponseDiagnostics: false,
   flat: false
 })
 const emit = defineEmits<{

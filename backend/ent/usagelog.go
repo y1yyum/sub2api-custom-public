@@ -4,6 +4,7 @@ package ent
 
 import (
 	"encoding/json"
+	"encoding/json/jsontext"
 	"fmt"
 	"strings"
 	"time"
@@ -105,6 +106,8 @@ type UsageLog struct {
 	ImageOutputSize *string `json:"image_output_size,omitempty"`
 	// ImageSizeSource holds the value of the "image_size_source" field.
 	ImageSizeSource *string `json:"image_size_source,omitempty"`
+	// ResponseDiagnostics holds the value of the "response_diagnostics" field.
+	ResponseDiagnostics jsontext.Value `json:"response_diagnostics,omitempty"`
 	// ImageSizeBreakdown holds the value of the "image_size_breakdown" field.
 	ImageSizeBreakdown map[string]int `json:"image_size_breakdown,omitempty"`
 	// 视频生成数量；>0 表示本行是视频生成用量
@@ -200,7 +203,7 @@ func (*UsageLog) scanValues(columns []string) ([]any, error) {
 	values := make([]any, len(columns))
 	for i := range columns {
 		switch columns[i] {
-		case usagelog.FieldImageSizeBreakdown:
+		case usagelog.FieldResponseDiagnostics, usagelog.FieldImageSizeBreakdown:
 			values[i] = new([]byte)
 		case usagelog.FieldUpstreamModelMismatch, usagelog.FieldLongContextBillingApplied, usagelog.FieldStream, usagelog.FieldCacheTTLOverridden:
 			values[i] = new(sql.NullBool)
@@ -498,6 +501,14 @@ func (_m *UsageLog) assignValues(columns []string, values []any) error {
 				_m.ImageSizeSource = new(string)
 				*_m.ImageSizeSource = value.String
 			}
+		case usagelog.FieldResponseDiagnostics:
+			if value, ok := values[i].(*[]byte); !ok {
+				return fmt.Errorf("unexpected type %T for field response_diagnostics", values[i])
+			} else if value != nil && len(*value) > 0 {
+				if err := json.Unmarshal(*value, &_m.ResponseDiagnostics); err != nil {
+					return fmt.Errorf("unmarshal field response_diagnostics: %w", err)
+				}
+			}
 		case usagelog.FieldImageSizeBreakdown:
 			if value, ok := values[i].(*[]byte); !ok {
 				return fmt.Errorf("unexpected type %T for field image_size_breakdown", values[i])
@@ -759,6 +770,9 @@ func (_m *UsageLog) String() string {
 		builder.WriteString("image_size_source=")
 		builder.WriteString(*v)
 	}
+	builder.WriteString(", ")
+	builder.WriteString("response_diagnostics=")
+	builder.WriteString(fmt.Sprintf("%v", _m.ResponseDiagnostics))
 	builder.WriteString(", ")
 	builder.WriteString("image_size_breakdown=")
 	builder.WriteString(fmt.Sprintf("%v", _m.ImageSizeBreakdown))

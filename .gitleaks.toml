@@ -139,6 +139,22 @@ regexes = [
     '''^abc123456789xyz$''',
 ]
 
+# 2026-11-08，Issue #36；owner y1yyum；复核/到期：2026-12-08。
+# 全历史扫描在 0cffc85f33 的两条 SQL 列赋值和 Ed25519 验签公钥上误报。
+# 仅放行确切路径 AND 完整表达式/公钥；新值仍需审查，strict 绕过本例外。
+[[rules.allowlists]]
+description = "Issue #36：SQL 字段表达式，非凭据；到期 2026-12-08"
+condition = "AND"
+regexTarget = "match"
+paths = ['''^backend/internal/repository/ops_repo_preagg\.go$''']
+regexes = ['''^EXCLUDED\.token_consumed,\n\n  duration_p50_ms $''']
+
+[[rules.allowlists]]
+description = "Issue #36：内置 Ed25519 验签公钥，非私钥；到期 2026-12-08"
+condition = "AND"
+paths = ['''^backend/internal/service/plugin_package\.go$''']
+regexes = ['''^MqzSXAoG0iVR5kKWrC\+mqcCeExkrT6zAr2WpQ4sA\+yc=$''']
+
 [[rules]]
 id = "jwt"
 
