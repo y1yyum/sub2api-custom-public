@@ -41,3 +41,11 @@ go test -tags=unit ./internal/service -run '^$' -bench BenchmarkResponseDiagnost
 前端验证包含诊断组件、共享表格、管理端及用户端日志页面、国际化、ESLint、类型检查和生产构建。Playwright 使用真实管理端表格预览检查列表、详情、窄屏、深色模式与浏览器错误。
 
 源码入口：[采集摘要](../backend/internal/service/response_diagnostics.go)、[写入](../backend/internal/repository/usage_log_repo_insert.go)、[管理员映射](../backend/internal/handler/dto/mappers.go)、[诊断组件](../frontend/src/components/admin/usage/UsageDiagnostics.vue)。
+
+## 公开发布验证补充（2026-11-08）
+
+自动 Codex 审查指出 `response.done` 终止帧和两条原生 Anthropic 转换路径的采集遗漏，已补齐并新增终止变体及四种转换组合的回归。全量测试发现无观察器路径的空指针，已增加空值保护及原路径回归。
+
+公开仓库全历史密钥扫描在历史提交 `0cffc85f33c2831a25f0f7f29357640e26f3dc91` 有三条误报：`ops_repo_preagg.go` 两处 `token_consumed = EXCLUDED.token_consumed,` 仅为 SQL 字段赋值；`plugin_package.go` 的 `builtInOpenAITransportPublisherKeyBase64` 用于 Ed25519 验签，属于公钥。`.gitleaks.toml` 仅按确切路径和完整值登记，责任人 y1yyum，复核日期 2026-12-08，strict 扫描仍忽略这些例外。
+
+安全 CI 同时报告已有依赖的公开漏洞。为解除发布阻断，仅将 brotli 升至 1.2.7、klauspost/compress 升至 1.20.2，分别对应 [GO-2026-6888](https://vuln.go.dev/ID/GO-2026-6888.json)、[GO-2026-6865](https://github.com/klauspost/compress/security/advisories/GHSA-fpmh-frq8-7rj8)。不导入其他本地功能，不删除或跳过检查。
