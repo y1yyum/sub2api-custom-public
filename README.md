@@ -193,8 +193,8 @@ tar -czvf sub2api-backup-$(date +%F).tar.gz deploy/postgres_data deploy/data dep
 # 2. 拉取最新主分支代码
 git pull --ff-only origin main
 
-# 3. 更新 deploy/.env 中的镜像版本为 0.5.2
-sed -i 's|SUB2API_IMAGE=.*|SUB2API_IMAGE=ghcr.io/y1yyum/sub2api-custom-public:0.5.2|' deploy/.env
+# 3. 更新或配置 deploy/.env 中的镜像版本（存在则替换，缺失则追加）
+grep -q '^SUB2API_IMAGE=' deploy/.env && sed -i 's|^SUB2API_IMAGE=.*|SUB2API_IMAGE=ghcr.io/y1yyum/sub2api-custom-public:0.5.2|' deploy/.env || echo 'SUB2API_IMAGE=ghcr.io/y1yyum/sub2api-custom-public:0.5.2' >> deploy/.env
 
 # 4. 更新镜像并启动（应用启动时会自动安全执行向前迁移）
 docker compose -f deploy/docker-compose.local.yml pull sub2api
@@ -207,9 +207,10 @@ docker compose -f deploy/docker-compose.local.yml ps
 1. **存量智力题目图片生成说明**：
    - 升级至 `v0.5.2` 后，存量题目由于未包含黑白图片数据（`prompt_image` 为空），执行测试时会主动报错而不会降级为发送明文文本。
    - 建议在管理后台「智力题库」弹窗中编辑存量题目并点击保存一次，前端将自动生成黑白 PNG 并持久化。
-2. **迁移只增不删与旧镜像兼容性**：
-   - 数据库迁移只增不删，换回旧镜像不会破坏已有新增表与列（例如 `response_diagnostics`、`prompt_image` 及 MCP 表会被旧镜像静默忽略）。
-   - 旧镜像不具备智力测试自动化限制逻辑，若回滚至 `v0.4.0` 之前版本，被限制的账号将重新参与调度。
+2. **迁移向前兼容与回滚安全约束**：
+   - **数据库迁移只增不删**：换回旧镜像不会破坏已有新增表与列（例如 `response_diagnostics`、`prompt_image` 及 MCP 表会被旧镜像静默忽略）。
+   - **支付与退款状态机约束**：切勿盲目回退旧版本镜像。`v0.4.0+` 的退款挂起事务具备严格状态机，挂起退款保持扣减保留状态（`DeductionHeld`）。若在存在挂起订单或退款重试时盲目切换至旧版本 Worker，可能导致旧进程对订单重复扣款；回滚前必须暂停支付/退款 Worker 并核对订单对账状态，详见 [支付状态机手册](docs/upgrades/stable-0.2.18-payment.md)。
+   - **业务逻辑与鉴权依赖**：旧镜像不具备智力测试自动化限制逻辑，若回滚至旧版，被隔离的账号会重新参与调度；若存量环境中存在已启用的 Scoped Admin API Keys，旧版代码不具备受限鉴权逻辑，禁止在存活受限密钥的情况下回退至旧版本 Auth 模块。
 3. **禁止删除数据目录**：
    - 绝不要试图通过删除 PostgreSQL 数据目录来「解决」迁移报错。如遇异常，先暂停 Worker 任务，并参考升级专项说明。
 
