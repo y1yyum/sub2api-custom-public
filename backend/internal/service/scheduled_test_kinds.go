@@ -77,6 +77,9 @@ func (s *ScheduledTestService) CreateQuestion(ctx context.Context, q *Intelligen
 	if err := q.Normalize(); err != nil {
 		return nil, err
 	}
+	if err := validateIntelligencePromptImage(q.PromptImage); err != nil {
+		return nil, err
+	}
 	return s.questionRepo.Create(ctx, q)
 }
 
@@ -86,6 +89,9 @@ func (s *ScheduledTestService) GetQuestion(ctx context.Context, id int64) (*Inte
 
 func (s *ScheduledTestService) UpdateQuestion(ctx context.Context, q *IntelligenceQuestion) (*IntelligenceQuestion, error) {
 	if err := q.Normalize(); err != nil {
+		return nil, err
+	}
+	if err := validateIntelligencePromptImage(q.PromptImage); err != nil {
 		return nil, err
 	}
 	return s.questionRepo.Update(ctx, q)

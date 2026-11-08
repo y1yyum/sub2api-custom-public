@@ -33,6 +33,8 @@ export default {
       add: 'New question',
       edit: 'Edit question',
       prompt: 'Question',
+      imageHint: 'Saving creates a black-on-white image sent directly in tests. Include answer instructions in the question.',
+      imageMissing: 'This question has no image. Edit and save it before testing.',
       rule: 'Grading rule',
       rules: {
         exact: 'Exact',

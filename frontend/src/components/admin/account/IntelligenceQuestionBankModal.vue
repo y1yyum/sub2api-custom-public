@@ -16,7 +16,7 @@
         <div class="text-sm font-medium text-gray-700 dark:text-gray-300">
           {{ form.id ? t('admin.scheduledTestKinds.bank.edit') : t('admin.scheduledTestKinds.bank.add') }}
         </div>
-        <TextArea v-model="form.prompt" :label="t('admin.scheduledTestKinds.bank.prompt')" :rows="3" required />
+        <TextArea v-model="form.prompt" :label="t('admin.scheduledTestKinds.bank.prompt')" :hint="t('admin.scheduledTestKinds.bank.imageHint')" :rows="3" required />
         <div>
           <label class="mb-1 block text-xs font-medium text-gray-600 dark:text-gray-400">{{ t('admin.scheduledTestKinds.bank.rule') }}</label>
           <div class="inline-flex rounded-lg border border-gray-200 p-0.5 dark:border-dark-600">
@@ -113,7 +113,11 @@
           :data-question-id="question.id"
         >
           <div class="min-w-0 flex-1 space-y-1">
-            <p class="line-clamp-2 whitespace-pre-wrap text-sm text-gray-900 dark:text-gray-100">{{ question.prompt }}</p>
+            <img v-if="question.prompt_image" :src="question.prompt_image" :alt="question.prompt" class="max-h-64 max-w-full rounded border border-gray-200 bg-white object-contain object-left" data-test="question-image" />
+            <template v-else>
+              <p class="line-clamp-2 whitespace-pre-wrap text-sm text-gray-900 dark:text-gray-100">{{ question.prompt }}</p>
+              <p class="text-xs text-amber-600 dark:text-amber-400">{{ t('admin.scheduledTestKinds.bank.imageMissing') }}</p>
+            </template>
             <p class="flex flex-wrap items-center gap-2 text-xs text-gray-500 dark:text-gray-400">
               <span class="rounded bg-gray-100 px-1.5 py-0.5 dark:bg-dark-700">{{ t(`admin.scheduledTestKinds.bank.rules.${question.answer_rule}`) }}</span>
               <span class="font-mono">{{ question.expected_answers.join(' / ') }}<template v-if="question.answer_rule === 'number' && question.tolerance > 0"> ±{{ question.tolerance }}</template></span>
@@ -157,6 +161,7 @@
 <script setup lang="ts">
 import { computed, reactive, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
+import { renderIntelligenceQuestionImage } from '@/utils/intelligenceQuestionImage'
 import BaseDialog from '@/components/common/BaseDialog.vue'
 import ConfirmDialog from '@/components/common/ConfirmDialog.vue'
 import Input from '@/components/common/Input.vue'
@@ -198,15 +203,15 @@ const trial = reactive({ text: '', passed: null as boolean | null, running: fals
 
 const answers = computed(() => form.answers.split('\n').map((line) => line.trim()).filter(Boolean))
 
-const toRequest = (): IntelligenceQuestionRequest => ({
-  prompt: form.prompt,
+const toRequest = (): Omit<IntelligenceQuestionRequest, 'prompt_image'> => ({
+  prompt: form.prompt.trim(),
   answer_rule: form.answer_rule,
   expected_answers: answers.value,
   tolerance: form.answer_rule === 'number' ? Number(form.tolerance) || 0 : 0,
   enabled: form.enabled
 })
 
-const questionRequest = (question: IntelligenceQuestion, enabled: boolean): IntelligenceQuestionRequest => ({
+const questionRequest = (question: IntelligenceQuestion, enabled: boolean): Omit<IntelligenceQuestionRequest, 'prompt_image'> => ({
   prompt: question.prompt,
   answer_rule: question.answer_rule,
   expected_answers: question.expected_answers,
@@ -276,9 +281,10 @@ const replaceQuestion = (saved: IntelligenceQuestion) => {
 const save = async () => {
   saving.value = true
   try {
+    const request = { ...toRequest(), prompt_image: await renderIntelligenceQuestionImage(form.prompt) }
     const saved = form.id
-      ? await intelligenceQuestionsAPI.update(form.id, toRequest())
-      : await intelligenceQuestionsAPI.create(toRequest())
+      ? await intelligenceQuestionsAPI.update(form.id, request)
+      : await intelligenceQuestionsAPI.create(request)
     replaceQuestion(saved)
     form.open = false
     appStore.showSuccess(t('admin.scheduledTestKinds.bank.saved'))
@@ -291,7 +297,10 @@ const save = async () => {
 
 const setEnabled = async (question: IntelligenceQuestion, enabled: boolean) => {
   try {
-    replaceQuestion(await intelligenceQuestionsAPI.update(question.id, questionRequest(question, enabled)))
+    replaceQuestion(await intelligenceQuestionsAPI.update(question.id, {
+      ...questionRequest(question, enabled),
+      prompt_image: question.prompt_image || await renderIntelligenceQuestionImage(question.prompt)
+    }))
   } catch (error: any) {
     appStore.showError(error?.message || 'Failed to update question')
   }

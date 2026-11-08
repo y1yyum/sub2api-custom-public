@@ -34,6 +34,7 @@ var ErrIntelligenceQuestionNotFound = infraerrors.NotFound("INTELLIGENCE_QUESTIO
 type IntelligenceQuestion struct {
 	ID              int64     `json:"id"`
 	Prompt          string    `json:"prompt"`
+	PromptImage     string    `json:"prompt_image,omitempty"`
 	AnswerRule      string    `json:"answer_rule"`
 	ExpectedAnswers []string  `json:"expected_answers"`
 	Tolerance       float64   `json:"tolerance"`
