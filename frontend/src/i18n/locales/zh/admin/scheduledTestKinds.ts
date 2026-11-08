@@ -33,6 +33,8 @@ export default {
       add: '新建题目',
       edit: '编辑题目',
       prompt: '题目',
+      imageHint: '保存时生成白底黑字图片，测试直接发送图片；请将作答要求写在题目中。',
+      imageMissing: '此题尚无图片，请编辑并保存后再测试。',
       rule: '判分规则',
       rules: {
         exact: '精确',

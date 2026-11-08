@@ -80,6 +80,9 @@ const defaultAccountTestTextPrompt = "hi"
 
 // accountTestTextPrompt returns the caller's prompt, or "hi" when none was given.
 func accountTestTextPrompt(c *gin.Context) string {
+	if c.GetString(accountTestQuestionImageKey) != "" {
+		return ""
+	}
 	if prompt := strings.TrimSpace(c.GetString(accountTestPromptKey)); prompt != "" {
 		return prompt
 	}
@@ -99,7 +102,8 @@ func bedrockTestMaxTokens(c *gin.Context) int {
 func buildGrokTextTestBody(c *gin.Context, model string) ([]byte, error) {
 	raw, err := buildGrokQuotaProbeBody(model)
 	prompt := strings.TrimSpace(c.GetString(accountTestPromptKey))
-	if err != nil || prompt == "" {
+	image := c.GetString(accountTestQuestionImageKey)
+	if err != nil || (prompt == "" && image == "") {
 		return raw, err
 	}
 	var body map[string]any
@@ -107,6 +111,9 @@ func buildGrokTextTestBody(c *gin.Context, model string) ([]byte, error) {
 		return nil, err
 	}
 	body["input"] = prompt
+	if image != "" {
+		body["input"] = []map[string]any{{"role": "user", "content": []map[string]any{{"type": "input_image", "image_url": image}}}}
+	}
 	return json.Marshal(body)
 }
 
@@ -340,26 +347,22 @@ func generateSessionString() (string, error) {
 }
 
 // createTestPayload creates a Claude Code style test request payload
-func createTestPayload(modelID string, prompt string) (map[string]any, error) {
+func createTestPayload(modelID string, prompt string, opts ...AccountTestOptions) (map[string]any, error) {
 	sessionID, err := generateSessionString()
 	if err != nil {
 		return nil, err
 	}
 
+	content := []map[string]any{{"type": "text", "text": prompt, "cache_control": map[string]string{"type": "ephemeral"}}}
+	if image := firstAccountTestOptions(opts).ImageDataURL; image != "" {
+		content = accountTestImageContent(image)
+	}
 	return map[string]any{
 		"model": modelID,
 		"messages": []map[string]any{
 			{
-				"role": "user",
-				"content": []map[string]any{
-					{
-						"type": "text",
-						"text": prompt,
-						"cache_control": map[string]string{
-							"type": "ephemeral",
-						},
-					},
-				},
+				"role":    "user",
+				"content": content,
 			},
 		},
 		"system": []map[string]any{
@@ -588,7 +591,7 @@ func (s *AccountTestService) testClaudeAccountConnection(c *gin.Context, account
 	c.Writer.Flush()
 
 	// Create Claude Code style payload (same for all account types)
-	payload, err := createTestPayload(testModelID, accountTestTextPrompt(c))
+	payload, err := createTestPayload(testModelID, accountTestTextPrompt(c), AccountTestOptions{ImageDataURL: c.GetString(accountTestQuestionImageKey)})
 	if err != nil {
 		return s.sendErrorAndEnd(c, "Failed to create test payload")
 	}
@@ -666,7 +669,7 @@ func (s *AccountTestService) testClaudeVertexServiceAccountConnection(c *gin.Con
 	c.Writer.Header().Set("X-Accel-Buffering", "no")
 	c.Writer.Flush()
 
-	payload, err := createTestPayload(testModelID, accountTestTextPrompt(c))
+	payload, err := createTestPayload(testModelID, accountTestTextPrompt(c), AccountTestOptions{ImageDataURL: c.GetString(accountTestQuestionImageKey)})
 	if err != nil {
 		return s.sendErrorAndEnd(c, "Failed to create test payload")
 	}
@@ -738,17 +741,16 @@ func (s *AccountTestService) testBedrockAccountConnection(c *gin.Context, ctx co
 	c.Writer.Flush()
 
 	// Create a minimal Bedrock-compatible payload (no stream, no cache_control)
+	bedrockContent := []map[string]any{{"type": "text", "text": accountTestTextPrompt(c)}}
+	if image := c.GetString(accountTestQuestionImageKey); image != "" {
+		bedrockContent = accountTestImageContent(image)
+	}
 	bedrockPayload := map[string]any{
 		"anthropic_version": "bedrock-2023-05-31",
 		"messages": []map[string]any{
 			{
-				"role": "user",
-				"content": []map[string]any{
-					{
-						"type": "text",
-						"text": accountTestTextPrompt(c),
-					},
-				},
+				"role":    "user",
+				"content": bedrockContent,
 			},
 		},
 		"max_tokens":  bedrockTestMaxTokens(c),
@@ -918,7 +920,7 @@ func (s *AccountTestService) testOpenAIAccountConnection(c *gin.Context, account
 	if isOAuth {
 		upstreamTestModelID = normalizeOpenAIModelForUpstream(credentialAccount, testModelID)
 	}
-	payload := createOpenAITestPayload(upstreamTestModelID, isOAuth, accountTestTextPrompt(c))
+	payload := createOpenAITestPayload(upstreamTestModelID, isOAuth, accountTestTextPrompt(c), AccountTestOptions{ImageDataURL: c.GetString(accountTestQuestionImageKey)})
 	payloadBytes, _ := json.Marshal(payload)
 
 	// Send test_start event once. A task-invalid Agent Identity response may
@@ -2160,7 +2162,7 @@ func (s *AccountTestService) testOpenAIChatCompletionsConnection(
 	c.Writer.Header().Set("X-Accel-Buffering", "no")
 	c.Writer.Flush()
 
-	payload := createOpenAIChatCompletionsTestPayload(testModelID, prompt)
+	payload := createOpenAIChatCompletionsTestPayload(testModelID, prompt, AccountTestOptions{ImageDataURL: c.GetString(accountTestQuestionImageKey)})
 	payloadBytes, _ := json.Marshal(payload)
 
 	s.sendEvent(c, TestEvent{Type: "test_start", Model: testModelID})
@@ -2446,7 +2448,7 @@ func (s *AccountTestService) testGeminiAccountConnection(c *gin.Context, account
 	c.Writer.Flush()
 
 	// Create test payload (Gemini format)
-	payload := createGeminiTestPayload(testModelID, prompt)
+	payload := createGeminiTestPayload(testModelID, prompt, AccountTestOptions{ImageDataURL: c.GetString(accountTestQuestionImageKey)})
 
 	// Build request based on account type
 	var req *http.Request
@@ -2525,7 +2527,7 @@ func (s *AccountTestService) testAntigravityAccountConnection(c *gin.Context, ac
 	s.sendEvent(c, TestEvent{Type: "test_start", Model: s.antigravityGatewayService.getMappedModel(account, testModelID)})
 
 	// 调用 AntigravityGatewayService.TestConnectionWithPrompt（复用协议转换逻辑）
-	result, err := s.antigravityGatewayService.TestConnectionWithPrompt(ctx, account, testModelID, prompt)
+	result, err := s.antigravityGatewayService.TestConnectionWithPrompt(ctx, account, testModelID, prompt, AccountTestOptions{ImageDataURL: c.GetString(accountTestQuestionImageKey)})
 	if err != nil {
 		return s.sendErrorAndEnd(c, err.Error())
 	}
@@ -2677,7 +2679,7 @@ func (s *AccountTestService) buildCodeAssistRequest(ctx context.Context, accessT
 
 // createGeminiTestPayload creates a minimal test payload for Gemini API.
 // Image models use the image-generation path so the frontend can preview the returned image.
-func createGeminiTestPayload(modelID string, prompt string) []byte {
+func createGeminiTestPayload(modelID string, prompt string, opts ...AccountTestOptions) []byte {
 	if isImageGenerationModel(modelID) {
 		imagePrompt := strings.TrimSpace(prompt)
 		if imagePrompt == "" {
@@ -2712,10 +2714,8 @@ func createGeminiTestPayload(modelID string, prompt string) []byte {
 	payload := map[string]any{
 		"contents": []map[string]any{
 			{
-				"role": "user",
-				"parts": []map[string]any{
-					{"text": textPrompt},
-				},
+				"role":  "user",
+				"parts": accountTestGeminiParts(textPrompt, firstAccountTestOptions(opts).ImageDataURL),
 			},
 		},
 		"systemInstruction": map[string]any{
@@ -2810,18 +2810,17 @@ func (s *AccountTestService) processGeminiStream(c *gin.Context, body io.Reader)
 }
 
 // createOpenAITestPayload creates a test payload for OpenAI Responses API
-func createOpenAITestPayload(modelID string, isOAuth bool, prompt string) map[string]any {
+func createOpenAITestPayload(modelID string, isOAuth bool, prompt string, opts ...AccountTestOptions) map[string]any {
+	content := []map[string]any{{"type": "input_text", "text": prompt}}
+	if image := firstAccountTestOptions(opts).ImageDataURL; image != "" {
+		content = []map[string]any{{"type": "input_image", "image_url": image}}
+	}
 	payload := map[string]any{
 		"model": modelID,
 		"input": []map[string]any{
 			{
-				"role": "user",
-				"content": []map[string]any{
-					{
-						"type": "input_text",
-						"text": prompt,
-					},
-				},
+				"role":    "user",
+				"content": content,
 			},
 		},
 		"stream": true,
@@ -2838,18 +2837,22 @@ func createOpenAITestPayload(modelID string, isOAuth bool, prompt string) map[st
 	return payload
 }
 
-func createOpenAIChatCompletionsTestPayload(modelID string, prompt string) map[string]any {
+func createOpenAIChatCompletionsTestPayload(modelID string, prompt string, opts ...AccountTestOptions) map[string]any {
 	testPrompt := strings.TrimSpace(prompt)
 	if testPrompt == "" {
 		testPrompt = "hi"
 	}
 
+	var content any = testPrompt
+	if image := firstAccountTestOptions(opts).ImageDataURL; image != "" {
+		content = []map[string]any{{"type": "image_url", "image_url": map[string]string{"url": image}}}
+	}
 	return map[string]any{
 		"model": modelID,
 		"messages": []map[string]any{
 			{
 				"role":    "user",
-				"content": testPrompt,
+				"content": content,
 			},
 		},
 		"stream": true,
@@ -3331,7 +3334,8 @@ func (s *AccountTestService) sendErrorAndEnd(c *gin.Context, errorMsg string) er
 // capturing SSE output via httptest.NewRecorder, then parses the result.
 // An empty prompt keeps each platform's default probe. ModelID on the result is
 // the model actually sent upstream (after account mapping), from test_start.
-func (s *AccountTestService) RunTestBackground(ctx context.Context, accountID int64, modelID string, prompt string) (*ScheduledTestResult, error) {
+// 提供 questionImage 时只发送图片，prompt 仅用于结果快照；空图记为失败。
+func (s *AccountTestService) RunTestBackground(ctx context.Context, accountID int64, modelID string, prompt string, questionImage ...string) (*ScheduledTestResult, error) {
 	startedAt := time.Now()
 
 	w := httptest.NewRecorder()
@@ -3339,7 +3343,19 @@ func (s *AccountTestService) RunTestBackground(ctx context.Context, accountID in
 	ginCtx.Request = (&http.Request{}).WithContext(ctx)
 	ginCtx.Set(accountTestBackgroundKey, true)
 
-	testErr := s.TestAccountConnection(ginCtx, accountID, modelID, prompt, AccountTestModeDefault)
+	requestPrompt := prompt
+	var testErr error
+	if len(questionImage) > 0 {
+		if questionImage[0] == "" {
+			testErr = errors.New("question image is missing; edit and save the question before testing")
+		} else {
+			ginCtx.Set(accountTestQuestionImageKey, questionImage[0])
+			requestPrompt = ""
+		}
+	}
+	if testErr == nil {
+		testErr = s.TestAccountConnection(ginCtx, accountID, modelID, requestPrompt, AccountTestModeDefault)
+	}
 
 	finishedAt := time.Now()
 	body := w.Body.String()

@@ -22,7 +22,7 @@ func (s *ScheduledTestRunnerService) runPlanTest(ctx context.Context, plan *Sche
 		if question == nil {
 			return nil, errScheduledTestSkipped
 		}
-		result, err := s.runKindTest(ctx, plan, question.Prompt)
+		result, err := s.runKindTest(ctx, plan, question.Prompt, question.PromptImage)
 		if err != nil {
 			return nil, err
 		}
@@ -40,12 +40,12 @@ func (s *ScheduledTestRunnerService) runPlanTest(ctx context.Context, plan *Sche
 	}
 }
 
-func (s *ScheduledTestRunnerService) runKindTest(ctx context.Context, plan *ScheduledTestPlan, prompt string) (*ScheduledTestResult, error) {
+func (s *ScheduledTestRunnerService) runKindTest(ctx context.Context, plan *ScheduledTestPlan, prompt string, questionImage ...string) (*ScheduledTestResult, error) {
 	testSvc := s.accountTestSvc
 	if plan.Kind == ScheduledTestKindQuiz {
 		testSvc = testSvc.forScheduledQuiz()
 	}
-	result, err := testSvc.RunTestBackground(ctx, plan.AccountID, plan.ModelID, prompt)
+	result, err := testSvc.RunTestBackground(ctx, plan.AccountID, plan.ModelID, prompt, questionImage...)
 	if err != nil {
 		return nil, err
 	}

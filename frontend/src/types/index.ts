@@ -2626,6 +2626,7 @@ export type IntelligenceAnswerRule = 'exact' | 'number' | 'regex'
 export interface IntelligenceQuestion {
   id: number
   prompt: string
+  prompt_image?: string
   answer_rule: IntelligenceAnswerRule
   expected_answers: string[]
   tolerance: number
@@ -2637,6 +2638,7 @@ export interface IntelligenceQuestion {
 
 export interface IntelligenceQuestionRequest {
   prompt: string
+  prompt_image: string
   answer_rule: IntelligenceAnswerRule
   expected_answers: string[]
   tolerance: number

@@ -369,7 +369,7 @@ func (s *AntigravityGatewayService) TestConnection(ctx context.Context, account 
 }
 
 // TestConnectionWithPrompt 测试 Antigravity 账号连接，支持文本和图片测试提示词。
-func (s *AntigravityGatewayService) TestConnectionWithPrompt(ctx context.Context, account *Account, modelID string, prompt string) (*TestConnectionResult, error) {
+func (s *AntigravityGatewayService) TestConnectionWithPrompt(ctx context.Context, account *Account, modelID string, prompt string, opts ...AccountTestOptions) (*TestConnectionResult, error) {
 
 	// 获取 token
 	if s.tokenProvider == nil {
@@ -394,9 +394,9 @@ func (s *AntigravityGatewayService) TestConnectionWithPrompt(ctx context.Context
 	// 构建请求体
 	var requestBody []byte
 	if shouldUseAntigravityGeminiTestRequest(modelID, mappedModel) {
-		requestBody, err = s.buildGeminiTestRequestWithPrompt(projectID, mappedModel, prompt)
+		requestBody, err = s.buildGeminiTestRequestWithPrompt(projectID, mappedModel, prompt, opts...)
 	} else {
-		requestBody, err = s.buildClaudeTestRequest(projectID, mappedModel, prompt)
+		requestBody, err = s.buildClaudeTestRequest(projectID, mappedModel, prompt, opts...)
 	}
 	if err != nil {
 		return nil, fmt.Errorf("构建请求失败: %w", err)
@@ -469,7 +469,7 @@ func testConnectionHandleError(
 
 // buildGeminiTestRequestWithPrompt 构建 Gemini 格式测试请求
 // 无提示词时保留最小连通性探测；文本题目允许完整回答，图片模型使用图片生成配置。
-func (s *AntigravityGatewayService) buildGeminiTestRequestWithPrompt(projectID, model, prompt string) ([]byte, error) {
+func (s *AntigravityGatewayService) buildGeminiTestRequestWithPrompt(projectID, model, prompt string, opts ...AccountTestOptions) ([]byte, error) {
 	if isImageGenerationModel(model) {
 		imagePrompt := strings.TrimSpace(prompt)
 		if imagePrompt == "" {
@@ -504,13 +504,15 @@ func (s *AntigravityGatewayService) buildGeminiTestRequestWithPrompt(projectID, 
 	if strings.TrimSpace(prompt) != "" {
 		text, maxTokens = strings.TrimSpace(prompt), 1024
 	}
+	image := firstAccountTestOptions(opts).ImageDataURL
+	if image != "" {
+		maxTokens = 1024
+	}
 	payload := map[string]any{
 		"contents": []map[string]any{
 			{
-				"role": "user",
-				"parts": []map[string]any{
-					{"text": text},
-				},
+				"role":  "user",
+				"parts": accountTestGeminiParts(text, image),
 			},
 		},
 		// Antigravity 上游要求必须包含身份提示词
@@ -534,12 +536,16 @@ func (s *AntigravityGatewayService) buildGeminiTestRequestWithPrompt(projectID, 
 
 // buildClaudeTestRequest 构建 Claude 格式测试请求并转换为 Gemini 格式
 // 无提示词时保留最小连通性探测；文本题目允许完整回答。
-func (s *AntigravityGatewayService) buildClaudeTestRequest(projectID, mappedModel, prompt string) ([]byte, error) {
+func (s *AntigravityGatewayService) buildClaudeTestRequest(projectID, mappedModel, prompt string, opts ...AccountTestOptions) ([]byte, error) {
 	text, maxTokens := ".", 1
 	if strings.TrimSpace(prompt) != "" {
 		text, maxTokens = strings.TrimSpace(prompt), 1024
 	}
 	content, _ := json.Marshal(text)
+	if image := firstAccountTestOptions(opts).ImageDataURL; image != "" {
+		content, _ = json.Marshal(accountTestImageContent(image))
+		maxTokens = 1024
+	}
 	claudeReq := &antigravity.ClaudeRequest{
 		Model: mappedModel,
 		Messages: []antigravity.ClaudeMessage{

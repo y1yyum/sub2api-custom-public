@@ -22,6 +22,9 @@ const (
 // they must not fall through to testClaudeAccountConnection (which would send
 // the key to /v1/messages and could misclassify the account).
 func (s *AccountTestService) testTypeSafeAccountConnection(c *gin.Context, account *Account, prompt string) error {
+	if c.GetString(accountTestQuestionImageKey) != "" {
+		return s.sendErrorAndEnd(c, "System One connection tests do not support question images")
+	}
 	ctx := c.Request.Context()
 	if account.Type != AccountTypeAPIKey {
 		return s.sendErrorAndEnd(c, fmt.Sprintf("Unsupported account type: %s", account.Type))

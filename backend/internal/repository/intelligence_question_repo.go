@@ -10,7 +10,7 @@ import (
 	"github.com/lib/pq"
 )
 
-const intelligenceQuestionColumns = `q.id, q.prompt, q.answer_rule, q.expected_answers, q.tolerance, q.enabled,
+const intelligenceQuestionColumns = `q.id, q.prompt, q.prompt_image, q.answer_rule, q.expected_answers, q.tolerance, q.enabled,
 	(SELECT COUNT(*) FROM scheduled_test_plan_questions l WHERE l.question_id = q.id), q.created_at, q.updated_at`
 
 type intelligenceQuestionRepository struct {
@@ -37,9 +37,9 @@ func (r *intelligenceQuestionRepository) Create(ctx context.Context, q *service.
 	}
 	var id int64
 	if err := r.db.QueryRowContext(ctx, `
-		INSERT INTO intelligence_questions (prompt, answer_rule, expected_answers, tolerance, enabled)
-		VALUES ($1, $2, $3, $4, $5) RETURNING id
-	`, q.Prompt, q.AnswerRule, answers, q.Tolerance, q.Enabled).Scan(&id); err != nil {
+		INSERT INTO intelligence_questions (prompt, prompt_image, answer_rule, expected_answers, tolerance, enabled)
+		VALUES ($1, $2, $3, $4, $5, $6) RETURNING id
+	`, q.Prompt, q.PromptImage, q.AnswerRule, answers, q.Tolerance, q.Enabled).Scan(&id); err != nil {
 		return nil, err
 	}
 	return r.GetByID(ctx, id)
@@ -52,9 +52,9 @@ func (r *intelligenceQuestionRepository) Update(ctx context.Context, q *service.
 	}
 	res, err := r.db.ExecContext(ctx, `
 		UPDATE intelligence_questions
-		SET prompt = $2, answer_rule = $3, expected_answers = $4, tolerance = $5, enabled = $6, updated_at = NOW()
+		SET prompt = $2, answer_rule = $3, expected_answers = $4, tolerance = $5, enabled = $6, prompt_image = $7, updated_at = NOW()
 		WHERE id = $1
-	`, q.ID, q.Prompt, q.AnswerRule, answers, q.Tolerance, q.Enabled)
+	`, q.ID, q.Prompt, q.AnswerRule, answers, q.Tolerance, q.Enabled, q.PromptImage)
 	if err != nil {
 		return nil, err
 	}
@@ -168,7 +168,7 @@ func (r *intelligenceQuestionRepository) query(ctx context.Context, query string
 func scanIntelligenceQuestion(row scannable) (*service.IntelligenceQuestion, error) {
 	q := &service.IntelligenceQuestion{}
 	var answers []byte
-	if err := row.Scan(&q.ID, &q.Prompt, &q.AnswerRule, &answers, &q.Tolerance, &q.Enabled, &q.PlanCount, &q.CreatedAt, &q.UpdatedAt); err != nil {
+	if err := row.Scan(&q.ID, &q.Prompt, &q.PromptImage, &q.AnswerRule, &answers, &q.Tolerance, &q.Enabled, &q.PlanCount, &q.CreatedAt, &q.UpdatedAt); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, service.ErrIntelligenceQuestionNotFound
 		}

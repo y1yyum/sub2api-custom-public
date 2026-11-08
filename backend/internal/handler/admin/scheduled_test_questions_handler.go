@@ -49,6 +49,7 @@ func respondScheduledTestError(c *gin.Context, err error) {
 
 type intelligenceQuestionRequest struct {
 	Prompt          string   `json:"prompt"`
+	PromptImage     string   `json:"prompt_image"`
 	AnswerRule      string   `json:"answer_rule"`
 	ExpectedAnswers []string `json:"expected_answers"`
 	Tolerance       float64  `json:"tolerance"`
@@ -58,6 +59,7 @@ type intelligenceQuestionRequest struct {
 func (r intelligenceQuestionRequest) question() *service.IntelligenceQuestion {
 	q := &service.IntelligenceQuestion{
 		Prompt:          r.Prompt,
+		PromptImage:     r.PromptImage,
 		AnswerRule:      r.AnswerRule,
 		ExpectedAnswers: r.ExpectedAnswers,
 		Tolerance:       r.Tolerance,
