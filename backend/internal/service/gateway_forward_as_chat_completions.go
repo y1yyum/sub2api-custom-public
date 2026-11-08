@@ -34,6 +34,7 @@ func (s *GatewayService) ForwardAsChatCompletions(
 	parsed *ParsedRequest,
 ) (*ForwardResult, error) {
 	startTime := time.Now()
+	beginUpstreamResponseModelObservation(c)
 
 	// 1. Parse Chat Completions request
 	var ccReq apicompat.ChatCompletionsRequest
@@ -263,6 +264,9 @@ func (s *GatewayService) handleCCBufferedFromAnthropic(
 			continue
 		}
 
+		if observer := upstreamResponseModelObserverFromContext(c); observer != nil {
+			observer.ObserveAnthropic([]byte(payload))
+		}
 		var event apicompat.AnthropicStreamEvent
 		if err := json.Unmarshal([]byte(payload), &event); err != nil {
 			continue
@@ -348,14 +352,15 @@ func (s *GatewayService) handleCCBufferedFromAnthropic(
 	}
 
 	return &ForwardResult{
-		RequestID:       requestID,
-		UpstreamHeaders: resp.Header,
-		Usage:           usage,
-		Model:           originalModel,
-		UpstreamModel:   mappedModel,
-		ReasoningEffort: reasoningEffort,
-		Stream:          false,
-		Duration:        time.Since(startTime),
+		ResponseDiagnostics: observedResponseDiagnostics(c),
+		RequestID:           requestID,
+		UpstreamHeaders:     resp.Header,
+		Usage:               usage,
+		Model:               originalModel,
+		UpstreamModel:       mappedModel,
+		ReasoningEffort:     reasoningEffort,
+		Stream:              false,
+		Duration:            time.Since(startTime),
 	}, nil
 }
 
@@ -396,16 +401,17 @@ func (s *GatewayService) handleCCStreamingFromAnthropic(
 
 	resultWithUsage := func() *ForwardResult {
 		return &ForwardResult{
-			RequestID:        requestID,
-			UpstreamHeaders:  resp.Header,
-			Usage:            usage,
-			Model:            originalModel,
-			UpstreamModel:    mappedModel,
-			ReasoningEffort:  reasoningEffort,
-			Stream:           true,
-			Duration:         time.Since(startTime),
-			FirstTokenMs:     firstTokenMs,
-			ClientDisconnect: stream.clientDisconnected,
+			ResponseDiagnostics: observedResponseDiagnostics(c),
+			RequestID:           requestID,
+			UpstreamHeaders:     resp.Header,
+			Usage:               usage,
+			Model:               originalModel,
+			UpstreamModel:       mappedModel,
+			ReasoningEffort:     reasoningEffort,
+			Stream:              true,
+			Duration:            time.Since(startTime),
+			FirstTokenMs:        firstTokenMs,
+			ClientDisconnect:    stream.clientDisconnected,
 		}
 	}
 
@@ -494,6 +500,9 @@ func (s *GatewayService) handleCCStreamingFromAnthropic(
 			continue
 		}
 
+		if observer := upstreamResponseModelObserverFromContext(c); observer != nil {
+			observer.ObserveAnthropic([]byte(payload))
+		}
 		var event apicompat.AnthropicStreamEvent
 		if err := json.Unmarshal([]byte(payload), &event); err != nil {
 			continue

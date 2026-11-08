@@ -1878,7 +1878,41 @@ export interface UsageLogAccountSummary {
   name: string
 }
 
+export interface ResponseTokenUsage {
+  input_tokens?: number | null
+  output_tokens?: number | null
+  cache_read_tokens?: number | null
+  cache_creation_tokens?: number | null
+  cache_creation_5m_tokens?: number | null
+  cache_creation_1h_tokens?: number | null
+  total_input_tokens?: number | null
+  display_scaled?: boolean | null
+}
+
+export interface UsageResponseDiagnostics {
+  protocol: string
+  initial_usage?: ResponseTokenUsage | null
+  final_usage?: ResponseTokenUsage | null
+  display_scaled?: boolean | null
+  input_change_rate?: number | null
+  stop_reason?: string
+  stop_sequence?: string
+  stream_complete: boolean
+  error_type?: string
+  message_id?: string
+  service_tier?: string
+  inference_geo?: string
+  thinking_tokens?: number | null
+  tool_calls?: { type: string; name: string; count: number }[]
+  iterations?: { type: string; model?: string; usage?: ResponseTokenUsage | null }[]
+  iteration_count?: number | null
+  iterations_truncated?: boolean
+  event_count: number
+  content_block_counts?: Record<string, number>
+}
+
 export interface AdminUsageLog extends UsageLog {
+  response_diagnostics?: UsageResponseDiagnostics | null
   upstream_model?: string | null
   upstream_reasoning_effort?: string | null
   upstream_response_model?: string | null

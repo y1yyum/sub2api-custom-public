@@ -624,6 +624,7 @@ type ForwardResult struct {
 	// UpstreamResponseModel is captured from the raw successful upstream
 	// response before any client-facing rewrite or protocol conversion.
 	UpstreamResponseModel         string
+	ResponseDiagnostics           *ResponseDiagnostics
 	UpstreamResponseModelConflict bool
 	// UpstreamResponseServiceTier is the tier the upstream reports having used
 	// (Anthropic usage.speed: "fast" / "standard"); "" when not declared.

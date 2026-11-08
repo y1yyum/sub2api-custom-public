@@ -464,6 +464,7 @@ handleSuccess:
 		Model:                         originalModel,
 		UpstreamModel:                 forwardedModel,
 		UpstreamResponseModel:         observedUpstreamResponseModel(c),
+		ResponseDiagnostics:           observedResponseDiagnostics(c),
 		UpstreamResponseModelConflict: observedUpstreamResponseModelConflict(c),
 		Stream:                        stream,
 		ReasoningEffort:               extractGeminiReasoningEffortFromBody(injectedBody),

@@ -44780,6 +44780,8 @@ type UsageLogMutation struct {
 	image_input_size             *string
 	image_output_size            *string
 	image_size_source            *string
+	response_diagnostics         *jsontext.Value
+	appendresponse_diagnostics   jsontext.Value
 	image_size_breakdown         *map[string]int
 	video_count                  *int
 	addvideo_count               *int
@@ -47009,6 +47011,71 @@ func (m *UsageLogMutation) ResetImageSizeSource() {
 	delete(m.clearedFields, usagelog.FieldImageSizeSource)
 }
 
+// SetResponseDiagnostics sets the "response_diagnostics" field.
+func (m *UsageLogMutation) SetResponseDiagnostics(j jsontext.Value) {
+	m.response_diagnostics = &j
+	m.appendresponse_diagnostics = nil
+}
+
+// ResponseDiagnostics returns the value of the "response_diagnostics" field in the mutation.
+func (m *UsageLogMutation) ResponseDiagnostics() (r jsontext.Value, exists bool) {
+	v := m.response_diagnostics
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldResponseDiagnostics returns the old "response_diagnostics" field's value of the UsageLog entity.
+// If the UsageLog object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *UsageLogMutation) OldResponseDiagnostics(ctx context.Context) (v jsontext.Value, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldResponseDiagnostics is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldResponseDiagnostics requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldResponseDiagnostics: %w", err)
+	}
+	return oldValue.ResponseDiagnostics, nil
+}
+
+// AppendResponseDiagnostics adds j to the "response_diagnostics" field.
+func (m *UsageLogMutation) AppendResponseDiagnostics(j jsontext.Value) {
+	m.appendresponse_diagnostics = append(m.appendresponse_diagnostics, j...)
+}
+
+// AppendedResponseDiagnostics returns the list of values that were appended to the "response_diagnostics" field in this mutation.
+func (m *UsageLogMutation) AppendedResponseDiagnostics() (jsontext.Value, bool) {
+	if len(m.appendresponse_diagnostics) == 0 {
+		return nil, false
+	}
+	return m.appendresponse_diagnostics, true
+}
+
+// ClearResponseDiagnostics clears the value of the "response_diagnostics" field.
+func (m *UsageLogMutation) ClearResponseDiagnostics() {
+	m.response_diagnostics = nil
+	m.appendresponse_diagnostics = nil
+	m.clearedFields[usagelog.FieldResponseDiagnostics] = struct{}{}
+}
+
+// ResponseDiagnosticsCleared returns if the "response_diagnostics" field was cleared in this mutation.
+func (m *UsageLogMutation) ResponseDiagnosticsCleared() bool {
+	_, ok := m.clearedFields[usagelog.FieldResponseDiagnostics]
+	return ok
+}
+
+// ResetResponseDiagnostics resets all changes to the "response_diagnostics" field.
+func (m *UsageLogMutation) ResetResponseDiagnostics() {
+	m.response_diagnostics = nil
+	m.appendresponse_diagnostics = nil
+	delete(m.clearedFields, usagelog.FieldResponseDiagnostics)
+}
+
 // SetImageSizeBreakdown sets the "image_size_breakdown" field.
 func (m *UsageLogMutation) SetImageSizeBreakdown(value map[string]int) {
 	m.image_size_breakdown = &value
@@ -47474,7 +47541,7 @@ func (m *UsageLogMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *UsageLogMutation) Fields() []string {
-	fields := make([]string, 0, 47)
+	fields := make([]string, 0, 48)
 	if m.user != nil {
 		fields = append(fields, usagelog.FieldUserID)
 	}
@@ -47598,6 +47665,9 @@ func (m *UsageLogMutation) Fields() []string {
 	if m.image_size_source != nil {
 		fields = append(fields, usagelog.FieldImageSizeSource)
 	}
+	if m.response_diagnostics != nil {
+		fields = append(fields, usagelog.FieldResponseDiagnostics)
+	}
 	if m.image_size_breakdown != nil {
 		fields = append(fields, usagelog.FieldImageSizeBreakdown)
 	}
@@ -47706,6 +47776,8 @@ func (m *UsageLogMutation) Field(name string) (ent.Value, bool) {
 		return m.ImageOutputSize()
 	case usagelog.FieldImageSizeSource:
 		return m.ImageSizeSource()
+	case usagelog.FieldResponseDiagnostics:
+		return m.ResponseDiagnostics()
 	case usagelog.FieldImageSizeBreakdown:
 		return m.ImageSizeBreakdown()
 	case usagelog.FieldVideoCount:
@@ -47809,6 +47881,8 @@ func (m *UsageLogMutation) OldField(ctx context.Context, name string) (ent.Value
 		return m.OldImageOutputSize(ctx)
 	case usagelog.FieldImageSizeSource:
 		return m.OldImageSizeSource(ctx)
+	case usagelog.FieldResponseDiagnostics:
+		return m.OldResponseDiagnostics(ctx)
 	case usagelog.FieldImageSizeBreakdown:
 		return m.OldImageSizeBreakdown(ctx)
 	case usagelog.FieldVideoCount:
@@ -48116,6 +48190,13 @@ func (m *UsageLogMutation) SetField(name string, value ent.Value) error {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetImageSizeSource(v)
+		return nil
+	case usagelog.FieldResponseDiagnostics:
+		v, ok := value.(jsontext.Value)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetResponseDiagnostics(v)
 		return nil
 	case usagelog.FieldImageSizeBreakdown:
 		v, ok := value.(map[string]int)
@@ -48501,6 +48582,9 @@ func (m *UsageLogMutation) ClearedFields() []string {
 	if m.FieldCleared(usagelog.FieldImageSizeSource) {
 		fields = append(fields, usagelog.FieldImageSizeSource)
 	}
+	if m.FieldCleared(usagelog.FieldResponseDiagnostics) {
+		fields = append(fields, usagelog.FieldResponseDiagnostics)
+	}
 	if m.FieldCleared(usagelog.FieldImageSizeBreakdown) {
 		fields = append(fields, usagelog.FieldImageSizeBreakdown)
 	}
@@ -48580,6 +48664,9 @@ func (m *UsageLogMutation) ClearField(name string) error {
 		return nil
 	case usagelog.FieldImageSizeSource:
 		m.ClearImageSizeSource()
+		return nil
+	case usagelog.FieldResponseDiagnostics:
+		m.ClearResponseDiagnostics()
 		return nil
 	case usagelog.FieldImageSizeBreakdown:
 		m.ClearImageSizeBreakdown()
@@ -48720,6 +48807,9 @@ func (m *UsageLogMutation) ResetField(name string) error {
 		return nil
 	case usagelog.FieldImageSizeSource:
 		m.ResetImageSizeSource()
+		return nil
+	case usagelog.FieldResponseDiagnostics:
+		m.ResetResponseDiagnostics()
 		return nil
 	case usagelog.FieldImageSizeBreakdown:
 		m.ResetImageSizeBreakdown()

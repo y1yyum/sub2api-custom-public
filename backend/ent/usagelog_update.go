@@ -4,11 +4,13 @@ package ent
 
 import (
 	"context"
+	"encoding/json/jsontext"
 	"errors"
 	"fmt"
 
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
+	"entgo.io/ent/dialect/sql/sqljson"
 	"entgo.io/ent/schema/field"
 	"github.com/Wei-Shaw/sub2api/ent/account"
 	"github.com/Wei-Shaw/sub2api/ent/apikey"
@@ -853,6 +855,24 @@ func (_u *UsageLogUpdate) ClearImageSizeSource() *UsageLogUpdate {
 	return _u
 }
 
+// SetResponseDiagnostics sets the "response_diagnostics" field.
+func (_u *UsageLogUpdate) SetResponseDiagnostics(v jsontext.Value) *UsageLogUpdate {
+	_u.mutation.SetResponseDiagnostics(v)
+	return _u
+}
+
+// AppendResponseDiagnostics appends value to the "response_diagnostics" field.
+func (_u *UsageLogUpdate) AppendResponseDiagnostics(v jsontext.Value) *UsageLogUpdate {
+	_u.mutation.AppendResponseDiagnostics(v)
+	return _u
+}
+
+// ClearResponseDiagnostics clears the value of the "response_diagnostics" field.
+func (_u *UsageLogUpdate) ClearResponseDiagnostics() *UsageLogUpdate {
+	_u.mutation.ClearResponseDiagnostics()
+	return _u
+}
+
 // SetImageSizeBreakdown sets the "image_size_breakdown" field.
 func (_u *UsageLogUpdate) SetImageSizeBreakdown(v map[string]int) *UsageLogUpdate {
 	_u.mutation.SetImageSizeBreakdown(v)
@@ -1350,6 +1370,17 @@ func (_u *UsageLogUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 	}
 	if _u.mutation.ImageSizeSourceCleared() {
 		_spec.ClearField(usagelog.FieldImageSizeSource, field.TypeString)
+	}
+	if value, ok := _u.mutation.ResponseDiagnostics(); ok {
+		_spec.SetField(usagelog.FieldResponseDiagnostics, field.TypeJSON, value)
+	}
+	if value, ok := _u.mutation.AppendedResponseDiagnostics(); ok {
+		_spec.AddModifier(func(u *sql.UpdateBuilder) {
+			sqljson.Append(u, usagelog.FieldResponseDiagnostics, value)
+		})
+	}
+	if _u.mutation.ResponseDiagnosticsCleared() {
+		_spec.ClearField(usagelog.FieldResponseDiagnostics, field.TypeJSON)
 	}
 	if value, ok := _u.mutation.ImageSizeBreakdown(); ok {
 		_spec.SetField(usagelog.FieldImageSizeBreakdown, field.TypeJSON, value)
@@ -2367,6 +2398,24 @@ func (_u *UsageLogUpdateOne) ClearImageSizeSource() *UsageLogUpdateOne {
 	return _u
 }
 
+// SetResponseDiagnostics sets the "response_diagnostics" field.
+func (_u *UsageLogUpdateOne) SetResponseDiagnostics(v jsontext.Value) *UsageLogUpdateOne {
+	_u.mutation.SetResponseDiagnostics(v)
+	return _u
+}
+
+// AppendResponseDiagnostics appends value to the "response_diagnostics" field.
+func (_u *UsageLogUpdateOne) AppendResponseDiagnostics(v jsontext.Value) *UsageLogUpdateOne {
+	_u.mutation.AppendResponseDiagnostics(v)
+	return _u
+}
+
+// ClearResponseDiagnostics clears the value of the "response_diagnostics" field.
+func (_u *UsageLogUpdateOne) ClearResponseDiagnostics() *UsageLogUpdateOne {
+	_u.mutation.ClearResponseDiagnostics()
+	return _u
+}
+
 // SetImageSizeBreakdown sets the "image_size_breakdown" field.
 func (_u *UsageLogUpdateOne) SetImageSizeBreakdown(v map[string]int) *UsageLogUpdateOne {
 	_u.mutation.SetImageSizeBreakdown(v)
@@ -2894,6 +2943,17 @@ func (_u *UsageLogUpdateOne) sqlSave(ctx context.Context) (_node *UsageLog, err 
 	}
 	if _u.mutation.ImageSizeSourceCleared() {
 		_spec.ClearField(usagelog.FieldImageSizeSource, field.TypeString)
+	}
+	if value, ok := _u.mutation.ResponseDiagnostics(); ok {
+		_spec.SetField(usagelog.FieldResponseDiagnostics, field.TypeJSON, value)
+	}
+	if value, ok := _u.mutation.AppendedResponseDiagnostics(); ok {
+		_spec.AddModifier(func(u *sql.UpdateBuilder) {
+			sqljson.Append(u, usagelog.FieldResponseDiagnostics, value)
+		})
+	}
+	if _u.mutation.ResponseDiagnosticsCleared() {
+		_spec.ClearField(usagelog.FieldResponseDiagnostics, field.TypeJSON)
 	}
 	if value, ok := _u.mutation.ImageSizeBreakdown(); ok {
 		_spec.SetField(usagelog.FieldImageSizeBreakdown, field.TypeJSON, value)

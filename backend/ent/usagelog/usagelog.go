@@ -96,6 +96,8 @@ const (
 	FieldImageOutputSize = "image_output_size"
 	// FieldImageSizeSource holds the string denoting the image_size_source field in the database.
 	FieldImageSizeSource = "image_size_source"
+	// FieldResponseDiagnostics holds the string denoting the response_diagnostics field in the database.
+	FieldResponseDiagnostics = "response_diagnostics"
 	// FieldImageSizeBreakdown holds the string denoting the image_size_breakdown field in the database.
 	FieldImageSizeBreakdown = "image_size_breakdown"
 	// FieldVideoCount holds the string denoting the video_count field in the database.
@@ -201,6 +203,7 @@ var Columns = []string{
 	FieldImageInputSize,
 	FieldImageOutputSize,
 	FieldImageSizeSource,
+	FieldResponseDiagnostics,
 	FieldImageSizeBreakdown,
 	FieldVideoCount,
 	FieldVideoResolution,

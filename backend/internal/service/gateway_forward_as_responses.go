@@ -36,6 +36,7 @@ func (s *GatewayService) ForwardAsResponses(
 	parsed *ParsedRequest,
 ) (*ForwardResult, error) {
 	startTime := time.Now()
+	beginUpstreamResponseModelObservation(c)
 
 	normalizedBody, normalized, err := normalizeOpenAIResponsesLegacyIngressWithConfig(s.cfg, body)
 	if err != nil {
@@ -414,6 +415,9 @@ func (s *GatewayService) handleResponsesBufferedStreamingResponse(
 			continue
 		}
 
+		if observer := upstreamResponseModelObserverFromContext(c); observer != nil {
+			observer.ObserveAnthropic([]byte(payload))
+		}
 		var event apicompat.AnthropicStreamEvent
 		if err := json.Unmarshal([]byte(payload), &event); err != nil {
 			logger.L().Warn("forward_as_responses buffered: failed to parse event",
@@ -513,14 +517,15 @@ func (s *GatewayService) handleResponsesBufferedStreamingResponse(
 	}
 
 	return &ForwardResult{
-		RequestID:       requestID,
-		UpstreamHeaders: resp.Header,
-		Usage:           usage,
-		Model:           originalModel,
-		UpstreamModel:   mappedModel,
-		ReasoningEffort: reasoningEffort,
-		Stream:          false,
-		Duration:        time.Since(startTime),
+		ResponseDiagnostics: observedResponseDiagnostics(c),
+		RequestID:           requestID,
+		UpstreamHeaders:     resp.Header,
+		Usage:               usage,
+		Model:               originalModel,
+		UpstreamModel:       mappedModel,
+		ReasoningEffort:     reasoningEffort,
+		Stream:              false,
+		Duration:            time.Since(startTime),
 	}, nil
 }
 
@@ -560,16 +565,17 @@ func (s *GatewayService) handleResponsesStreamingResponse(
 
 	resultWithUsage := func() *ForwardResult {
 		return &ForwardResult{
-			RequestID:        requestID,
-			UpstreamHeaders:  resp.Header,
-			Usage:            usage,
-			Model:            originalModel,
-			UpstreamModel:    mappedModel,
-			ReasoningEffort:  reasoningEffort,
-			Stream:           true,
-			Duration:         time.Since(startTime),
-			FirstTokenMs:     firstTokenMs,
-			ClientDisconnect: stream.clientDisconnected,
+			ResponseDiagnostics: observedResponseDiagnostics(c),
+			RequestID:           requestID,
+			UpstreamHeaders:     resp.Header,
+			Usage:               usage,
+			Model:               originalModel,
+			UpstreamModel:       mappedModel,
+			ReasoningEffort:     reasoningEffort,
+			Stream:              true,
+			Duration:            time.Since(startTime),
+			FirstTokenMs:        firstTokenMs,
+			ClientDisconnect:    stream.clientDisconnected,
 		}
 	}
 
@@ -676,6 +682,9 @@ func (s *GatewayService) handleResponsesStreamingResponse(
 			continue
 		}
 
+		if observer := upstreamResponseModelObserverFromContext(c); observer != nil {
+			observer.ObserveAnthropic([]byte(payload))
+		}
 		var event apicompat.AnthropicStreamEvent
 		if err := json.Unmarshal([]byte(payload), &event); err != nil {
 			logger.L().Warn("forward_as_responses stream: failed to parse event",

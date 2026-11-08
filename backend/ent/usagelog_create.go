@@ -4,6 +4,7 @@ package ent
 
 import (
 	"context"
+	"encoding/json/jsontext"
 	"errors"
 	"fmt"
 	"time"
@@ -561,6 +562,12 @@ func (_c *UsageLogCreate) SetNillableImageSizeSource(v *string) *UsageLogCreate 
 	return _c
 }
 
+// SetResponseDiagnostics sets the "response_diagnostics" field.
+func (_c *UsageLogCreate) SetResponseDiagnostics(v jsontext.Value) *UsageLogCreate {
+	_c.mutation.SetResponseDiagnostics(v)
+	return _c
+}
+
 // SetImageSizeBreakdown sets the "image_size_breakdown" field.
 func (_c *UsageLogCreate) SetImageSizeBreakdown(v map[string]int) *UsageLogCreate {
 	_c.mutation.SetImageSizeBreakdown(v)
@@ -1110,6 +1117,10 @@ func (_c *UsageLogCreate) createSpec() (*UsageLog, *sqlgraph.CreateSpec) {
 	if value, ok := _c.mutation.ImageSizeSource(); ok {
 		_spec.SetField(usagelog.FieldImageSizeSource, field.TypeString, value)
 		_node.ImageSizeSource = &value
+	}
+	if value, ok := _c.mutation.ResponseDiagnostics(); ok {
+		_spec.SetField(usagelog.FieldResponseDiagnostics, field.TypeJSON, value)
+		_node.ResponseDiagnostics = value
 	}
 	if value, ok := _c.mutation.ImageSizeBreakdown(); ok {
 		_spec.SetField(usagelog.FieldImageSizeBreakdown, field.TypeJSON, value)
@@ -1989,6 +2000,24 @@ func (u *UsageLogUpsert) UpdateImageSizeSource() *UsageLogUpsert {
 // ClearImageSizeSource clears the value of the "image_size_source" field.
 func (u *UsageLogUpsert) ClearImageSizeSource() *UsageLogUpsert {
 	u.SetNull(usagelog.FieldImageSizeSource)
+	return u
+}
+
+// SetResponseDiagnostics sets the "response_diagnostics" field.
+func (u *UsageLogUpsert) SetResponseDiagnostics(v jsontext.Value) *UsageLogUpsert {
+	u.Set(usagelog.FieldResponseDiagnostics, v)
+	return u
+}
+
+// UpdateResponseDiagnostics sets the "response_diagnostics" field to the value that was provided on create.
+func (u *UsageLogUpsert) UpdateResponseDiagnostics() *UsageLogUpsert {
+	u.SetExcluded(usagelog.FieldResponseDiagnostics)
+	return u
+}
+
+// ClearResponseDiagnostics clears the value of the "response_diagnostics" field.
+func (u *UsageLogUpsert) ClearResponseDiagnostics() *UsageLogUpsert {
+	u.SetNull(usagelog.FieldResponseDiagnostics)
 	return u
 }
 
@@ -2964,6 +2993,27 @@ func (u *UsageLogUpsertOne) UpdateImageSizeSource() *UsageLogUpsertOne {
 func (u *UsageLogUpsertOne) ClearImageSizeSource() *UsageLogUpsertOne {
 	return u.Update(func(s *UsageLogUpsert) {
 		s.ClearImageSizeSource()
+	})
+}
+
+// SetResponseDiagnostics sets the "response_diagnostics" field.
+func (u *UsageLogUpsertOne) SetResponseDiagnostics(v jsontext.Value) *UsageLogUpsertOne {
+	return u.Update(func(s *UsageLogUpsert) {
+		s.SetResponseDiagnostics(v)
+	})
+}
+
+// UpdateResponseDiagnostics sets the "response_diagnostics" field to the value that was provided on create.
+func (u *UsageLogUpsertOne) UpdateResponseDiagnostics() *UsageLogUpsertOne {
+	return u.Update(func(s *UsageLogUpsert) {
+		s.UpdateResponseDiagnostics()
+	})
+}
+
+// ClearResponseDiagnostics clears the value of the "response_diagnostics" field.
+func (u *UsageLogUpsertOne) ClearResponseDiagnostics() *UsageLogUpsertOne {
+	return u.Update(func(s *UsageLogUpsert) {
+		s.ClearResponseDiagnostics()
 	})
 }
 
@@ -4120,6 +4170,27 @@ func (u *UsageLogUpsertBulk) UpdateImageSizeSource() *UsageLogUpsertBulk {
 func (u *UsageLogUpsertBulk) ClearImageSizeSource() *UsageLogUpsertBulk {
 	return u.Update(func(s *UsageLogUpsert) {
 		s.ClearImageSizeSource()
+	})
+}
+
+// SetResponseDiagnostics sets the "response_diagnostics" field.
+func (u *UsageLogUpsertBulk) SetResponseDiagnostics(v jsontext.Value) *UsageLogUpsertBulk {
+	return u.Update(func(s *UsageLogUpsert) {
+		s.SetResponseDiagnostics(v)
+	})
+}
+
+// UpdateResponseDiagnostics sets the "response_diagnostics" field to the value that was provided on create.
+func (u *UsageLogUpsertBulk) UpdateResponseDiagnostics() *UsageLogUpsertBulk {
+	return u.Update(func(s *UsageLogUpsert) {
+		s.UpdateResponseDiagnostics()
+	})
+}
+
+// ClearResponseDiagnostics clears the value of the "response_diagnostics" field.
+func (u *UsageLogUpsertBulk) ClearResponseDiagnostics() *UsageLogUpsertBulk {
+	return u.Update(func(s *UsageLogUpsert) {
+		s.ClearResponseDiagnostics()
 	})
 }
 

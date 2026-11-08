@@ -849,6 +849,7 @@ func (s *GatewayService) Forward(ctx context.Context, c *gin.Context, account *A
 		Model:                         originalModel, // 使用原始模型用于计费和日志
 		UpstreamModel:                 mappedModel,
 		UpstreamResponseModel:         observedUpstreamResponseModel(c),
+		ResponseDiagnostics:           observedResponseDiagnostics(c),
 		UpstreamResponseModelConflict: observedUpstreamResponseModelConflict(c),
 		UpstreamResponseServiceTier:   observedUpstreamResponseServiceTier(c),
 		Stream:                        reqStream,
