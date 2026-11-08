@@ -7,6 +7,7 @@ import (
 	"context"
 	"encoding/base64"
 	"encoding/json"
+	"errors"
 	"image"
 	"image/png"
 	"io"
@@ -152,6 +153,43 @@ func TestScheduledQuizImageRequests(t *testing.T) {
 			require.NotContains(t, string(body), "private question text")
 			require.Contains(t, string(body), strings.TrimPrefix(testIntelligencePromptImage, intelligenceImagePrefix))
 			require.NotEmpty(t, gjson.GetBytes(body, tc.contentPath).String())
+		})
+	}
+}
+
+func TestScheduledQuizRejectsGenerationAliases(t *testing.T) {
+	for _, tc := range []struct {
+		name, platform, accountType, model string
+	}{
+		{"OpenAI API key", PlatformOpenAI, AccountTypeAPIKey, "gpt-image-2"},
+		{"OpenAI OAuth", PlatformOpenAI, AccountTypeOAuth, "gpt-image-2"},
+		{"Grok image", PlatformGrok, AccountTypeAPIKey, "grok-imagine-image"},
+		{"Grok video", PlatformGrok, AccountTypeAPIKey, "grok-imagine-video"},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			account := &Account{ID: 41, Platform: tc.platform, Type: tc.accountType, Credentials: map[string]any{
+				"api_key": "sk-test", "access_token": "test-token", "model_mapping": map[string]any{"public-model": tc.model},
+			}}
+			sent := false
+			probe := &AccountTestService{accountRepo: &systemOnePolicyAccountRepo{account: account}, cfg: &config.Config{},
+				httpUpstream: &systemOneHTTPUpstream{do: func(*http.Request) (*http.Response, error) {
+					sent = true
+					return nil, errors.New("unexpected generation request")
+				}},
+			}
+			svc, plans, _ := newKindsTestService(&fakeQuestionRepo{enabled: []*IntelligenceQuestion{{
+				ID: 1, Prompt: "private question", PromptImage: testIntelligencePromptImage, AnswerRule: IntelligenceRuleNumber, ExpectedAnswers: []string{"42"},
+			}}})
+			runner := NewScheduledTestRunnerService(plans, svc, probe, nil, nil)
+			result, err := runner.runPlanTest(context.Background(), &ScheduledTestPlan{
+				ID: 5, AccountID: account.ID, ModelID: "public-model", Kind: ScheduledTestKindQuiz, FailureAction: ScheduledTestFailureDisableAccount,
+			})
+			require.NoError(t, err)
+			require.False(t, sent)
+			require.Equal(t, "failed", result.Status)
+			require.Empty(t, result.Verdict)
+			require.Contains(t, result.ErrorMessage, "not supported by media-generation routes")
+			require.Equal(t, "private question", result.Prompt)
 		})
 	}
 }

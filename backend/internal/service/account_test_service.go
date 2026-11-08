@@ -848,6 +848,9 @@ func (s *AccountTestService) testOpenAIAccountConnection(c *gin.Context, account
 
 	// Route to image generation test if an image model is selected
 	if isOpenAIImageModel(testModelID) {
+		if c.GetString(accountTestQuestionImageKey) != "" {
+			return s.sendErrorAndEnd(c, "Scheduled quiz images are not supported by media-generation routes")
+		}
 		imagePrompt := strings.TrimSpace(prompt)
 		if imagePrompt == "" {
 			imagePrompt = defaultOpenAIImageTestPrompt
@@ -1083,6 +1086,9 @@ func (s *AccountTestService) testGrokAccountConnection(c *gin.Context, account *
 		testModelID = mapped
 	}
 
+	if c.GetString(accountTestQuestionImageKey) != "" && (isGrokImageGenerationModel(testModelID) || isGrokVideoGenerationModel(testModelID)) {
+		return s.sendErrorAndEnd(c, "Scheduled quiz images are not supported by media-generation routes")
+	}
 	switch {
 	case isGrokImageGenerationModel(testModelID):
 		return s.testGrokImageGeneration(c, ctx, account, authToken, testModelID, resolveGrokImagePrompt(prompt), opts.ImageDataURL)
