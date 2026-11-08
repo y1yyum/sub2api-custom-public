@@ -520,7 +520,7 @@ export default {
         ended: 'Ended', stopSequence: 'Stop sequence', toolStop: 'Tool call', outputLimit: 'Output limit', contextLimit: 'Context limit', paused: 'Paused', filtered: 'Content filtered',
         totalInput: 'Total input (including cache)', messageId: 'Upstream message ID', protocol: 'Response protocol', stopReason: 'Stop reason',
         integrity: 'Upstream stream integrity', complete: 'Complete ending observed', incomplete: 'Incomplete ending or stream error',
-        integrityHint: 'Integrity means an upstream terminal event was observed without a stream error; it does not confirm complete delivery to the client.',
+        integrityHint: 'Integrity means an upstream terminal event was observed without an unresolved stream error; it does not confirm complete delivery to the client.',
         thinking: 'Reported thinking tokens (included in output)', serviceTier: 'Reported service tier', inferenceGeo: 'Reported inference region',
         tools: 'Declared tool calls', clientTool: 'Client tool', serverTool: 'Server tool', iterations: 'Inference iterations', kind: 'Type', model: 'Declared model',
         events: 'Observed events', error: 'Stream error type', truncated: 'Only the first 32 iteration summaries are retained to bound diagnostic size.',

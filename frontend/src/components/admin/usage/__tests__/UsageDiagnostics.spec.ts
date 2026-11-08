@@ -65,6 +65,14 @@ describe('administrator usage diagnostics', () => {
     wrapper.unmount()
   })
 
+  it('shows whitespace stop sequences as quoted literals', async () => {
+    const sequence = '\n\nHuman:'
+    const wrapper = render({ ...sample, stop_sequence: sequence })
+    await wrapper.get('button').trigger('click')
+    expect(document.querySelector('[role="dialog"]')?.textContent).toContain(JSON.stringify(sequence))
+    wrapper.unmount()
+  })
+
   it('provides localized English badges and details', async () => {
     const wrapper = render(sample, 'en')
     expect(wrapper.text()).toContain('Scaled')

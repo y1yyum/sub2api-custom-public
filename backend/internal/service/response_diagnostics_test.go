@@ -191,3 +191,39 @@ func TestResponseDiagnosticsNilObserver(t *testing.T) {
 		observer.ObserveOpenAI([]byte(`{"type":"response.done","response":{"model":"gpt-example"}}`), "response.done")
 	})
 }
+
+func TestResponseDiagnosticsResponsesRecoveredError(t *testing.T) {
+	for _, kind := range []string{"response.completed", "response.done"} {
+		t.Run(kind, func(t *testing.T) {
+			o := &upstreamResponseModelObserver{}
+			o.ObserveOpenAI([]byte(`{"type":"response.created","response":{"id":"resp_example"}}`), "response.created")
+			o.ObserveOpenAI([]byte(`{"type":"error","error":{"type":"server_error"}}`), "error")
+			require.False(t, o.diagnostics.snapshot().StreamComplete)
+			o.ObserveOpenAI([]byte(fmt.Sprintf(`{"type":%q,"response":{"usage":{"input_tokens":100,"output_tokens":10}}}`, kind)), kind)
+			d := o.diagnostics.snapshot()
+			require.True(t, d.StreamComplete)
+			require.Empty(t, d.ErrorType)
+			require.EqualValues(t, 100, *d.FinalUsage.TotalInputTokens)
+		})
+	}
+	o := &upstreamResponseModelObserver{}
+	o.ObserveOpenAI([]byte(`{"type":"response.failed","response":{}}`), "response.failed")
+	o.ObserveOpenAI([]byte(`{"type":"response.completed","response":{}}`), "response.completed")
+	require.False(t, o.diagnostics.snapshot().StreamComplete)
+	require.Equal(t, "failed", o.diagnostics.snapshot().ErrorType)
+}
+
+func TestResponseDiagnosticsStopSequencePreservesWhitespace(t *testing.T) {
+	for _, sequence := range []string{"\n\nHuman:", "   ", strings.Repeat("界", 250)} {
+		o := &upstreamResponseModelObserver{}
+		o.ObserveAnthropic([]byte(`{"type":"message_start","message":{}}`))
+		payload, err := json.Marshal(map[string]any{"type": "message_delta", "delta": map[string]any{"stop_reason": "stop_sequence", "stop_sequence": sequence}})
+		require.NoError(t, err)
+		o.ObserveAnthropic(payload)
+		want := []rune(sequence)
+		if len(want) > 200 {
+			want = want[:200]
+		}
+		require.Equal(t, string(want), o.diagnostics.snapshot().StopSequence)
+	}
+}

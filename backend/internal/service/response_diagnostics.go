@@ -57,10 +57,11 @@ type ResponseIteration struct {
 const responseDiagnosticsMaxItems = 32
 
 type responseDiagnosticsObserver struct {
-	data       ResponseDiagnostics
-	latest     *ResponseTokenUsage
-	terminal   bool
-	openBlocks int
+	data                ResponseDiagnostics
+	latest              *ResponseTokenUsage
+	terminal            bool
+	openBlocks          int
+	openAITerminalError bool
 }
 
 func diagnosticToken(value gjson.Result) *int64 {
@@ -75,7 +76,17 @@ func diagnosticText(value gjson.Result) string {
 	if value.Type != gjson.String {
 		return ""
 	}
-	text := strings.TrimSpace(value.String())
+	return boundedDiagnosticText(strings.TrimSpace(value.String()))
+}
+
+func diagnosticLiteralText(value gjson.Result) string {
+	if value.Type != gjson.String {
+		return ""
+	}
+	return boundedDiagnosticText(value.String())
+}
+
+func boundedDiagnosticText(text string) string {
 	if len(text) > 200 {
 		return string([]rune(text)[:min(len([]rune(text)), 200)])
 	}
@@ -158,7 +169,9 @@ func (o *responseDiagnosticsObserver) observeAnthropic(payload []byte) {
 		if reason := diagnosticText(node.Get("delta.stop_reason")); reason != "" {
 			o.data.StopReason = reason
 		}
-		o.data.StopSequence = diagnosticText(node.Get("delta.stop_sequence"))
+		if sequence := node.Get("delta.stop_sequence"); sequence.Type == gjson.String {
+			o.data.StopSequence = diagnosticLiteralText(sequence)
+		}
 		o.observeUsageDetails(node.Get("usage"))
 	case "content_block_start":
 		o.openBlocks++
@@ -320,12 +333,16 @@ func (o *responseDiagnosticsObserver) observeOpenAI(payload []byte, kind string)
 			o.data.ThinkingTokens = thinking
 		}
 		if terminal {
+			if (kind == "response.completed" || kind == "response.done") && !o.openAITerminalError {
+				o.data.ErrorType = ""
+			}
 			o.terminal = true
 			o.data.StopReason = strings.TrimPrefix(kind, "response.")
 			if reason := diagnosticText(response.Get("incomplete_details.reason")); reason != "" {
 				o.data.StopReason = reason
 			}
 			if kind == "response.failed" {
+				o.openAITerminalError = true
 				o.data.ErrorType = strings.TrimPrefix(kind, "response.")
 			}
 		}

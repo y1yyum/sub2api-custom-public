@@ -135,7 +135,7 @@ const metadata = computed(() => {
     { label: 'admin.usage.diagnostics.messageId', value: d.message_id || unknown.value },
     { label: 'admin.usage.diagnostics.protocol', value: d.protocol },
     { label: 'admin.usage.diagnostics.stopReason', value: d.stop_reason || unknown.value },
-    { label: 'admin.usage.diagnostics.stopSequence', value: d.stop_sequence || unknown.value },
+    { label: 'admin.usage.diagnostics.stopSequence', value: d.stop_sequence == null ? unknown.value : JSON.stringify(d.stop_sequence) },
     { label: 'admin.usage.diagnostics.integrity', value: integrityLabel.value },
     { label: 'admin.usage.diagnostics.change', value: changeRate.value },
     { label: 'admin.usage.diagnostics.thinking', value: numberValue(d.thinking_tokens) },
