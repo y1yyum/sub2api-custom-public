@@ -293,7 +293,7 @@ func (o *responseDiagnosticsObserver) observeOpenAI(payload []byte, kind string)
 	o.data.EventCount++
 	if responses {
 		o.data.Protocol = "openai_responses"
-		if strings.HasSuffix(kind, ".delta") || strings.HasSuffix(kind, ".done") {
+		if strings.HasSuffix(kind, ".delta") || (strings.HasSuffix(kind, ".done") && !isUpstreamResponseModelTerminalEvent(kind)) {
 			return
 		}
 	} else {
@@ -305,7 +305,7 @@ func (o *responseDiagnosticsObserver) observeOpenAI(payload []byte, kind string)
 		if id := diagnosticText(response.Get("id")); id != "" {
 			o.data.MessageID = id
 		}
-		terminal := kind == "response.completed" || kind == "response.incomplete" || kind == "response.failed"
+		terminal := isUpstreamResponseModelTerminalEvent(kind)
 		if usage := openAIDiagnosticUsage(response.Get("usage")); usage != nil {
 			if terminal {
 				o.data.FinalUsage = usage

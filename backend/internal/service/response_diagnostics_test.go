@@ -3,7 +3,9 @@
 package service
 
 import (
+	"context"
 	"encoding/json"
+	"fmt"
 	"strings"
 	"testing"
 
@@ -129,5 +131,63 @@ func TestResponseDiagnosticsOpenAIStreaming(t *testing.T) {
 		d := o.diagnostics.snapshot()
 		require.True(t, d.StreamComplete)
 		require.Equal(t, "max_output_tokens", d.StopReason)
+	})
+}
+
+func TestResponseDiagnosticsResponsesTerminalVariants(t *testing.T) {
+	for _, kind := range []string{"response.done", "response.cancelled", "response.canceled"} {
+		t.Run(kind, func(t *testing.T) {
+			o := &upstreamResponseModelObserver{}
+			o.ObserveOpenAI([]byte(fmt.Sprintf(`{"type":%q,"response":{"id":"resp_example","usage":{"input_tokens":100,"output_tokens":10}}}`, kind)), kind)
+			d := o.diagnostics.snapshot()
+			require.True(t, d.StreamComplete)
+			require.Equal(t, strings.TrimPrefix(kind, "response."), d.StopReason)
+			require.EqualValues(t, 100, *d.FinalUsage.TotalInputTokens)
+			require.EqualValues(t, 10, *d.FinalUsage.OutputTokens)
+		})
+	}
+}
+
+func TestResponseDiagnosticsNativeAnthropicConversions(t *testing.T) {
+	for _, endpoint := range []string{"responses", "chat/completions"} {
+		for _, stream := range []bool{false, true} {
+			t.Run(fmt.Sprintf("%s/stream=%t", endpoint, stream), func(t *testing.T) {
+				request := map[string]any{"model": "k3", "stream": stream}
+				if endpoint == "responses" {
+					request["input"] = "hello"
+				} else {
+					request["messages"] = []map[string]string{{"role": "user", "content": "hello"}}
+				}
+				body, err := json.Marshal(request)
+				require.NoError(t, err)
+				upstream := &httpUpstreamRecorder{resp: nativeAnthropicStreamResponse()}
+				svc := &OpenAIGatewayService{cfg: rawChatCompletionsTestConfig(), httpUpstream: upstream}
+				c := adaptiveProtocolTestContext("/v1/"+endpoint, body)
+				account := nativeAnthropicTestAccount()
+				account.Credentials["base_url"] = "http://anthropic.example"
+				var result *OpenAIForwardResult
+				if endpoint == "responses" {
+					result, err = svc.Forward(context.Background(), c, account, body)
+				} else {
+					result, err = svc.ForwardAsChatCompletions(context.Background(), c, account, body, "", "")
+				}
+				require.NoError(t, err)
+				d := result.ResponseDiagnostics
+				require.NotNil(t, d)
+				require.Equal(t, "anthropic", d.Protocol)
+				require.True(t, d.StreamComplete)
+				require.Equal(t, "end_turn", d.StopReason)
+				require.EqualValues(t, 93, *d.InitialUsage.InputTokens)
+				require.EqualValues(t, 16, *d.FinalUsage.OutputTokens)
+			})
+		}
+	}
+}
+
+func TestResponseDiagnosticsNilObserver(t *testing.T) {
+	var observer *upstreamResponseModelObserver
+	require.NotPanics(t, func() {
+		observer.ObserveAnthropic([]byte(`{"type":"message_start","message":{"model":"claude-example"}}`))
+		observer.ObserveOpenAI([]byte(`{"type":"response.done","response":{"model":"gpt-example"}}`), "response.done")
 	})
 }
