@@ -2,7 +2,7 @@
 
 # Sub2API Custom Public
 
-[![Release](https://img.shields.io/badge/Release-v0.6.0-blue.svg)](https://github.com/y1yyum/sub2api-custom-public/releases)
+[![Release](https://img.shields.io/badge/Release-v0.6.1-blue.svg)](https://github.com/y1yyum/sub2api-custom-public/releases)
 [![Go Version](https://img.shields.io/badge/Go-1.27.3-00ADD8.svg)](https://golang.org/)
 [![Vue Version](https://img.shields.io/badge/Vue-3.4+-4FC08D.svg)](https://vuejs.org/)
 [![Docker Multi-Arch](https://img.shields.io/badge/Docker-amd64%20%7C%20arm64-2496ED.svg)](https://github.com/y1yyum/sub2api-custom-public/pkgs/container/sub2api-custom-public)
@@ -18,11 +18,11 @@
 
 ## 📖 项目简介
 
-**Sub2API Custom Public** 是专为实机 Docker 生产环境打造的不可变 AI API 网关与配额管理平台。当前最新公开发行版本为 **v0.6.0**。
+**Sub2API Custom Public** 是专为实机 Docker 生产环境打造的不可变 AI API 网关与配额管理平台。当前最新公开发行版本为 **v0.6.1**。
 
 在官方 Sub2API 核心能力的基础上，本项目已深度合并上游至 `25608d216`（涵盖 v0.2.18 与 v0.2.19 核心生态兼容与安全加固），解决了高并发流式计费丢失、客户端断连漏扣、OAuth 凭据刷新悬挂、SSRF 探测逃逸及顶层模型混淆注入等关键生产缺陷。
 
-本项目提供专属的莱茵生命（Rhine Lab）主题门户与极客像素交互；支持管理 MCP 与 MCP OAuth 授权码体系（PKCE）；内置定时智力测试（quiz）题库本地图片渲染与多模态原生图片探测，配合自动下线与隔离策略保障上游账号质量；在管理端调用日志中提供透明的流式响应诊断（用量缩放、输入变化率、流完整性）；并在 `v0.6.0` 全面重构用户门户与管理端集中检测，引入默认关闭的受信网关桥接与独立调度试点。
+本项目提供专属的莱茵生命（Rhine Lab）主题门户与极客像素交互；支持管理 MCP 与 MCP OAuth 授权码体系（PKCE）；内置定时智力测试（quiz）题库本地图片渲染与多模态原生图片探测，配合自动下线与隔离策略保障上游账号质量；在管理端调用日志中提供透明的流式响应诊断（用量缩放、输入变化率、流完整性）；并在 `v0.6.0` 全面重构用户门户与管理端集中检测，引入默认关闭的受信网关桥接与独立调度试点；`v0.6.1` 新增门户配色风格选择并调整表格页布局。
 
 本仓库为完全开源的公开交付版本，剥离了内部私有直充与运维专有探针模块，**不包含任何生产凭据或私有环境依赖**，所有构建产物均通过公开 CI 门禁验证。
 
@@ -39,6 +39,7 @@
   - **调用用量分析**：提供用量摘要与细项详情弹窗、Token 组成透视（输入/输出/缓存/思考），支持 CSV 分页导出并在遇到 429 限流时自动按 `Retry-After` 退避重试。
   - **钱包与账单**：重构充值与资金流水列表，直观呈现余额变动与订单状态。
   - **模型与渠道（Models & Channels）**：提供公开的模型目录、分组卡片、实时通道状态与费率看板。
+- **配色风格与表格布局 (v0.6.1)**：内置 11 套配色风格（像素组与厂商主色组，含浅／深），深色下像素图标为实心中间调；表格页铺满宽度并随每页条数增高；首页取消入场动画。
 - **无障碍访问性（A11y）**：Dock 导航栏全面适配键盘焦点捕捉与辅助导航。
 
 ### 2. 🛡️ 网关流式计费与异常断连零漂移保障 (Stream & Billing Hardening)
@@ -109,7 +110,7 @@
 
 系统迁移引擎基于**完整文件名**与**文件校验和（Checksum）**排序，**所有迁移均严格遵循向前兼容原则（只增不删）**。应用启动时会自动检测并执行尚未应用的迁移项。
 
-### 完整迁移清单（至 v0.6.0）
+### 完整迁移清单（至 v0.6.1）
 
 | 版本 | 迁移文件 | 说明 | 兼容性与数据影响 |
 | --- | --- | --- | --- |
@@ -123,6 +124,7 @@
 | `v0.5.1` | `9010_usage_response_diagnostics.sql` | `usage_logs` 新增 `response_diagnostics JSONB` | 新增可空列，旧行保持 `NULL` |
 | `v0.5.2` | `9011_intelligence_question_images.sql` | `intelligence_questions` 新增 `prompt_image TEXT` | 新增列（默认 `''`），旧题在保存时生成图片 |
 | **`v0.6.0`** | **常规 Core 升级：无新增自动 SQL 迁移** | 沿用 v0.5.2 既有迁移，应用启动无需新 DDL | 零数据库改动，无需停机迁移 |
+| **`v0.6.1`** | **无新增迁移** | 仅前端改动 | 零数据库改动，可直接替换或回退镜像 |
 
 > [!IMPORTANT]
 > **常规升级与网关扩展 SQL 边界**：
@@ -171,10 +173,10 @@ TOTP_ENCRYPTION_KEY=generate_a_random_32_byte_base64_string
 
 ### 2. 使用官方预构建镜像运行（推荐）
 
-直接在 `deploy/.env` 中指定 `v0.6.0` 镜像版本即可跳过本地耗时编译：
+直接在 `deploy/.env` 中指定 `v0.6.1` 镜像版本即可跳过本地耗时编译：
 
 ```ini
-SUB2API_IMAGE=ghcr.io/y1yyum/sub2api-custom-public:0.6.0
+SUB2API_IMAGE=ghcr.io/y1yyum/sub2api-custom-public:0.6.1
 ```
 
 执行容器拉取与启动：
@@ -201,7 +203,7 @@ docker compose -f deploy/docker-compose.local.yml up -d --build
 
 ## 🔄 升级与运维指南
 
-### 标准升级流程（升级至 v0.6.0）
+### 标准升级流程（升级至 v0.6.1）
 
 升级前请务必完整备份 `deploy/` 下的持久化数据目录及 `.env` 配置文件：
 
@@ -213,7 +215,7 @@ tar -czvf sub2api-backup-$(date +%F).tar.gz deploy/postgres_data deploy/data dep
 git pull --ff-only origin main
 
 # 3. 更新或配置 deploy/.env 中的镜像版本（存在则替换，缺失则追加）
-grep -q '^SUB2API_IMAGE=' deploy/.env && sed -i 's|^SUB2API_IMAGE=.*|SUB2API_IMAGE=ghcr.io/y1yyum/sub2api-custom-public:0.6.0|' deploy/.env || echo 'SUB2API_IMAGE=ghcr.io/y1yyum/sub2api-custom-public:0.6.0' >> deploy/.env
+grep -q '^SUB2API_IMAGE=' deploy/.env && sed -i 's|^SUB2API_IMAGE=.*|SUB2API_IMAGE=ghcr.io/y1yyum/sub2api-custom-public:0.6.1|' deploy/.env || echo 'SUB2API_IMAGE=ghcr.io/y1yyum/sub2api-custom-public:0.6.1' >> deploy/.env
 
 # 4. 更新镜像并启动（常规 Core 升级无新增自动 SQL 迁移）
 docker compose -f deploy/docker-compose.local.yml pull sub2api
@@ -245,7 +247,7 @@ docker compose -f deploy/docker-compose.local.yml ps
 
 - **自动化 CI 门禁**：每个 PR 必须通过包含 Go 单元测试、集成测试、前端 Lint & 关键 Vitest、golangci-lint 及变更集密钥扫描的完整门禁闭包。
 - **不可变 OCI 多架构镜像**：
-  - 镜像地址：`ghcr.io/y1yyum/sub2api-custom-public:0.6.0`（支持 `linux/amd64` 与 `linux/arm64`）。
+  - 镜像地址：`ghcr.io/y1yyum/sub2api-custom-public:0.6.1`（支持 `linux/amd64` 与 `linux/arm64`）。
   - 生产环境建议通过不可变 Digest 进行精准部署。
 - **官方二进制归档与校验和**：
   - 每个正式 Release 均由 GitHub Actions 官方流水线通过 GoReleaser 自动构建多平台二进制归档包，并同步提供 `checksums.txt`（SHA256）校验清单。
@@ -260,6 +262,7 @@ docker compose -f deploy/docker-compose.local.yml ps
 - 公开源码同步历史：[UPSTREAM_SYNC.md](docs/UPSTREAM_SYNC.md)
 - 合规承诺书：[管理员合规承诺 (中文)](docs/legal/admin-compliance.zh.md) | [Compliance Statement (EN)](docs/legal/admin-compliance.en.md)
 - 发行版本说明：
+  - [v0.6.1 发行说明](docs/releases/v0.6.1.md)
   - [v0.6.0 发行说明](docs/releases/v0.6.0.md)
   - [v0.5.1 发行说明](docs/releases/v0.5.1.md)
   - [v0.4.0-rc.1 发行准备说明](docs/releases/v0.4.0-rc.1.md)
