@@ -2,7 +2,7 @@
 
 # Sub2API Custom Public
 
-[![Release](https://img.shields.io/github/v/release/y1yyum/sub2api-custom-public?label=Release)](https://github.com/y1yyum/sub2api-custom-public/releases)
+[![Release](https://img.shields.io/badge/Release-v0.6.0-blue.svg)](https://github.com/y1yyum/sub2api-custom-public/releases)
 [![Go Version](https://img.shields.io/badge/Go-1.27.3-00ADD8.svg)](https://golang.org/)
 [![Vue Version](https://img.shields.io/badge/Vue-3.4+-4FC08D.svg)](https://vuejs.org/)
 [![Docker Multi-Arch](https://img.shields.io/badge/Docker-amd64%20%7C%20arm64-2496ED.svg)](https://github.com/y1yyum/sub2api-custom-public/pkgs/container/sub2api-custom-public)
@@ -10,7 +10,7 @@
 
 **面向高可用实机生产环境的 AI API 聚合网关与订阅分发平台（基于 [Wei-Shaw/sub2api](https://github.com/Wei-Shaw/sub2api) 二开强化版）**
 
-[快速部署](#-快速实机部署) • [核心特性](#-核心特性与二开增强) • [数据库迁移](#-数据库迁移规范与向前兼容) • [升级与运维](#-升级与运维指南) • [供应链安全](#-供应链安全与可验证交付)
+[快速部署](#-快速实机部署) • [v0.6.0 核心特性](#-v060-核心特性与二开增强) • [数据库迁移](#-数据库迁移规范与向前兼容) • [升级与运维](#-升级与运维指南) • [供应链安全](#-供应链安全与可验证交付)
 
 </div>
 
@@ -18,25 +18,27 @@
 
 ## 📖 项目简介
 
-**Sub2API Custom Public** 是专为实机 Docker 生产环境打造的不可变 AI API 网关与配额管理平台。当前正式版本、校验和及镜像 Digest 见[最新 Release](https://github.com/y1yyum/sub2api-custom-public/releases/latest)。
+**Sub2API Custom Public** 是专为实机 Docker 生产环境打造的不可变 AI API 网关与配额管理平台。当前最新公开发行版本为 **v0.6.0**。
 
 在官方 Sub2API 核心能力的基础上，本项目已深度合并上游至 `25608d216`（涵盖 v0.2.18 与 v0.2.19 核心生态兼容与安全加固），解决了高并发流式计费丢失、客户端断连漏扣、OAuth 凭据刷新悬挂、SSRF 探测逃逸及顶层模型混淆注入等关键生产缺陷。
 
-本项目提供专属的莱茵生命（Rhine Lab）主题门户与极客像素交互；支持管理 MCP 与 MCP OAuth 授权码体系（PKCE）；内置定时智力测试（quiz）题库本地图片渲染与多模态原生图片探测，配合自动下线与隔离策略保障上游账号质量；并在管理端调用日志中提供透明的流式响应诊断（用量缩放、输入变化率、流完整性）。
+本项目提供专属的莱茵生命（Rhine Lab）主题门户与极客像素交互；支持管理 MCP 与 MCP OAuth 授权码体系（PKCE）；内置定时智力测试（quiz）题库本地图片渲染与多模态原生图片探测，配合自动下线与隔离策略保障上游账号质量；在管理端调用日志中提供透明的流式响应诊断（用量缩放、输入变化率、流完整性）；并在 `v0.6.0` 全面重构用户门户与管理端集中检测，引入默认关闭的受信网关桥接与独立调度试点。
 
 本仓库为完全开源的公开交付版本，剥离了内部私有直充与运维专有探针模块，**不包含任何生产凭据或私有环境依赖**，所有构建产物均通过公开 CI 门禁验证。
 
 ---
 
-## 🚀 核心特性与二开增强
+## 🚀 v0.6.0 核心特性与二开增强
 
-### 1. 🎨 莱茵生命主题门户与前端交互增强 (Custom Portal)
+### 1. 🎨 莱茵生命主题门户与交互重构 (Custom Portal & UI Refresh)
 - **全新极客像素风格**：基于 `frontend/src/custom-portal/` 重构的 Rhine Lab 风格视觉体系，内嵌像素艺术图标系统（Pixel Art Icons）、定制线框与高对比度状态面板。
-- **实时用量与健康监控大屏**：
-  - **Metric Cards**：实时请求量、Token 吞吐、错误率与通道延迟状态码感知。
-  - **Usage Sparkline**：轻量级实时火花线趋势图，零冗余图表依赖。
-  - **Top 模型排行榜**：一览集群热门模型调用与计费分布。
-  - **模型与渠道（Models & Channels）**：提供公开的模型目录、状态与实时费率速查看板。
+- **用户门户交互体验全面改版 (v0.6.0)**：
+  - **登录与认证**：优化登录/注册布局与响应式体验，支持注册邮箱完整地址黑名单拦截。
+  - **概览大屏**：实时指标感知（Metric Cards）、轻量级用量火花线（Usage Sparkline）、调用热力图（Heatmap）及高频快捷操作。
+  - **API Key 管理**：支持批量启停/删除操作、并发上限配置，并提供多语言/主流 SDK 的集成示例代码一键复制。
+  - **调用用量分析**：提供用量摘要与细项详情弹窗、Token 组成透视（输入/输出/缓存/思考），支持 CSV 分页导出并在遇到 429 限流时自动按 `Retry-After` 退避重试。
+  - **钱包与账单**：重构充值与资金流水列表，直观呈现余额变动与订单状态。
+  - **模型与渠道（Models & Channels）**：提供公开的模型目录、分组卡片、实时通道状态与费率看板。
 - **无障碍访问性（A11y）**：Dock 导航栏全面适配键盘焦点捕捉与辅助导航。
 
 ### 2. 🛡️ 网关流式计费与异常断连零漂移保障 (Stream & Billing Hardening)
@@ -55,7 +57,9 @@
 - **账户用量窗口化批量查询（Account Window Batching）**：
   - 优化高并发下基于时间窗口的账户用量与限流统计 SQL，大幅减轻高频调用下的 PostgreSQL 事务锁竞争。
 
-### 4. 🧠 定时智力测试与自动化故障隔离 (Scheduled Intelligence Quiz & Auto-Isolation)
+### 4. 🧠 定时智力测试与集中管理平台 (Scheduled Intelligence Quiz & Auto-Isolation)
+- **管理端集中检测中心 (v0.6.0)**：
+  - 管理端可在专属的「智力检测」页面集中管理计划与题库，支持按指定账号快速筛选关联合约与测试记录。
 - **题库白底黑字图片化 (v0.5.2)**：
   - 新建或编辑题目保存时，管理端本地自动渲染为黑白 PNG 图片（Data URL 存储），不调用外部生图服务。
   - 执行测试时直接以多模态图片格式发送，不携带明文题干或标准作答格式，彻底杜绝提示词泄露与上游文本提示词污染；缺图时安全拒绝测试，不降级为文本发送。
@@ -87,10 +91,17 @@
 - **全权限模式与用量统计 (v0.5.0)**：
   - 完善全权限模式与用量统计接口，修正权限判定边界。
 
-### 8. 门户、集中智力检测与可选网关（v0.6.0）
-- 用户门户更新概览、API Key、用量和钱包页面；管理员可在统一页面维护智力检测计划与图片题库。
-- 常规镜像仍只启动 Core。源码另提供默认关闭的受信桥接、影子选号、严格选号试点与独立调度工具；没有随镜像自动启用团队预算或账本。
-- 相对 v0.5.2，公开 Core 无新增自动数据库迁移；试点的独立扩展 SQL、切换前提和回退边界见 [v0.6.0 发布说明](https://github.com/y1yyum/sub2api-custom-public/releases/tag/v0.6.0)。
+### 8. 🌐 可选受信网关桥接与独立调度试点 (Optional Gateway Bridge & Dispatcher) (v0.6.0)
+- **核心边界与 Core 最终否决权**：
+  - 常规 Docker 镜像与官方归档仅运行 Core 主程序 `sub2api`。网关桥接与独立调度工具（`bridge-edge`、`bridge-relay`、`dispatchd`、`scheduled-owner`）作为源码级试点提供，**默认关闭，不会随镜像自动拉起**。Core 侧的原生资格检查仍为最终否决凭据。
+- **受信桥接与用量回执**：
+  - Core 增加受信桥接入口与固定账号转发，支持用量回执（outbox/delivery）可靠交付与端到端遥测（TTFT、超时、失败原因）。
+- **多维调度算法与健康保持**：
+  - 调度支持加权轮询（Weighted Round-Robin）、在途负载均衡（In-flight Load Tracking）、范围故障保持（Failure Holds）、质量评分与拥堵延期、探针预算上限、快照订阅与硬失效通知。
+- **定时任务执行方解耦**：
+  - 提供定时任务执行方迁移工具，支持后台定时任务的独立接管与平滑交还。
+- **渠道与路由微调**：
+  - OpenAI 生图请求支持按 1K / 2K / 4K 图像分辨率定向选择可用账号；Kimi 渠道并发 403 限流触发短期自愈冷却。
 
 ---
 
@@ -98,7 +109,7 @@
 
 系统迁移引擎基于**完整文件名**与**文件校验和（Checksum）**排序，**所有迁移均严格遵循向前兼容原则（只增不删）**。应用启动时会自动检测并执行尚未应用的迁移项。
 
-### 完整迁移清单（至 v0.5.2）
+### 完整迁移清单（至 v0.6.0）
 
 | 版本 | 迁移文件 | 说明 | 兼容性与数据影响 |
 | --- | --- | --- | --- |
@@ -111,9 +122,12 @@
 | `v0.5.0` | `9009_scheduled_test_failure_action.sql` | 定时测试计划新增失败处理动作与策略版本 | 新增列（默认 `none` / `0`） |
 | `v0.5.1` | `9010_usage_response_diagnostics.sql` | `usage_logs` 新增 `response_diagnostics JSONB` | 新增可空列，旧行保持 `NULL` |
 | `v0.5.2` | `9011_intelligence_question_images.sql` | `intelligence_questions` 新增 `prompt_image TEXT` | 新增列（默认 `''`），旧题在保存时生成图片 |
+| **`v0.6.0`** | **常规 Core 升级：无新增自动 SQL 迁移** | 沿用 v0.5.2 既有迁移，应用启动无需新 DDL | 零数据库改动，无需停机迁移 |
 
 > [!IMPORTANT]
-> **迁移文件名与 Checksum 约束**：同编号不同文件名属于完全不同的迁移项（例如双 `247` 迁移）。**严禁重命名或手动修改已执行的迁移文件**。所有新增列与新表均设计为可空或带有安全默认值，旧版代码与旧镜像可平滑忽略新增字段。
+> **常规升级与网关扩展 SQL 边界**：
+> - **常规升级**：`v0.6.0` 常规 Core 升级无需执行任何新迁移，原样保留 `v0.5.2` 数据库即可平滑启动。
+> - **可选网关扩展 SQL**：桥接扩展迁移位于 `backend/internal/custombridge/migrations/`（001–009）；调度扩展迁移位于 `backend/internal/custom/dispatch/migrations/`（001–006）；定时任务执行方表结构位于 `backend/internal/custom/scheduledowner/schema.sql`。**严禁将扩展 SQL 统一盲目施加于 Core 主库**，仅在显式部署相应组件时于对应数据库应用。
 
 ---
 
@@ -201,7 +215,7 @@ git pull --ff-only origin main
 # 3. 更新或配置 deploy/.env 中的镜像版本（存在则替换，缺失则追加）
 grep -q '^SUB2API_IMAGE=' deploy/.env && sed -i 's|^SUB2API_IMAGE=.*|SUB2API_IMAGE=ghcr.io/y1yyum/sub2api-custom-public:0.6.0|' deploy/.env || echo 'SUB2API_IMAGE=ghcr.io/y1yyum/sub2api-custom-public:0.6.0' >> deploy/.env
 
-# 4. 更新镜像并启动（应用启动时会自动安全执行向前迁移）
+# 4. 更新镜像并启动（常规 Core 升级无新增自动 SQL 迁移）
 docker compose -f deploy/docker-compose.local.yml pull sub2api
 docker compose -f deploy/docker-compose.local.yml up -d --no-build
 docker compose -f deploy/docker-compose.local.yml ps
@@ -210,13 +224,17 @@ docker compose -f deploy/docker-compose.local.yml ps
 ### 关键注意事项与回滚防线
 
 1. **存量智力题目图片生成说明**：
-   - 升级至 `v0.5.2` 后，存量题目由于未包含黑白图片数据（`prompt_image` 为空），执行测试时会主动报错而不会降级为发送明文文本。
-   - 建议在管理后台「智力题库」弹窗中编辑存量题目并点击保存一次，前端将自动生成黑白 PNG 并持久化。
+   - 存量题目若未包含黑白图片数据（`prompt_image` 为空），执行测试时会主动报错而不会降级为发送明文文本。
+   - 建议在管理端「智力检测」题库中编辑存量题目并点击保存一次，系统将自动生成黑白 PNG 并持久化。
 2. **迁移向前兼容与回滚安全约束**：
    - **数据库迁移只增不删**：换回旧镜像不会破坏已有新增表与列（例如 `response_diagnostics`、`prompt_image` 及 MCP 表会被旧镜像静默忽略）。
    - **支付与退款状态机约束**：切勿盲目回退旧版本镜像。`v0.4.0+` 的退款挂起事务具备严格状态机，挂起退款保持扣减保留状态（`DeductionHeld`）。若在存在挂起订单或退款重试时盲目切换至旧版本 Worker，可能导致旧进程对订单重复扣款；回滚前必须暂停支付/退款 Worker 并核对订单对账状态，详见 [支付状态机手册](docs/upgrades/stable-0.2.18-payment.md)。
    - **业务逻辑与鉴权依赖**：旧镜像不具备智力测试自动化限制逻辑，若回滚至旧版，被隔离的账号会重新参与调度；若存量环境中存在已启用的 Scoped Admin API Keys，旧版代码不具备受限鉴权逻辑，禁止在存活受限密钥的情况下回退至旧版本 Auth 模块。
-3. **禁止删除数据目录**：
+3. **可选网关试点与定时任务回滚流程 (v0.6.0)**：
+   - 未启用网关试点时，可直接安全回退旧版本镜像；
+   - 若已启用网关试点，回退前须先停止新请求准入，排空在途请求与待交付回执；
+   - 已迁移的定时任务执行方须按「冻结任务 → 排空在途 → 移交回原执行方（legacy）」顺序回退；交还后仍须保持 Core 协调开关开启（`SUB2API_SCHEDULED_OWNER_ENABLED`），直接关闭协调或重启未修补旧镜像会触发原始无协调清理（Prune）路径，可能丢失任务历史，不在协议安全保证范围内；始终保留账本与审计数据。
+4. **禁止删除数据目录**：
    - 绝不要试图通过删除 PostgreSQL 数据目录来「解决」迁移报错。如遇异常，先暂停 Worker 任务，并参考升级专项说明。
 
 ---
@@ -242,6 +260,7 @@ docker compose -f deploy/docker-compose.local.yml ps
 - 公开源码同步历史：[UPSTREAM_SYNC.md](docs/UPSTREAM_SYNC.md)
 - 合规承诺书：[管理员合规承诺 (中文)](docs/legal/admin-compliance.zh.md) | [Compliance Statement (EN)](docs/legal/admin-compliance.en.md)
 - 发行版本说明：
+  - [v0.6.0 发行说明](docs/releases/v0.6.0.md)
   - [v0.5.1 发行说明](docs/releases/v0.5.1.md)
   - [v0.4.0-rc.1 发行准备说明](docs/releases/v0.4.0-rc.1.md)
 - 升级兼容专项指南：
