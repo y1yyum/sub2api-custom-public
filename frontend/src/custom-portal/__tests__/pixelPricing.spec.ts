@@ -1,20 +1,17 @@
 // @vitest-environment node
-import { readFileSync } from 'node:fs'
-import { resolve } from 'node:path'
 import { describe, expect, it } from 'vitest'
 import postcss, { type Rule } from 'postcss'
 import pricingSource from '../components/rhine/RhineModelPricing.vue?raw'
 import { pixelIconDataUri } from '../theme/pixelIcons'
-import { declarationsIn, scopedStyles } from './contrast'
+import { declarationsIn, paletteTokens, scopedStyles } from './contrast'
 
-const themeCss = readFileSync(resolve(__dirname, '../theme/rhine-theme.css'), 'utf8')
-const lightTones = declarationsIn(themeCss, ':where(html.theme-rhine)')
+const paper = paletteTokens()
 const css = scopedStyles(pricingSource)
 const tokens = declarationsIn(css, '.model-status')
 
-/** The landing is light only, so icons take the light tones and the landing ink. */
+/** Baked placeholders keep the paper tones and ink in every palette, like a sticker on the canvas. */
 const lightColor = (fill: string) =>
-  fill === 'currentColor' ? '#2c2e33' : lightTones[`--pp-tone-${/var\(--pp-tone-([\w-]+)\)/.exec(fill)![1]}`]
+  fill === 'currentColor' ? '#2c2e33' : paper[`--pp-icon-${/var\(--pp-icon-([\w-]+)\)/.exec(fill)![1]}`]
 
 describe('landing pricing placeholders', () => {
   it.each(['cube', 'shield', 'inbox'] as const)('embeds the %s pixel icon in the light tones', (name) => {
@@ -38,7 +35,7 @@ describe('landing pricing placeholders', () => {
       if (decl.value.startsWith('rp-stripes')) rules.push((decl.parent as Rule).selector)
     })
     expect(rules).toEqual(["[data-state='loading'] .status-empty::after"])
-    expect(declarationsIn(css, "[data-state='loading'] .status-empty::after").border).toBe('3px double var(--rh-ink, #2c2e33)')
+    expect(declarationsIn(css, "[data-state='loading'] .status-empty::after").border).toBe('3px double var(--rh-ink, var(--pp-ink))')
     expect(css).toMatch(/animation: rp-stripes 400ms steps\(2\) infinite/)
     expect(css).toMatch(/@keyframes rp-stripes \{\s*to \{\s*background-position: 8px 0;/)
     expect(css).toMatch(/@media \(prefers-reduced-motion: reduce\) \{\s*\[data-state='loading'\] \.status-empty::after \{\s*animation: none;/)

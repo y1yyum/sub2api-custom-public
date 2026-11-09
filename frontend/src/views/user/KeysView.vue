@@ -4,7 +4,6 @@
       <template v-if="portal" #actions><PortalPageHeading :title="pt('refresh.keys')" :description="pt('refresh.description.keys')" /></template>
       <template #filters>
         <div class="flex flex-col gap-3">
-          <PortalKeySummary v-if="portal" ref="keySummary" :keys="apiKeys" @renew="editKey" />
           <div class="flex flex-wrap items-center gap-3">
             <SearchInput
               v-model="filterSearch"
@@ -1241,14 +1240,12 @@ import { portalPagesActive } from '@/custom-portal/pageRoutes'
 import { usePortalI18n } from '@/custom-portal/i18n'
 import PortalPageHeading from '@/custom-portal/components/common/PortalPageHeading.vue'
 import PortalKeyConcurrency from '@/custom-portal/components/keys/PortalKeyConcurrency.vue'
-import PortalKeySummary from '@/custom-portal/components/keys/PortalKeySummary.vue'
 import PortalState from '@/custom-portal/components/common/PortalState.vue'
 import PortalKeyIntegration from '@/custom-portal/components/keys/PortalKeyIntegration.vue'
 import PortalKeyBatchActions from '@/custom-portal/components/keys/PortalKeyBatchActions.vue'
 const portal = portalPagesActive()
 const { pt } = usePortalI18n()
 const integrationKey = ref<ApiKey | null>(null)
-const keySummary = ref<InstanceType<typeof PortalKeySummary> | null>(null)
 import AppLayout from '@/components/layout/AppLayout.vue'
 import TablePageLayout from '@/components/layout/TablePageLayout.vue'
 import BulkEditKeysModal from '@/components/keys/BulkEditKeysModal.vue'

@@ -4,7 +4,9 @@ import { fileURLToPath } from 'node:url'
 import postcss, { type Root, type Rule } from 'postcss'
 import tailwind from 'tailwindcss'
 import { beforeAll, describe, expect, it } from 'vitest'
-import { contrastRatio } from './contrast'
+import { DEFAULT_PALETTE, PALETTES, type PortalPalette } from '../theme/palettes'
+import tailwindConfig from '../theme/tailwind.rhine.config.js'
+import { contrastRatio, paletteTokens, resolveColor } from './contrast'
 
 const themePath = fileURLToPath(new URL('../theme/rhine-theme.css', import.meta.url))
 const ROOT = ':where(html.theme-rhine)'
@@ -26,15 +28,14 @@ function rules(): Rule[] {
   return found
 }
 
-/** Parses `#rrggbb` or Tailwind's `rgb(r g b / a)`; a translucent colour is composited over `under`. */
-function solid(value: string, under = '#ffffff'): string {
-  const hex = (channels: number[]) => `#${channels.map((c) => Math.round(c).toString(16).padStart(2, '0')).join('')}`
-  if (/^#[0-9a-f]{6}$/i.test(value)) return value
-  const rgb = /^rgb\((\d+) (\d+) (\d+)(?: \/ ([\d.]+))?\)$/.exec(value)
-  if (!rgb) throw new Error(`Unparsed colour: ${value}`)
-  const alpha = rgb[4] === undefined ? 1 : Number(rgb[4])
-  const base = [1, 3, 5].map((i) => parseInt(under.slice(i, i + 2), 16))
-  return hex([1, 2, 3].map((i, k) => Number(rgb[i]) * alpha + base[k] * (1 - alpha)))
+const PAPER = DEFAULT_PALETTE.light
+const NIGHT = DEFAULT_PALETTE.dark
+const LIGHT = PALETTES.filter((palette) => palette.mode === 'light')
+const DARK = PALETTES.filter((palette) => palette.mode === 'dark')
+
+/** Resolves a compiled colour in `palette`; a translucent colour is composited over `under`. */
+function solid(value: string, palette: PortalPalette = PAPER, under = 'var(--pp-surface)'): string {
+  return resolveColor(value, paletteTokens(palette), under)
 }
 
 const inMedia = (rule: Rule) => rule.parent?.type === 'atrule' && (rule.parent as { name: string }).name === 'media'
@@ -76,8 +77,9 @@ describe('Rhine theme stylesheet', () => {
   })
 
   it('re-emits primary utilities with the Rhine palette', () => {
-    expect(declarationsOf(`${ROOT} .bg-primary-600`)['background-color']).toBe('#58724f')
-    expect(declarationsOf(`${ROOT} .dark\\:text-primary-400:is(.dark *)`).color).toBe('#a3bca0')
+    expect(declarationsOf(`${ROOT} .bg-primary-600`)['background-color']).toBe('rgb(var(--pp-c-primary-600) / 1)')
+    expect(solid(declarationsOf(`${ROOT} .bg-primary-600`)['background-color'])).toBe('#58724f')
+    expect(solid(declarationsOf(`${ROOT} .dark\\:text-primary-400:is(.dark *)`).color, NIGHT)).toBe('#a3bca0')
     expect(declarationsOf(`${ROOT} .rounded-xl`)['border-radius']).toBe('0px')
     expect(declarationsOf(`${ROOT} .rounded-full`)['border-radius']).toBe('0px')
     const tealPrimary = rules().filter(
@@ -92,7 +94,7 @@ describe('Rhine theme stylesheet', () => {
     const button = declarationsOf(`${ROOT} .btn`)
     expect(button['--tw-shadow']).toBe('0 0 #0000')
     expect(button['box-shadow']).toMatch(/var\(--tw-shadow\)$/)
-    expect(declarationsOf(`${ROOT} .btn:focus`)['--tw-ring-color']).toMatch(/^rgb\(143 168 136/)
+    expect(declarationsOf(`${ROOT} .btn:focus`)['--tw-ring-color']).toMatch(/^rgb\(var\(--pp-c-primary-500\) \//)
   })
 
   it('draws no drop shadows and moves nothing on hover or press', () => {
@@ -117,18 +119,21 @@ describe('Rhine theme stylesheet', () => {
 
   it('inverts a pressed button to ink instead of pushing it down', () => {
     const pressed = declarationsOf(`${ROOT} .btn:active:not(:disabled)`)
-    expect(pressed['background-color']).toBe('#2c2e33')
-    expect(pressed.color).toBe('#f8f7f2')
-    expect(contrastRatio(pressed.color, pressed['background-color'])).toBeGreaterThanOrEqual(4.5)
+    expect(solid(pressed['background-color'])).toBe('#2c2e33')
+    expect(solid(pressed.color)).toBe('#f8f7f2')
     const dark = declarationsOf(`${ROOT} .btn:active:not(:disabled):is(.dark *)`)
-    expect(contrastRatio(dark.color, dark['background-color'])).toBeGreaterThanOrEqual(4.5)
+    for (const [palettes, box] of [[LIGHT, pressed], [DARK, dark]] as const) {
+      for (const palette of palettes) {
+        expect(contrastRatio(solid(box.color, palette), solid(box['background-color'], palette)), palette.id).toBeGreaterThanOrEqual(4.5)
+      }
+    }
   })
 
   it('overrides upstream component classes for light and dark modes', () => {
-    expect(declarationsOf(`${ROOT} .btn-primary`)['background-color']).toBe('#8fa888')
-    expect(declarationsOf(`${ROOT} .btn-primary`).color).toBe('#2c2e33')
-    expect(declarationsOf(`${ROOT} .btn-primary:is(.dark *)`)['background-color']).toBe('#a3bca0')
-    expect(declarationsOf(`${ROOT} .card:is(.dark *)`)['background-color']).toBe('#232630')
+    expect(solid(declarationsOf(`${ROOT} .btn-primary`)['background-color'])).toBe('#8fa888')
+    expect(solid(declarationsOf(`${ROOT} .btn-primary`).color)).toBe('#2c2e33')
+    expect(solid(declarationsOf(`${ROOT} .btn-primary:is(.dark *)`)['background-color'], NIGHT)).toBe('#a3bca0')
+    expect(solid(declarationsOf(`${ROOT} .card:is(.dark *)`)['background-color'], NIGHT)).toBe('#232630')
     expect(declarationsOf(`${ROOT} .sidebar-link-active`)['box-shadow']).toBe('inset 3px 0 0 var(--pp-ink)')
   })
 
@@ -139,27 +144,54 @@ describe('Rhine theme stylesheet', () => {
       (rule) => !/teal|cyan|\\\[/.test(rule.selector) && UPSTREAM_TEAL.test(rule.nodes.join(';'))
     )
     expect(leaks.map((rule) => rule.selector)).toEqual([])
-    expect(declarationsOf(`${ROOT} .bg-mesh-gradient`)['background-image']).toMatch(/44, 46, 51, 0\.05\) 0 1px, transparent 1px 16px/)
+    expect(declarationsOf(`${ROOT} .bg-mesh-gradient`)['background-image']).toMatch(/var\(--pp-grid\) 0 1px, transparent 1px 16px/)
   })
 
   it('ties scoped upstream component styles by repeating the class', () => {
-    expect(declarationsOf(`${ROOT} .select-trigger.select-trigger:focus`)['border-color']).toBe('#2c2e33')
-    expect(declarationsOf(`${ROOT} .select-trigger-open.select-trigger-open`)['border-color']).toBe('#2c2e33')
-    expect(declarationsOf(`${ROOT} .select-trigger-error.select-trigger-error:focus`)['border-color']).toBe('#ef4444')
+    const red = (tailwindConfig.theme.extend.colors as Record<string, Record<string, string>>).red['500']
+    expect(solid(declarationsOf(`${ROOT} .select-trigger.select-trigger:focus`)['border-color'])).toBe('#2c2e33')
+    expect(solid(declarationsOf(`${ROOT} .select-trigger-open.select-trigger-open`)['border-color'])).toBe('#2c2e33')
+    expect(solid(declarationsOf(`${ROOT} .select-trigger-error.select-trigger-error:focus`)['border-color'])).toBe(red)
     // The dark focus override is (0,4,0), so the error state needs its own dark variant.
     expect(
-      declarationsOf(`${ROOT} .select-trigger-error.select-trigger-error:focus:is(.dark *)`)['border-color']
-    ).toBe('#ef4444')
-    expect(declarationsOf(ROOT)['--color-primary-500']).toBe('143 168 136')
-    expect(declarationsOf(`${ROOT} .select-option-selected.select-option-selected`).color).toBe('#364a31')
-    expect(declarationsOf(`${ROOT} .settings-tab-active.settings-tab-active::after`)['background-color']).toBe('#8fa888')
+      solid(declarationsOf(`${ROOT} .select-trigger-error.select-trigger-error:focus:is(.dark *)`)['border-color'])
+    ).toBe(red)
+    // Upstream scoped `dark:bg-dark-800` is fixed slate; the tie repaints it with the palette.
+    for (const control of ['.select-trigger', '.date-picker-trigger', '.select-dropdown-portal', '.date-picker-dropdown']) {
+      const selector = `${ROOT} ${control}${control}:is(.dark *)`
+      expect(declarationsOf(selector)['background-color'], control).toBe('rgb(var(--pp-c-dark-800) / 1)')
+    }
+    expect(solid(declarationsOf(`${ROOT} .select-trigger-disabled.select-trigger-disabled`)['background-color'])).toBe(
+      DEFAULT_PALETTE.light.gray[100]
+    )
+    expect(declarationsOf(ROOT)['--color-primary-500']).toBe('var(--pp-c-primary-500)')
+    expect(solid(declarationsOf(`${ROOT} .select-option-selected.select-option-selected`).color)).toBe('#364a31')
+    expect(declarationsOf(`${ROOT} .settings-tab-active.settings-tab-active::after`)['background-color']).toBe('rgb(var(--pp-c-primary-500))')
+  })
+
+  it('repaints upstream fixed-slate dark borders, icons and slate utilities with the palette', () => {
+    const dark = `${ROOT}.dark`
+    expect(declarationsOf(`${dark} .input`)['border-color']).toBe('var(--pp-control)')
+    expect(declarationsOf(`${dark} .btn-secondary.btn-secondary`)['border-color']).toBe('var(--pp-edge)')
+    expect(declarationsOf(`${dark} .portal-shell .table-scroll-container.table-scroll-container`)['border-color']).toBe(
+      'var(--pp-edge)'
+    )
+    for (const control of ['.select-trigger', '.date-picker-trigger', '.date-picker-input']) {
+      expect(declarationsOf(`${dark} ${control}${control}`)['border-color'], control).toBe('var(--pp-control)')
+    }
+    for (const icon of ['.select-icon', '.date-picker-icon', '.date-picker-chevron']) {
+      expect(declarationsOf(`${dark} ${icon}${icon}`).color, icon).toBe('rgb(var(--pp-c-dark-400))')
+    }
+    expect(declarationsOf(`${ROOT} .dark\\:bg-slate-900:is(.dark *)`)['background-color']).toBe(
+      'rgb(var(--pp-c-dark-900) / 1)'
+    )
   })
 
   it('places utility replacements after the re-emitted utilities', () => {
     const all = rules()
     const lastIndex = (selector: string) => all.findLastIndex((rule) => rule.selectors.includes(selector))
     const placeholder = `${ROOT} .placeholder\\:text-gray-400::placeholder`
-    expect(declarationsOf(placeholder).color).toBe('#686c62')
+    expect(solid(declarationsOf(placeholder).color)).toBe('#686c62')
     const grid = all.findIndex((rule) => rule.selector.startsWith(`${ROOT} [class*='rgba(20,184,166,0.03)']`))
     const arbitraryGrid = all.findIndex((rule) => rule.selector.includes('\\[linear-gradient') && rule.selector.includes('184'))
     expect(grid).toBeGreaterThan(-1)
@@ -178,13 +210,13 @@ describe('Rhine theme stylesheet', () => {
   })
 
   it('draws the canvas as a 16px grid that scrolls with the page', () => {
+    // The dark rule repeats the canvas because upstream `dark:bg-dark-950` outranks the base one.
     for (const selector of [`${ROOT} body`, `${ROOT}.dark body`]) {
       const body = declarationsOf(selector)
-      expect(body['background-image'], selector).toMatch(/transparent 1px 16px/)
+      expect(body['background-image'], selector).toMatch(/var\(--pp-grid\) 0 1px, transparent 1px 16px/)
+      expect(body['background-color'], selector).toBe('var(--pp-canvas)')
       expect(Object.values(body).join(' '), selector).not.toMatch(/\bfixed\b/)
     }
-    expect(declarationsOf(`${ROOT} body`)['background-color']).toBe('#f8f7f2')
-    expect(declarationsOf(`${ROOT}.dark body`)['background-color']).toBe('#1c1e26')
   })
 
   it('frames surfaces with three rules and controls with two', () => {
@@ -242,13 +274,13 @@ describe('Rhine theme stylesheet', () => {
     ]
     const FRAME_RULES = 'M0 0h11v11H0zM1 1v9h9V1zM2 2h7v7H2zM3 3v5h5V3zM4 4h3v3H4zM5 5v1h1V5z'
 
-    it('draws three 1px rules 1px apart in the edge colour of each mode', () => {
-      for (const mode of [ROOT, `${ROOT}.dark`]) {
-        const vars = declarationsOf(mode)
+    it('draws three 1px rules 1px apart in the edge colour of each palette', () => {
+      for (const palette of PALETTES) {
+        const vars = paletteTokens(palette)
         const svg = decodeURIComponent(vars['--pp-frame'])
-        expect(svg, mode).toMatch(/^url\("data:image\/svg\+xml,<svg /)
-        expect(svg, mode).toContain(`fill='${vars['--pp-edge']}'`)
-        expect(svg, mode).toContain(`fill-rule='evenodd' d='${FRAME_RULES}'`)
+        expect(svg, palette.id).toMatch(/^url\("data:image\/svg\+xml,<svg /)
+        expect(svg, palette.id).toContain(`fill='${vars['--pp-edge']}'`)
+        expect(svg, palette.id).toContain(`fill-rule='evenodd' d='${FRAME_RULES}'`)
       }
       for (const selector of framed) {
         const box = declarationsOf(selector)
@@ -278,12 +310,17 @@ describe('Rhine theme stylesheet', () => {
       expect(fill['background-size']).toBe('4px 4px')
     })
 
-    it('keeps table header text readable on the darkest dither cell', () => {
-      const th = declarationsOf(`${ROOT} .table th`)
-      const ink = /rgba\((\d+), (\d+), (\d+), ([\d.]+)\)/.exec(th['background-image'])!
-      const cell = solid(`rgb(${ink[1]} ${ink[2]} ${ink[3]} / ${ink[4]})`, solid(th['background-color']))
-      expect(contrastRatio(solid(th.color), cell)).toBeGreaterThanOrEqual(4.5)
-    })
+    it.each(PALETTES.map((palette) => [palette.id, palette] as const))(
+      'keeps table header text readable on the darkest dither cell in %s',
+      (_, palette) => {
+        const th = declarationsOf(`${ROOT} .table th${palette.mode === 'dark' ? ':is(.dark *)' : ''}`)
+        expect(declarationsOf(`${ROOT} .table th`)['background-image']).toBe(
+          'repeating-conic-gradient(var(--pp-dither) 0 25%, transparent 0 50%)'
+        )
+        const cell = solid('var(--pp-dither)', palette, solid(th['background-color'], palette))
+        expect(contrastRatio(solid(th.color, palette), cell)).toBeGreaterThanOrEqual(4.5)
+      }
+    )
 
     it('squares scrollbar thumbs', () => {
       expect(declarationsOf(`${ROOT} ::-webkit-scrollbar-thumb`)['border-radius']).toBe('0')
@@ -292,34 +329,49 @@ describe('Rhine theme stylesheet', () => {
 
   describe('contrast', () => {
     const color = (selector: string, prop = 'color') => declarationsOf(selector)[prop]
-    const darkCard = () => solid(color(`${ROOT} .card:is(.dark *)`, 'background-color'))
+    const darkCard = (palette: PortalPalette) => solid(color(`${ROOT} .card:is(.dark *)`, 'background-color'), palette)
 
-    it('keeps primary buttons readable in both modes', () => {
-      for (const selector of [`${ROOT} .btn-primary`, `${ROOT} .btn-primary:is(.dark *)`]) {
+    it('keeps primary buttons readable in every palette', () => {
+      for (const [palettes, selector] of [[LIGHT, `${ROOT} .btn-primary`], [DARK, `${ROOT} .btn-primary:is(.dark *)`]] as const) {
         const button = declarationsOf(selector)
-        expect(contrastRatio(solid(button.color), solid(button['background-color'])), selector).toBeGreaterThanOrEqual(4.5)
+        for (const palette of palettes) {
+          const ratio = contrastRatio(solid(button.color, palette), solid(button['background-color'], palette))
+          expect(ratio, palette.id).toBeGreaterThanOrEqual(4.5)
+        }
       }
     })
 
     it('keeps control borders at 3:1 against their surface (WCAG 1.4.11)', () => {
-      expect(contrastRatio(declarationsOf(ROOT)['--pp-control'], '#ffffff')).toBeGreaterThanOrEqual(3)
-      expect(contrastRatio(declarationsOf(`${ROOT}.dark`)['--pp-control'], darkCard())).toBeGreaterThanOrEqual(3)
+      for (const palette of LIGHT) expect(contrastRatio(solid('var(--pp-control)', palette), '#ffffff'), palette.id).toBeGreaterThanOrEqual(3)
+      for (const palette of DARK) {
+        expect(contrastRatio(solid('var(--pp-control)', palette), darkCard(palette)), palette.id).toBeGreaterThanOrEqual(3)
+      }
     })
 
     it.each(['primary', 'blue', 'amber', 'violet'])('keeps %s metric tones at 4.5:1', (hue) => {
-      const lightBg = solid(color(`${ROOT} .bg-${hue}-50`, 'background-color'))
-      expect(contrastRatio(solid(color(`${ROOT} .text-${hue}-600`)), lightBg)).toBeGreaterThanOrEqual(4.5)
-      const darkBg = solid(color(`${ROOT} .dark\\:bg-${hue}-900\\/20:is(.dark *)`, 'background-color'), darkCard())
-      expect(contrastRatio(solid(color(`${ROOT} .dark\\:text-${hue}-400:is(.dark *)`)), darkBg)).toBeGreaterThanOrEqual(4.5)
+      for (const palette of LIGHT) {
+        const lightBg = solid(color(`${ROOT} .bg-${hue}-50`, 'background-color'), palette)
+        expect(contrastRatio(solid(color(`${ROOT} .text-${hue}-600`), palette), lightBg), palette.id).toBeGreaterThanOrEqual(4.5)
+      }
+      for (const palette of DARK) {
+        const darkBg = solid(color(`${ROOT} .dark\\:bg-${hue}-900\\/20:is(.dark *)`, 'background-color'), palette, darkCard(palette))
+        const text = solid(color(`${ROOT} .dark\\:text-${hue}-400:is(.dark *)`), palette)
+        expect(contrastRatio(text, darkBg), palette.id).toBeGreaterThanOrEqual(4.5)
+      }
     })
 
     it('keeps secondary text at 4.5:1 on the canvas and cards', () => {
-      for (const background of ['#ffffff', '#f8f7f2']) {
-        expect(contrastRatio(solid(color(`${ROOT} .text-gray-500`)), background), background).toBeGreaterThanOrEqual(4.5)
+      for (const palette of LIGHT) {
+        const text = solid(color(`${ROOT} .text-gray-500`), palette)
+        for (const background of ['var(--pp-surface)', 'var(--pp-canvas)']) {
+          expect(contrastRatio(text, solid(background, palette)), `${palette.id} ${background}`).toBeGreaterThanOrEqual(4.5)
+        }
       }
-      for (const background of [darkCard(), '#1c1e26']) {
-        const text = solid(color(`${ROOT} .dark\\:text-dark-400:is(.dark *)`))
-        expect(contrastRatio(text, background), background).toBeGreaterThanOrEqual(4.5)
+      for (const palette of DARK) {
+        const text = solid(color(`${ROOT} .dark\\:text-dark-400:is(.dark *)`), palette)
+        for (const background of [darkCard(palette), solid('var(--pp-canvas)', palette)]) {
+          expect(contrastRatio(text, background), `${palette.id} ${background}`).toBeGreaterThanOrEqual(4.5)
+        }
       }
     })
   })

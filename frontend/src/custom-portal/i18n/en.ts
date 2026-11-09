@@ -46,6 +46,24 @@ const en: typeof zh = {
       themeDark: 'Dark',
       contact: 'Support',
       logout: 'Sign out'
+    },
+    palette: {
+      label: 'Color style',
+      groups: { pixel: 'Pixel', vendor: 'Vendors' },
+      modes: { light: 'Light', dark: 'Dark' },
+      names: {
+        paper: 'Paper',
+        night: 'Night',
+        ember: 'Graphite',
+        'claude-light': 'Claude',
+        'claude-dark': 'Claude',
+        'openai-light': 'OpenAI',
+        'openai-dark': 'OpenAI',
+        'gemini-light': 'Gemini',
+        'gemini-dark': 'Gemini',
+        'grok-dark': 'Grok',
+        'deepseek-light': 'DeepSeek'
+      }
     }
   },
   pages: {
@@ -218,7 +236,6 @@ const en: typeof zh = {
       title: 'Connect models to apps',
       copy: 'Access AI services through {site} and manage keys, usage and costs in one place. Pick a model in the model plaza and follow the docs to connect your app.'
     },
-    replay: 'Replay intro',
     pricing: {
       label: 'Popular model pricing',
       labelUnavailable: 'Popular model pricing (no data)',

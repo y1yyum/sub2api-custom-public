@@ -1,7 +1,7 @@
 /**
  * 16×16 pixel icons. Each row is 16 characters: `.` transparent, `#` ink
  * (currentColor), `o`/`m`/`x` the icon's first/second/third fill tone.
- * Tones resolve to `--pp-tone-*` variables, so light and dark switch with the theme.
+ * Tones resolve to `--pp-icon-*` variables (theme/palettes.ts), so they follow the palette.
  */
 export type PixelTone =
   | 'card'
@@ -550,6 +550,27 @@ export const PIXEL_ICONS = {
     ],
     tones: ['butter-mid']
   },
+  palette: {
+    rows: [
+      '................',
+      '....#######.....',
+      '..##ooooooo##...',
+      '.#ooommoooooo#..',
+      '.#ooommooxxooo#.',
+      '#oooooooxxoooo#.',
+      '#oxxoooooooo##..',
+      '#oxxooooooo#....',
+      '#oooooooooo#....',
+      '#ooommoooooo#...',
+      '.#oommoooooooo#.',
+      '.#oooooooooooo#.',
+      '..##oooooooo##..',
+      '....########....',
+      '................',
+      '................'
+    ],
+    tones: ['sand', 'peach-mid', 'sky-mid']
+  },
   sun: {
     rows: [
       '................',
@@ -695,7 +716,7 @@ function fillFor(char: string, tones: readonly PixelTone[]): string {
   if (char === '#') return 'currentColor'
   const index = 'omx'.indexOf(char)
   const tone = tones[index] ?? tones[index - 1] ?? 'card'
-  return `var(--pp-tone-${tone})`
+  return `var(--pp-icon-${tone})`
 }
 
 const runCache = new Map<PixelIconName, PixelRun[]>()

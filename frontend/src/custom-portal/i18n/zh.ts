@@ -45,6 +45,24 @@ const zh = {
       themeDark: '深色',
       contact: '联系客服',
       logout: '退出登录'
+    },
+    palette: {
+      label: '配色风格',
+      groups: { pixel: '像素', vendor: '厂商' },
+      modes: { light: '浅色', dark: '深色' },
+      names: {
+        paper: '素白',
+        night: '夜色',
+        ember: '深灰',
+        'claude-light': 'Claude',
+        'claude-dark': 'Claude',
+        'openai-light': 'OpenAI',
+        'openai-dark': 'OpenAI',
+        'gemini-light': 'Gemini',
+        'gemini-dark': 'Gemini',
+        'grok-dark': 'Grok',
+        'deepseek-light': 'DeepSeek'
+      }
     }
   },
   pages: {
@@ -217,7 +235,6 @@ const zh = {
       title: '连接模型与应用',
       copy: '在 {site} 统一接入 AI 服务，集中管理密钥、调用用量与费用。从模型广场选择模型，按接入文档连接你的应用。'
     },
-    replay: '重播入场',
     pricing: {
       label: '常用模型定价',
       labelUnavailable: '常用模型定价（暂无数据）',

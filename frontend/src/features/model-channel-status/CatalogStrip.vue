@@ -6,7 +6,6 @@
       role="img"
       class="catalog-strip-block min-w-px flex-1 rounded-[1px]"
       :class="[healthBlockClass(bucket.health), cacheHeightClass(bucket.cache_level)]"
-      :title="blockLabel(bucket, index)"
       :aria-label="blockLabel(bucket, index)"
       :data-cache-level="bucket.cache_level"
       :data-health="bucket.health"

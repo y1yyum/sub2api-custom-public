@@ -211,10 +211,10 @@ defineExpose({ load })
   font-family: ui-monospace, 'Courier New', monospace;
   font-weight: 700;
   letter-spacing: 0.06em;
-  color: #62695c;
-  border-bottom: 2px solid #e0ded6;
+  color: var(--pp-ink);
+  border-bottom: 2px solid var(--pp-divider);
   padding-bottom: 6px;
-  background-image: repeating-conic-gradient(rgba(44, 46, 51, 0.06) 0 25%, transparent 0 50%);
+  background-image: repeating-conic-gradient(var(--pp-dither) 0 25%, transparent 0 50%);
   background-size: 4px 4px;
 }
 
@@ -235,7 +235,7 @@ defineExpose({ load })
 
 .model-row {
   padding: 5px 0;
-  border-bottom: 1px solid #ebe8df;
+  border-bottom: 1px solid var(--pp-divider);
   flex-shrink: 0;
 }
 
@@ -254,7 +254,7 @@ defineExpose({ load })
   white-space: nowrap;
   font-size: clamp(11px, 0.9vw, 13px);
   font-weight: 700;
-  color: #2c2e33;
+  color: var(--pp-ink);
 }
 
 .model-description > span {
@@ -264,7 +264,7 @@ defineExpose({ load })
   font-size: 8px;
   font-family: ui-monospace, 'Courier New', monospace;
   margin-top: 3px;
-  color: #62695c;
+  color: var(--pp-ink);
   white-space: nowrap;
 }
 
@@ -277,7 +277,7 @@ defineExpose({ load })
   font-family: var(--pp-font-pixel);
   font-variant-numeric: tabular-nums;
   font-weight: 700;
-  color: #4a6344;
+  color: var(--pp-ink);
 }
 
 .status-card-bottom {
@@ -288,8 +288,8 @@ defineExpose({ load })
   flex-shrink: 0;
   font-size: 8px;
   font-family: ui-monospace, 'Courier New', monospace;
-  color: #62695c;
-  border-top: 2px solid #e0ded6;
+  color: var(--pp-ink);
+  border-top: 2px solid var(--pp-divider);
   padding-top: 6px;
 }
 
@@ -305,19 +305,19 @@ defineExpose({ load })
   border: 3px double var(--rh-ink);
   border-radius: 0;
   color: var(--rh-ink);
-  background: #f8f7f2;
+  background: var(--pp-canvas);
   cursor: pointer;
   transition: background-color 0.15s steps(2), color 0.15s steps(2);
   background-clip: border-box;
 }
 
 .status-card-bottom button:hover:not(:disabled) {
-  background-color: #e8ded2;
+  background-color: var(--pp-divider);
 }
 
 .status-card-bottom button:active:not(:disabled) {
   background-color: var(--rh-ink);
-  color: #f8f7f2;
+  color: var(--pp-canvas);
 }
 
 .status-card-bottom button:disabled {
@@ -337,7 +337,7 @@ defineExpose({ load })
   font-size: 11px;
   line-height: 1.8;
   text-align: center;
-  color: #62695c;
+  color: var(--pp-ink);
   background: var(--rp-dots) 0 0 / 6px 6px;
 }
 
@@ -345,7 +345,7 @@ defineExpose({ load })
   content: '';
   width: 48px;
   height: 48px;
-  background: #f8f7f2 var(--rp-icon) center / 48px 48px no-repeat;
+  background: var(--pp-canvas) var(--rp-icon) center / 48px 48px no-repeat;
   image-rendering: pixelated;
 }
 
@@ -362,8 +362,8 @@ defineExpose({ load })
   content: '';
   width: 96px;
   height: 12px;
-  border: 3px double var(--rh-ink, #2c2e33);
-  background: #f8f7f2 var(--rp-stripes) 0 0 / 8px 8px;
+  border: 3px double var(--rh-ink, var(--pp-ink));
+  background: var(--pp-canvas) var(--rp-stripes) 0 0 / 8px 8px;
   image-rendering: pixelated;
   animation: rp-stripes 400ms steps(2) infinite;
 }

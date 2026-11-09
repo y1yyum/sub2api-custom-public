@@ -1,4 +1,5 @@
 import postcss from 'postcss'
+import { DEFAULT_PALETTE, paletteVariables, type PortalPalette } from '../theme/palettes'
 
 function channel(value: number): number {
   const srgb = value / 255
@@ -33,4 +34,34 @@ export function declarationsIn(css: string, selector: string): Record<string, st
 
 export function scopedStyles(source: string): string {
   return [...source.matchAll(/<style[^>]*>([\s\S]*?)<\/style>/g)].map((m) => m[1]).join('\n')
+}
+
+/** Custom properties a palette sets on <html> (theme/palettes.ts). */
+export function paletteTokens(palette: PortalPalette = DEFAULT_PALETTE.light): Record<string, string> {
+  return Object.fromEntries(paletteVariables(palette))
+}
+
+/**
+ * Resolves `var(--x)` against `tokens` and returns an opaque hex; `rgb(r g b / a)`
+ * and `rgba()` are composited over `under`.
+ */
+export function resolveColor(value: string, tokens: Record<string, string>, under = '#ffffff'): string {
+  let resolved = value.trim()
+  for (let depth = 0; /var\(/.test(resolved); depth++) {
+    if (depth > 8) throw new Error(`Unresolved colour: ${value}`)
+    resolved = resolved.replace(/var\((--[\w-]+)(?:,\s*([^()]*(?:\([^()]*\))?[^()]*))?\)/g, (_, name: string, fallback?: string) => {
+      const token = tokens[name] ?? fallback
+      if (token === undefined) throw new Error(`Unknown token ${name} in ${value}`)
+      return token.trim()
+    })
+  }
+  if (/^#[0-9a-f]{6}$/i.test(resolved)) return resolved.toLowerCase()
+  if (/^#fff$/i.test(resolved)) return '#ffffff'
+  const rgb = /^rgba?\((\d+)[ ,]+(\d+)[ ,]+(\d+)(?:\s*[/,]\s*([\d.]+))?\)$/.exec(resolved)
+  if (!rgb) throw new Error(`Unparsed colour: ${value} → ${resolved}`)
+  const alpha = rgb[4] === undefined ? 1 : Number(rgb[4])
+  const base = [1, 3, 5].map((i) => parseInt(resolveColor(under, tokens).slice(i, i + 2), 16))
+  return `#${[1, 2, 3]
+    .map((i, k) => Math.round(Number(rgb[i]) * alpha + base[k] * (1 - alpha)).toString(16).padStart(2, '0'))
+    .join('')}`
 }

@@ -688,7 +688,6 @@ describe('user KeysView with the portal pages active', () => {
     SearchInput: SearchInputStub,
     Icon: IconStub,
     PortalPageHeading: { template: '<div><slot /></div>' },
-    PortalKeySummary: true,
     PortalKeyBatchActions: true,
     PortalKeyConcurrency: { props: ['value'], template: '<span data-test="portal-key-concurrency">{{ value }}</span>' },
     PortalKeyIntegration: true,

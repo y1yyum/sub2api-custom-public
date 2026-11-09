@@ -102,7 +102,7 @@
           </span>
         </component>
 
-        <ThemeToggle />
+        <PortalPalettePicker />
 
         <LocaleSwitcher />
 
@@ -119,8 +119,8 @@ import { useI18n } from 'vue-i18n'
 import AnnouncementBell from '@/components/common/AnnouncementBell.vue'
 import SubscriptionProgressMini from '@/components/common/SubscriptionProgressMini.vue'
 import PixelIcon from '../components/common/PixelIcon.vue'
+import PortalPalettePicker from '../components/common/PortalPalettePicker.vue'
 import LocaleSwitcher from '@/components/common/LocaleSwitcher.vue'
-import ThemeToggle from '@/components/common/ThemeToggle.vue'
 import { PURCHASE_ROUTE_NAME, resolveRouteMetaKeys } from '@/router/title'
 import { useAppStore } from '@/stores/app'
 import { useAuthStore } from '@/stores/auth'
