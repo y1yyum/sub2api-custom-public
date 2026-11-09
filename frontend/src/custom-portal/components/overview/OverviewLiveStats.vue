@@ -1,6 +1,6 @@
 <template>
   <div
-    class="flex flex-wrap items-center gap-x-4 gap-y-2 text-xs text-gray-500 dark:text-dark-400"
+    class="overview-live-stats text-xs text-gray-500 dark:text-dark-400"
     :aria-label="pt('pages.overview.live.title')"
     :aria-busy="loading"
     data-testid="overview-live-stats"
@@ -8,15 +8,14 @@
     <span
       v-for="item in items"
       :key="item.key"
-      class="inline-flex items-center gap-1.5"
+      class="live-stat"
       :title="item.hint || undefined"
       :data-testid="`overview-live-${item.key}`"
     >
-      <PixelIcon :name="item.icon" size="xs" :class="item.tone" aria-hidden="true" />
       <span>{{ item.label }}</span>
       <span class="font-medium tabular-nums text-gray-900 dark:text-dark-100">{{ item.display }}</span>
     </span>
-    <span v-if="failed" class="text-red-600 dark:text-red-400" role="status" data-testid="overview-live-error">
+    <span v-if="failed" class="live-error" role="status" data-testid="overview-live-error">
       {{ pt('pages.overview.live.loadFailed') }}
     </span>
   </div>
@@ -25,7 +24,6 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useDocumentVisibility } from '@vueuse/core'
-import PixelIcon from '../common/PixelIcon.vue'
 import { usageAPI, type UserDashboardStats } from '@/api/usage'
 import { usePortalI18n } from '../../i18n'
 import { METRIC_TONES } from '../../overview/metricTones'
@@ -34,6 +32,7 @@ import { useCountUp } from '../../overview/useCountUp'
 const LIVE_STATS_POLL_MS = 60_000
 
 const { pt } = usePortalI18n()
+const emit = defineEmits<{ loaded: [stats: UserDashboardStats] }>()
 const visibility = useDocumentVisibility()
 
 const stats = ref<UserDashboardStats | null>(null)
@@ -50,6 +49,7 @@ async function load() {
     const data = await usageAPI.getDashboardStats()
     if (disposed || current !== seq) return
     stats.value = data
+    emit('loaded', data)
     failed.value = false
   } catch (error) {
     if (disposed || current !== seq) return
@@ -155,3 +155,32 @@ const items = computed(() => {
 
 defineExpose({ reload: load })
 </script>
+
+<style scoped>
+.overview-live-stats {
+  display: flex;
+  flex-wrap: wrap;
+  background: var(--pp-surface);
+  border: 1px solid var(--pp-divider, #e3e1d9);
+}
+.live-stat {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 8px 14px;
+}
+.live-stat + .live-stat { border-left: 1px solid var(--pp-divider, #e3e1d9); }
+.live-error {
+  display: flex;
+  align-items: center;
+  padding: 8px 14px;
+  border-left: 1px solid var(--pp-tone-peach-mid);
+  background: var(--pp-tone-peach);
+  color: var(--pp-tone-peach-ink);
+}
+.live-stat > :last-child { font: 400 12px/16px var(--pp-font-pixel); font-synthesis: none; }
+@media (max-width: 639px) {
+  .overview-live-stats { width: 100%; }
+  .live-stat { flex: 1; padding: 8px; }
+}
+</style>

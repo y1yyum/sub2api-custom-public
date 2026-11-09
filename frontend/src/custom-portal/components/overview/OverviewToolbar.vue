@@ -3,7 +3,7 @@
     <p v-if="invalidRange" class="text-xs text-red-600 dark:text-red-400" role="alert" data-testid="overview-range-invalid">
       {{ pt('pages.overview.toolbar.invalidRange', { days: MAX_CUSTOM_RANGE_DAYS }) }}
     </p>
-    <div ref="filterRoot" class="relative" @keydown.esc.stop="closeFilters(true)">
+    <div ref="filterRoot" class="relative order-2" @keydown.esc.stop="closeFilters(true)">
       <button
         ref="filterTrigger"
         type="button"
@@ -132,7 +132,7 @@
 
     <button
       type="button"
-      class="btn btn-secondary btn-icon shrink-0"
+      class="btn btn-secondary btn-icon order-3 shrink-0"
       :disabled="refreshing"
       :aria-busy="refreshing"
       :title="pt('pages.overview.toolbar.refresh')"
@@ -148,6 +148,9 @@
       />
     </button>
 
+    <div class="flex border-[3px] border-double border-gray-900 dark:border-dark-500" role="group" :aria-label="pt('pages.overview.chart.current')">
+      <button v-for="preset in ['today', '7d', '30d'] as const" :key="preset" type="button" class="px-3 py-2 text-xs" :class="state.preset.value === preset ? 'bg-primary-500 text-gray-900' : ''" :aria-pressed="state.preset.value === preset" @click="state.setPreset(preset)">{{ preset === 'today' ? translateGlobal('keys.today') : pt('refresh.rangeDays', { days: parseInt(preset) }) }}</button>
+    </div>
     <DateRangePicker align="right" :start-date="state.range.value.start" :end-date="state.range.value.end" @change="applyRange" />
   </div>
 </template>

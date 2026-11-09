@@ -2,7 +2,8 @@
 """Decide which Local CI jobs a pull request needs, from its Git diff.
 
 Pull requests take the fast lane: Go tests named after the changed files
-plus the fixed critical list in .gitea/critical-tests.txt. Release tag
+plus the fixed critical list in .gitea/critical-tests.txt, and the gateway
+list in .gitea/gateway-tests.txt when gateway code changes. Release tag
 pushes, manual runs, unknown ranges, job image and module changes run every
 test; workflow edits run the jobs they touch in full.
 """
@@ -19,9 +20,31 @@ FULL_PREFIXES = ('deploy/local-gitea/ci-image/', '.github/actions/setup-ci/')
 FULL_FILES = {'backend/go.mod', 'backend/go.sum', 'backend/Makefile'}
 WORKFLOW = os.environ.get('CI_WORKFLOW', '.gitea/workflows/local-ci.yml')
 CRITICAL = '.gitea/critical-tests.txt'
+GATEWAY_TESTS = '.gitea/gateway-tests.txt'
+SCOPE_SCRIPT = '.gitea/ci-scope.py'
 UNIT_FULL = ('.gitea/unit-full.sh', '.gitea/slow-unit-tests.txt')
 NODE_SETUP = ('.gitea/setup-ci-node.py', '.gitea/node-shasums.txt')
 DB_LAYER = ('backend/migrations/', 'backend/ent/', 'backend/internal/repository/')
+GATEWAY = ('backend/internal/custombridge/', 'backend/internal/custom/dispatch/',
+           'backend/internal/custom/quality/', 'backend/internal/custom/scheduledowner/',
+           'backend/cmd/dispatchd/', 'backend/cmd/scheduled-owner/',
+           'backend/cmd/quality-calibrate/', 'backend/cmd/bridge-',
+           'backend/internal/service/scheduled_test_owner',
+           'backend/internal/repository/scheduled_owner', 'scripts/test-gateway-')
+# Upstream seams that wire the gateway in without importing its packages.
+GATEWAY_SEAMS = {'backend/cmd/server/main.go', 'backend/cmd/server/wire_gen.go',
+                 'backend/internal/server/http.go', 'backend/internal/web/embed_on.go',
+                 'backend/internal/handler/ops_capture_writer_deadline.go',
+                 'backend/internal/service/scheduled_test_runner_service.go',
+                 'backend/internal/service/scheduled_test_runner_kinds.go',
+                 'backend/internal/service/scheduled_test_service.go',
+                 'backend/internal/service/scheduled_test_kinds.go',
+                 'backend/internal/service/scheduled_test_port.go',
+                 'backend/internal/service/intelligence_question.go',
+                 'backend/internal/repository/scheduled_test_repo.go',
+                 'backend/internal/repository/scheduled_test_restrictions.go',
+                 'backend/internal/repository/intelligence_question_repo.go'}
+GATEWAY_IMPORT = re.compile(r'"github\.com/Wei-Shaw/sub2api/internal/(custombridge|custom/dispatch|custom/quality|custom/scheduledowner)[/"]')
 JOB_OUTPUTS = {'unit': 'unit', 'integration': 'integration', 'golangci-lint': 'lint',
                'frontend': 'frontend', 'shell': 'shell', 'release-helpers': 'release'}
 GO_TAGS = ('unit', 'integration')
@@ -29,7 +52,8 @@ PLATFORM_TAGS = {'linux', 'amd64', 'unix', 'gc', 'cgo'}
 # Larger packages (service, repository, handler) run only the test files
 # named after the changed files; smaller ones run all their unit tests.
 WHOLE_PACKAGE_MAX_TEST_FILES = 30
-# Linux caps one argument at 128 KiB; past this the selected packages run whole.
+# Linux caps one argument at 128 KiB; past this the packages with the most
+# selected names run whole until the pattern fits.
 MAX_RUN_PATTERN = 64 * 1024
 TEST_FUNC = re.compile(r'^func (Test\w+)\(\w+ \*testing\.T\)', re.M)
 
@@ -116,18 +140,39 @@ def select(whole, named, tag, directory, path):
         named.setdefault(package, set()).update(names)
 
 
-def critical_files():
-    lines = Path(CRITICAL).read_text(encoding='utf-8').splitlines()
+def touches_gateway(name, base):
+    """Gateway packages, their seams and Go files importing them at base or
+    HEAD, so deleting an importer or its last gateway import still counts."""
+    if name.startswith(GATEWAY) or name in GATEWAY_SEAMS:
+        return True
+    if not name.endswith('.go'):
+        return False
+    path = Path(name)
+    after = path.read_bytes() if path.is_file() else b''
+    before = subprocess.run(['git', 'show', f'{base}:{name}'], capture_output=True).stdout
+    return any(GATEWAY_IMPORT.search(text.decode('utf-8', 'replace')) for text in (before, after))
+
+
+def listed_files(listing):
+    lines = Path(listing).read_text(encoding='utf-8').splitlines()
     patterns = [line.strip() for line in lines if line.strip() and not line.startswith('#')]
     return sorted({path for pattern in patterns for path in Path('.').glob(pattern)})
 
 
-def go_test_outputs(tag, whole, named):
-    selected = {pkg: names for pkg, names in named.items() if pkg not in whole}
+def run_pattern(selected):
     names = sorted(set().union(*selected.values()))
-    run = f'^({"|".join(names)})$' if names else '^$'
-    if len(run) > MAX_RUN_PATTERN:
-        whole, selected = whole | set(selected), {}
+    return f'^({"|".join(names)})$' if names else '^$'
+
+
+def go_test_outputs(tag, whole, named):
+    whole = set(whole)
+    selected = {pkg: names for pkg, names in named.items() if pkg not in whole}
+    run = run_pattern(selected)
+    while len(run) > MAX_RUN_PATTERN:
+        largest = max(selected, key=lambda pkg: sum(len(name) + 1 for name in selected[pkg]))
+        whole.add(largest)
+        del selected[largest]
+        run = run_pattern(selected)
     return {tag: ' '.join(sorted(whole)),
             f'{tag}_selected': ' '.join(sorted(selected)),
             f'{tag}_run': run if selected else ''}
@@ -163,7 +208,7 @@ def scope(paths, base):
     whole = {tag: set() for tag in GO_TAGS}
     named = {tag: {} for tag in GO_TAGS}
     lint = set()
-    go_all = lint_all = db_layer = critical_changed = False
+    go_all = lint_all = db_layer = critical_changed = gateway = False
     forced = set()
     go_files = []                                 # (path, changed in this diff)
     for name in paths:
@@ -177,8 +222,12 @@ def scope(paths, base):
             continue
         if name in UNIT_FULL:
             forced.add('unit')
-        if name == CRITICAL:
+        if name == '.gitea/integration.py':
+            forced.add('integration')
+        if name in (CRITICAL, SCOPE_SCRIPT):
             critical_changed = True
+        if name in (GATEWAY_TESTS, SCOPE_SCRIPT) or touches_gateway(name, base):
+            gateway = True
         if name in NODE_SETUP:
             result['frontend'] = True
         if name.startswith('.gitea/'):
@@ -211,12 +260,14 @@ def scope(paths, base):
             lint.add(package_arg(directory))
         for tag in GO_TAGS:
             select(whole[tag], named[tag], tag, directory, path)
-    run_critical = {'unit': bool(go_files) or critical_changed,
-                    'integration': db_layer or critical_changed}
-    for path in critical_files():
-        for tag in GO_TAGS:
-            if run_critical[tag] and in_suite(path, tag):
-                named[tag].setdefault(package_arg(path.parent), set()).update(test_names([path]))
+    listings = {CRITICAL: {'unit': bool(go_files) or critical_changed,
+                           'integration': db_layer or critical_changed},
+                GATEWAY_TESTS: {'unit': gateway, 'integration': gateway}}
+    for listing, run in listings.items():
+        for path in listed_files(listing):
+            for tag in GO_TAGS:
+                if run[tag] and in_suite(path, tag):
+                    named[tag].setdefault(package_arg(path.parent), set()).update(test_names([path]))
     for tag in GO_TAGS:
         if go_all or tag in forced:
             result.update({tag: ALL, f'{tag}_selected': '', f'{tag}_run': ''})

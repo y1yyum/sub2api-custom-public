@@ -2,10 +2,10 @@
   <section
     class="card flex min-w-0 flex-col p-4"
     :aria-labelledby="titleId"
-    :aria-busy="state.loading.value"
+    :aria-busy="loading"
     data-testid="overview-top-models"
   >
-    <div class="mb-4 flex min-h-7 items-center justify-between gap-2">
+    <div class="models-heading mb-4 flex min-h-7 items-center justify-between gap-2">
       <div class="flex min-w-0 items-baseline gap-2">
         <h2 :id="titleId" class="flex items-center gap-2 text-sm font-semibold text-gray-900 dark:text-white">
           <PixelIcon name="chartBar" size="sm" class="text-primary-600 dark:text-primary-500" aria-hidden="true" />
@@ -25,14 +25,22 @@
       </router-link>
     </div>
 
-    <p
-      v-if="failed"
-      class="flex flex-1 items-center justify-center py-8 text-sm text-red-600 dark:text-red-400"
-      role="alert"
+    <PortalState
+      v-if="failed && !loading"
+      kind="error"
+      compact
+      class="flex-1"
+      :title="pt('pages.overview.ranks.error')"
       data-testid="overview-top-models-error"
-    >
-      {{ pt('pages.overview.ranks.error') }}
-    </p>
+      @retry="state.retryModels()"
+    />
+    <PortalState
+      v-else-if="loading && !rows.length"
+      kind="loading"
+      compact
+      class="flex-1"
+      data-testid="overview-top-models-loading"
+    />
     <div
       v-else-if="!rows.length"
       class="flex flex-1 flex-col items-center justify-center gap-2 py-8 text-sm text-gray-500 dark:text-dark-400"
@@ -95,6 +103,7 @@
 import { computed, useId } from 'vue'
 import ModelIcon from '@/components/common/ModelIcon.vue'
 import PixelIcon from '../common/PixelIcon.vue'
+import PortalState from '../common/PortalState.vue'
 import { formatCompactNumber } from '@/utils/format'
 import { usePortalI18n } from '../../i18n'
 import { injectOverviewState } from '../../overview/usageChartState'
@@ -105,6 +114,7 @@ const state = injectOverviewState()
 const titleId = `${useId()}-title`
 
 const rankMetric = computed(() => toRankMetric(state.metric.value))
+const loading = computed(() => state.loading.value || state.modelsLoading.value)
 const failed = computed(() => state.failedParts.value.includes('models'))
 const ranked = computed(() => rankModels(state.models.value, state.metric.value))
 
@@ -143,6 +153,8 @@ const others = computed(() => {
 </script>
 
 <style scoped>
+.models-heading { margin: -16px -16px 12px; padding: 12px 16px; border-bottom: 1px solid var(--pp-divider); }
+li + li { border-top: 1px dashed var(--pp-divider); padding-top: 4px; }
 .rank-index {
   font-family: var(--pp-font-pixel);
   font-synthesis: none;

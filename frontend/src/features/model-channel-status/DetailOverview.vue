@@ -10,7 +10,7 @@
       {{ t('modelChannelStatus.detail.noData') }}
     </p>
     <template v-else>
-      <dl class="m-0 grid grid-cols-2 gap-3 sm:grid-cols-3">
+      <dl class="overview-grid m-0 grid grid-cols-2 gap-3 sm:grid-cols-3">
         <div>
           <dt class="text-xs text-gray-500 dark:text-dark-400">{{ t('modelChannelStatus.detail.overview.status') }}</dt>
           <dd class="m-0 mt-0.5 flex items-center gap-1.5 text-sm font-medium" :class="healthTextClass(block.data.health)" data-testid="overview-health">
@@ -25,9 +25,13 @@
           </dd>
         </div>
         <div>
-          <dt class="text-xs text-gray-500 dark:text-dark-400">{{ t('modelChannelStatus.detail.overview.cacheRate') }}</dt>
-          <dd class="m-0 mt-0.5 text-sm font-medium tabular-nums text-gray-900 dark:text-white" data-testid="overview-cache">
-            {{ formatPercent(block.data.cache_rate) }}
+          <dt class="text-xs text-gray-500 dark:text-dark-400">{{ t('modelChannelStatus.detail.overview.events') }}</dt>
+          <dd class="m-0 mt-0.5 text-sm font-medium tabular-nums text-gray-900 dark:text-white" data-testid="overview-events">{{ block.data.event_count }}</dd>
+        </div>
+        <div>
+          <dt class="text-xs text-gray-500 dark:text-dark-400">{{ t('modelChannelStatus.detail.overview.avgResponse') }}</dt>
+          <dd class="m-0 mt-0.5 text-sm font-medium tabular-nums text-gray-900 dark:text-white" data-testid="overview-response">
+            {{ formatLatency(block.data.avg_response_ms) }}
           </dd>
         </div>
         <div>
@@ -37,18 +41,15 @@
           </dd>
         </div>
         <div>
-          <dt class="text-xs text-gray-500 dark:text-dark-400">{{ t('modelChannelStatus.detail.overview.avgResponse') }}</dt>
-          <dd class="m-0 mt-0.5 text-sm font-medium tabular-nums text-gray-900 dark:text-white" data-testid="overview-response">
-            {{ formatLatency(block.data.avg_response_ms) }}
+          <dt class="text-xs text-gray-500 dark:text-dark-400">{{ t('modelChannelStatus.detail.overview.cacheRate') }}</dt>
+          <dd class="m-0 mt-0.5 text-sm font-medium tabular-nums text-gray-900 dark:text-white" data-testid="overview-cache">
+            {{ formatPercent(block.data.cache_rate) }}
           </dd>
-        </div>
-        <div>
-          <dt class="text-xs text-gray-500 dark:text-dark-400">{{ t('modelChannelStatus.detail.overview.events') }}</dt>
-          <dd class="m-0 mt-0.5 text-sm font-medium tabular-nums text-gray-900 dark:text-white" data-testid="overview-events">{{ block.data.event_count }}</dd>
         </div>
       </dl>
       <div class="mt-3">
         <CatalogStrip
+          class="!h-12"
           :buckets="block.data.buckets"
           :strip="strip"
           :label="callsWindow ? t('modelChannelStatus.detail.overview.callsTrend', { count: callsWindow }) : t('modelChannelStatus.detail.overview.trend')"
@@ -85,3 +86,8 @@ function isEmpty(data: CatalogOverview): boolean {
   return data.success_rate == null && data.avg_response_ms == null && data.ttft_ms == null && data.event_count === 0 && isNoDataStrip(data.buckets)
 }
 </script>
+<style scoped>
+.overview-grid { gap: 0; border-top: 1px solid var(--pp-divider); border-left: 1px solid var(--pp-divider); }
+.overview-grid > div { padding: 14px; border-right: 1px solid var(--pp-divider); border-bottom: 1px solid var(--pp-divider); background: var(--pp-surface-2); }
+.overview-grid dd { margin-top: 8px; font: 400 24px/28px var(--pp-font-pixel); font-synthesis: none; }
+</style>

@@ -1,6 +1,7 @@
 <template>
   <AppLayout>
     <div class="space-y-6">
+      <PortalPageHeading v-if="logsOnly" :title="pt('refresh.usage')" :description="pt('refresh.description.usage')" />
       <UsageStatsCards v-if="!logsOnly" :stats="usageStats" :show-account-cost="false" :strike-standard-cost="true" />
 
       <div class="space-y-4">
@@ -111,29 +112,30 @@
               <label class="input-label">{{ t('usage.model') }}</label>
               <Select v-model="filters.model" :options="modelOptions" searchable @change="applyFilters" />
             </div>
-            <div class="w-full sm:w-auto sm:min-w-[8rem] sm:max-w-[11rem] sm:flex-1">
+            <div v-show="!logsOnly || moreFilters" class="w-full sm:w-auto sm:min-w-[8rem] sm:max-w-[11rem] sm:flex-1">
               <label class="input-label">{{ t('admin.usage.group') }}</label>
               <Select v-model="filters.group_id" :options="groupOptions" searchable @change="applyFilters" />
             </div>
-            <div class="w-full sm:w-auto sm:min-w-[8rem] sm:max-w-[11rem] sm:flex-1">
+            <div v-show="!logsOnly || moreFilters" class="w-full sm:w-auto sm:min-w-[8rem] sm:max-w-[11rem] sm:flex-1">
               <label class="input-label">{{ t('usage.type') }}</label>
               <Select v-model="filters.request_type" :options="requestTypeOptions" @change="applyFilters" />
             </div>
-            <div class="w-full sm:w-auto sm:min-w-[8rem] sm:max-w-[11rem] sm:flex-1">
+            <div v-show="!logsOnly || moreFilters" class="w-full sm:w-auto sm:min-w-[8rem] sm:max-w-[11rem] sm:flex-1">
               <label class="input-label">{{ t('usage.compactionFilter') }}</label>
               <Select v-model="filters.native_compaction_v2" :options="compactionOptions" @change="applyFilters" />
             </div>
-            <div v-if="subscriptionFeatureEnabled" class="w-full sm:w-auto sm:min-w-[8rem] sm:max-w-[11rem] sm:flex-1">
+            <div v-if="subscriptionFeatureEnabled" v-show="!logsOnly || moreFilters" class="w-full sm:w-auto sm:min-w-[8rem] sm:max-w-[11rem] sm:flex-1">
               <label class="input-label">{{ t('admin.usage.billingType') }}</label>
               <Select v-model="filters.billing_type" :options="billingTypeOptions" @change="applyFilters" />
             </div>
-            <div class="w-full sm:w-auto sm:min-w-[8rem] sm:max-w-[11rem] sm:flex-1">
+            <div v-show="!logsOnly || moreFilters" class="w-full sm:w-auto sm:min-w-[8rem] sm:max-w-[11rem] sm:flex-1">
               <label class="input-label">{{ t('admin.usage.billingMode') }}</label>
               <Select v-model="filters.billing_mode" :options="billingModeOptions" @change="applyFilters" />
             </div>
           </div>
 
           <div class="ml-auto flex flex-wrap items-center justify-end gap-2">
+            <button v-if="logsOnly && activeTab === 'usage'" type="button" class="btn btn-secondary" :aria-expanded="moreFilters" @click="moreFilters = !moreFilters">{{ pt('refresh.moreFilters') }}</button>
             <button type="button" @click="refreshData" :disabled="activeTab === 'errors' ? errorLoading : loading" class="btn btn-secondary">
               {{ t('common.refresh') }}
             </button>
@@ -185,7 +187,12 @@
       </div>
 
       <template v-if="activeTab === 'usage'">
+        <PortalFilterChips v-if="logsOnly" :items="filterChips" @remove="removeFilter" />
+        <PortalUsageSummary v-if="logsOnly" :stats="usageStats" :loading="endpointStatsLoading" :failed="statsFailed" @retry="loadStats" />
+        <PortalState v-if="logsOnly && logsFailed" kind="error" class="card" data-testid="usage-logs-error" :title="t('usage.failedToLoad')" @retry="loadLogs" />
         <UsageTable
+          v-else
+          :portal-enhancements="logsOnly"
           :data="usageLogs"
           :loading="loading"
           :columns="visibleColumns"
@@ -263,8 +270,16 @@ import type {
 import type { Column } from '@/components/common/types'
 import { COMMON_ERROR_STATUS_CODES } from '@/utils/errorBadges'
 import { portalPagesActive } from '@/custom-portal/pageRoutes'
+import { usePortalI18n } from '@/custom-portal/i18n'
+import PortalPageHeading from '@/custom-portal/components/common/PortalPageHeading.vue'
+import PortalFilterChips from '@/custom-portal/components/common/PortalFilterChips.vue'
+import PortalUsageSummary from '@/custom-portal/components/usage/PortalUsageSummary.vue'
+import PortalState from '@/custom-portal/components/common/PortalState.vue'
 
 const { t } = useI18n()
+const { pt } = usePortalI18n()
+const moreFilters = ref(false)
+const statsFailed = ref(false)
 const appStore = useAppStore()
 
 type DistributionMetric = 'tokens' | 'actual_cost'
@@ -282,6 +297,7 @@ const endpointPathStats = ref<EndpointStat[]>([])
 // Custom portal: the charts moved to the overview, so this page keeps the logs only.
 const logsOnly = portalPagesActive()
 const loading = ref(false)
+const logsFailed = ref(false)
 const chartsLoading = ref(false)
 const modelStatsLoading = ref(false)
 const endpointStatsLoading = ref(false)
@@ -466,9 +482,11 @@ const loadLogs = async () => {
     if (!controller.signal.aborted) {
       usageLogs.value = res.items
       pagination.total = res.total
+      logsFailed.value = false
     }
   } catch (error: any) {
     if (error?.name !== 'AbortError' && error?.code !== 'ERR_CANCELED') {
+      logsFailed.value = true
       appStore.showError(t('usage.failedToLoad'))
     }
   } finally {
@@ -476,20 +494,39 @@ const loadLogs = async () => {
   }
 }
 
+const filterChips = computed(() => {
+  const fields = [
+    { key: 'api_key_id', label: t('usage.apiKeyFilter'), options: apiKeyOptions.value },
+    { key: 'model', label: t('usage.model'), options: modelOptions.value },
+    { key: 'group_id', label: t('admin.usage.group'), options: groupOptions.value },
+    { key: 'request_type', label: t('usage.type'), options: requestTypeOptions.value },
+    { key: 'native_compaction_v2', label: t('usage.compactionFilter'), options: compactionOptions.value },
+    { key: 'billing_type', label: t('admin.usage.billingType'), options: billingTypeOptions.value },
+    { key: 'billing_mode', label: t('admin.usage.billingMode'), options: billingModeOptions.value }
+  ] as const
+  return fields.flatMap((field) => {
+    const value = filters.value[field.key]
+    return value == null || value === '' ? [] : [{ key: field.key, label: `${field.label}: ${field.options.find((option) => option.value === value)?.label ?? value}` }]
+  })
+})
+function removeFilter(key: string) { filters.value = { ...filters.value, [key]: undefined }; applyFilters() }
+
 const loadStats = async () => {
-  if (logsOnly) return
   const seq = ++statsReqSeq
   endpointStatsLoading.value = true
   try {
     const stats = await usageAPI.getStats(normalizedFilters.value)
     if (seq !== statsReqSeq) return
     usageStats.value = stats
+    statsFailed.value = false
     inboundEndpointStats.value = stats.endpoints || []
     upstreamEndpointStats.value = []
     endpointPathStats.value = []
   } catch (error) {
     if (seq !== statsReqSeq) return
     console.error('Failed to load usage stats:', error)
+    statsFailed.value = true
+    usageStats.value = null
     inboundEndpointStats.value = []
     upstreamEndpointStats.value = []
     endpointPathStats.value = []
@@ -645,6 +682,27 @@ const escapeCSVValue = (value: unknown): string => {
   return str
 }
 
+const EXPORT_PAGE_SIZE = 1000
+const EXPORT_RATE_LIMIT_MAX_RETRIES = 3
+const EXPORT_RATE_LIMIT_MAX_WAIT_SECONDS = 60
+
+// 导出逐页请求计入按用户的重查询限流；429 时按 Retry-After 等待后重试同一页。
+const queryExportPage = async (params: UsageQueryParams) => {
+  for (let attempt = 0; ; attempt++) {
+    try {
+      return await usageAPI.query(params)
+    } catch (error: any) {
+      if (error?.status !== 429 || attempt >= EXPORT_RATE_LIMIT_MAX_RETRIES) throw error
+      const waitSeconds = Math.min(
+        Math.max(error.retry_after_seconds ?? EXPORT_RATE_LIMIT_MAX_WAIT_SECONDS, 1),
+        EXPORT_RATE_LIMIT_MAX_WAIT_SECONDS
+      )
+      appStore.showInfo(t('usage.exportRateLimited', { seconds: waitSeconds }))
+      await new Promise((resolve) => setTimeout(resolve, waitSeconds * 1000))
+    }
+  }
+}
+
 const exportToCSV = async () => {
   if (pagination.total === 0) {
     appStore.showWarning(t('usage.noDataToExport'))
@@ -654,11 +712,10 @@ const exportToCSV = async () => {
   appStore.showInfo(t('usage.preparingExport'))
   try {
     const allLogs: UsageLog[] = []
-    const pageSize = 100
-    const exportParams = buildUsageListParams(1, pageSize)
-    const totalPages = Math.ceil(pagination.total / pageSize)
+    const exportParams = buildUsageListParams(1, EXPORT_PAGE_SIZE)
+    const totalPages = Math.ceil(pagination.total / EXPORT_PAGE_SIZE)
     for (let page = 1; page <= totalPages; page++) {
-      const response = await usageAPI.query({ ...exportParams, page })
+      const response = await queryExportPage({ ...exportParams, page })
       allLogs.push(...response.items)
     }
     if (allLogs.length === 0) {

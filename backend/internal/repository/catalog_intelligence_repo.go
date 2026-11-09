@@ -40,10 +40,16 @@ func (r *catalogIntelligenceRepository) ListCatalogPlans(ctx context.Context) ([
 }
 
 func (r *catalogIntelligenceRepository) ListRecentResults(ctx context.Context, planIDs []int64, perPlan int) ([]*service.ScheduledTestResult, error) {
+	return listRecentScheduledTestResults(ctx, r.db, planIDs, perPlan)
+}
+
+// listRecentScheduledTestResults returns up to perPlan newest char art and quiz
+// results of each plan, newest first within a plan.
+func listRecentScheduledTestResults(ctx context.Context, db *sql.DB, planIDs []int64, perPlan int) ([]*service.ScheduledTestResult, error) {
 	if len(planIDs) == 0 || perPlan <= 0 {
 		return nil, nil
 	}
-	rows, err := r.db.QueryContext(ctx, `
+	rows, err := db.QueryContext(ctx, `
 		SELECT `+scheduledTestResultColumns+`
 		FROM (
 			SELECT *, ROW_NUMBER() OVER (PARTITION BY plan_id ORDER BY created_at DESC, id DESC) AS rn

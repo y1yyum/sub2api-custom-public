@@ -6,8 +6,9 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-// registerIntelligenceQuestionRoutes serves the quiz question bank and the
-// mapped model lookup used by the scheduled test plan form.
+// registerIntelligenceQuestionRoutes serves the quiz question bank, the
+// char art and quiz plans of all accounts, and the mapped model lookup used by
+// the scheduled test plan form.
 func registerIntelligenceQuestionRoutes(admin *gin.RouterGroup, h *handler.Handlers) {
 	questions := admin.Group("/intelligence-questions")
 	{
@@ -17,5 +18,6 @@ func registerIntelligenceQuestionRoutes(admin *gin.RouterGroup, h *handler.Handl
 		questions.PUT("/:id", h.Admin.ScheduledTest.UpdateQuestion)
 		questions.DELETE("/:id", h.Admin.ScheduledTest.DeleteQuestion)
 	}
+	admin.GET("/intelligence-plans", h.Admin.ScheduledTest.ListIntelligencePlans)
 	admin.GET("/accounts/:id/mapped-models", h.Admin.Account.GetMappedModels)
 }

@@ -11,7 +11,7 @@ const ROOT = ':where(html.theme-rhine)'
 const UPSTREAM_TEAL =
   /#(f0fdfa|ccfbf1|99f6e4|5eead4|2dd4bf|14b8a6|0d9488|0f766e|115e59|134e4a|042f2e)\b|\b20,\s*184,\s*166\b|\b20 184 166\b/i
 const ALLOWED_PROPERTY =
-  /^(--tw-[a-z-]+|--pp-[a-z-]+|--color-primary-500|color|background(-color|-image|-size|-clip)?|border(-[a-z]+)*-(color|radius|width|style)|border-(color|radius|width|style)|border-image(-[a-z]+)?|box-shadow|fill|stroke|outline(-[a-z]+)?|accent-color|caret-color|text-decoration-color|font-variant-numeric|font-family|font-synthesis|letter-spacing|content|transform|transition|(-webkit-)?backdrop-filter)$/
+  /^(--tw-[a-z-]+|--pp-[a-z0-9-]+|--color-primary-500|color|background(-color|-image|-size|-clip)?|border(-[a-z]+)*-(color|radius|width|style)|border-(color|radius|width|style)|border-image(-[a-z]+)?|box-shadow|fill|stroke|outline(-[a-z]+)?|accent-color|caret-color|text-decoration-color|font-variant-numeric|font-family|font-synthesis|letter-spacing|content|transform|transition|(-webkit-)?backdrop-filter)$/
 const LAYOUT_PROPERTY =
   /^(display|position|float|clear|width|height|(min|max)-(width|height)|margin(-[a-z]+)?|padding(-[a-z]+)?|grid(-[a-z]+)*|flex(-[a-z]+)*|gap|row-gap|column-gap|order|top|right|bottom|left|inset|align-[a-z]+|justify-[a-z]+|place-[a-z]+|font-size|line-height)$/
 

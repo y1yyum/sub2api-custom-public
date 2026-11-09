@@ -35,13 +35,13 @@ describe('pixel console shell', () => {
   const dock = scopedStyles(dockSource)
   const topBar = scopedStyles(topBarSource)
 
-  // Apart from the icon tag (P2), the only markup change is the TopBar logo tile (P3, pixel
-  // logo fallback without the tile background); the hashes lock everything else.
+  // Normalize the intentional icon and header-height changes before checking the remaining markup.
   const withUpstreamIcon = (source: string) => source.replace(/<PixelIcon\b/g, '<Icon')
 
-  it('keeps the Dock and TopBar markup unchanged apart from pixel icons and logo', () => {
+  it('preserves navigation markup while fitting the 56px header', () => {
     expect(templateHash(withUpstreamIcon(dockSource))).toBe('68589bed15dea4623a4459fde007fe4441d8ca55733628fd949aa8ae71dd6a3b')
-    expect(templateHash(withUpstreamIcon(topBarSource))).toBe('a418a74ef334df45982ca4aade4c5e34df5b7418e26ea22d4eb502aa8d05d9fa')
+    expect(topBarSource).toContain('h-[51px]')
+    expect(templateHash(withUpstreamIcon(topBarSource).replace('h-[51px]', 'h-16'))).toBe('a418a74ef334df45982ca4aade4c5e34df5b7418e26ea22d4eb502aa8d05d9fa')
   })
 
   it('draws the Dock as a solid pixel bar without blur', () => {

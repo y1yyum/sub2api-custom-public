@@ -9,7 +9,7 @@
         :doc-url="docUrl"
         :custom-pages="customPages"
       />
-      <main class="portal-shell-main px-4 md:px-6 lg:px-8">
+      <main class="portal-shell-main">
         <slot />
       </main>
     </div>
@@ -28,9 +28,9 @@ const { dock, docs, avatar, docUrl, customPages } = usePortalNav()
 <style scoped>
 /* Room for the floating Dock (about 4.5rem tall including its offset). */
 .portal-shell {
-  --portal-topbar-height: 65px;
+  --portal-topbar-height: 56px;
   --portal-main-top: 1rem;
-  --portal-dock-space: 6rem;
+  --portal-dock-space: calc(120px + env(safe-area-inset-bottom));
 }
 
 @media (min-width: 768px) {
@@ -46,8 +46,14 @@ const { dock, docs, avatar, docUrl, customPages } = usePortalNav()
 }
 
 .portal-shell-main {
+  width: min(100% - 32px, 1296px);
+  margin-inline: auto;
   padding-top: var(--portal-main-top);
   padding-bottom: var(--portal-dock-space);
+}
+
+@media (min-width: 768px) {
+  .portal-shell-main { width: min(100% - 64px, 1296px); }
 }
 
 /* Upstream sizes table pages to the viewport minus its header and lg padding at

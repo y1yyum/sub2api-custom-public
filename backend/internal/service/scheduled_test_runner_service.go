@@ -24,6 +24,8 @@ type ScheduledTestRunnerService struct {
 	cron      *cron.Cron
 	startOnce sync.Once
 	stopOnce  sync.Once
+	owner     *scheduledOwnerRuntime
+	ownerErr  error
 }
 
 // NewScheduledTestRunnerService creates a new runner.
@@ -34,13 +36,18 @@ func NewScheduledTestRunnerService(
 	rateLimitSvc *RateLimitService,
 	cfg *config.Config,
 ) *ScheduledTestRunnerService {
-	return &ScheduledTestRunnerService{
+	s := &ScheduledTestRunnerService{
 		planRepo:       planRepo,
 		scheduledSvc:   scheduledSvc,
 		accountTestSvc: accountTestSvc,
 		rateLimitSvc:   rateLimitSvc,
 		cfg:            cfg,
 	}
+	s.owner, s.ownerErr = newScheduledOwnerRuntime()
+	if s.owner != nil && s.ownerErr == nil {
+		s.ownerErr = s.configureScheduledOwnerWorkers()
+	}
+	return s
 }
 
 // Start begins the cron ticker (every minute).
@@ -49,6 +56,14 @@ func (s *ScheduledTestRunnerService) Start() {
 		return
 	}
 	s.startOnce.Do(func() {
+		if s.ownerErr != nil {
+			logger.LegacyPrintf("service.scheduled_test_runner", "[ScheduledTestRunner] not started (invalid owner configuration)")
+			return
+		}
+		if s.owner != nil {
+			s.startOwnedRunner()
+			return
+		}
 		loc := time.Local
 		if s.cfg != nil {
 			if parsed, err := time.LoadLocation(s.cfg.Timezone); err == nil && parsed != nil {
@@ -74,6 +89,10 @@ func (s *ScheduledTestRunnerService) Stop() {
 		return
 	}
 	s.stopOnce.Do(func() {
+		if s.owner != nil {
+			s.stopOwnedRunner()
+			return
+		}
 		if s.cron != nil {
 			ctx := s.cron.Stop()
 			select {
@@ -86,6 +105,10 @@ func (s *ScheduledTestRunnerService) Stop() {
 }
 
 func (s *ScheduledTestRunnerService) runScheduled() {
+	if s.owner != nil {
+		s.runOwnedScheduled()
+		return
+	}
 	// Delay 10s so execution lands at ~:10 of each minute instead of :00.
 	time.Sleep(10 * time.Second)
 
@@ -121,6 +144,13 @@ func (s *ScheduledTestRunnerService) runScheduled() {
 }
 
 func (s *ScheduledTestRunnerService) runOnePlan(ctx context.Context, plan *ScheduledTestPlan) {
+	if s.ownerErr != nil {
+		return
+	}
+	if s.owner != nil {
+		s.runOwnedPlan(ctx, plan.ID, "legacy")
+		return
+	}
 	result, err := s.runPlanTest(ctx, plan)
 	switch {
 	case errors.Is(err, errScheduledTestSkipped):

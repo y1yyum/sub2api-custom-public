@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { flushPromises, mount, type VueWrapper } from '@vue/test-utils'
 import { nextTick } from 'vue'
 
@@ -57,6 +57,12 @@ const messages: Record<string, string> = {
   'keys.status.quota_exhausted': 'Quota exhausted',
   'keys.usage': 'Usage',
 }
+
+const portal = vi.hoisted(() => ({ active: false }))
+vi.mock('@/custom-portal/pageRoutes', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@/custom-portal/pageRoutes')>()),
+  portalPagesActive: () => portal.active
+}))
 
 vi.mock('@/api', () => ({
   keysAPI: {
@@ -653,5 +659,132 @@ describe('user KeysView column settings', () => {
       expect(wrapper.find('[data-tour="key-form-provider"]').exists()).toBe(false)
       expect(optionIds(wrapper)).toHaveLength(12)
     })
+  })
+})
+
+describe('user KeysView with the portal pages active', () => {
+  beforeEach(() => {
+    portal.active = true
+    listKeys.mockReset()
+    showError.mockReset()
+    getPublicSettings.mockResolvedValue({})
+    getDashboardApiKeysUsage.mockResolvedValue({ stats: {} })
+    getAvailableGroups.mockResolvedValue([])
+    getUserGroupRates.mockResolvedValue({})
+    isCurrentStep.mockReturnValue(false)
+  })
+  afterEach(() => {
+    portal.active = false
+    vi.restoreAllMocks()
+  })
+
+  const portalStubs = {
+    AppLayout: AppLayoutStub,
+    TablePageLayout: TablePageLayoutStub,
+    DataTable: DataTableStub,
+    Pagination: PaginationStub,
+    EmptyState: { template: '<div data-test="empty-guide" />' },
+    Select: SelectStub,
+    SearchInput: SearchInputStub,
+    Icon: IconStub,
+    PortalPageHeading: { template: '<div><slot /></div>' },
+    PortalKeySummary: true,
+    PortalKeyBatchActions: true,
+    PortalKeyConcurrency: { props: ['value'], template: '<span data-test="portal-key-concurrency">{{ value }}</span>' },
+    PortalKeyIntegration: true,
+    BaseDialog: true,
+    ConfirmDialog: true,
+    UseKeyModal: true,
+    BulkEditKeysModal: true,
+    EndpointPopover: true,
+    GroupBadge: true,
+    GroupOptionItem: true
+  }
+  const MergedTableStub = {
+    props: ['columns', 'data'],
+    template: `
+      <div>
+        <div data-test="columns">{{ columns.map((col) => col.key).join(',') }}</div>
+        <div data-test="labels">{{ columns.map((col) => col.label).join(',') }}</div>
+        <div v-for="row in data" :key="row.id">
+          <slot name="cell-name" :value="row.name" :row="row" />
+          <slot name="cell-group" :row="row" />
+          <slot name="cell-actions" :row="row" />
+        </div>
+      </div>
+    `
+  }
+  const mountPortal = async (stubs: Record<string, unknown> = {}) => {
+    const wrapper = mount(KeysView, { global: { stubs: { ...portalStubs, ...stubs } } })
+    await flushPromises()
+    return wrapper
+  }
+
+  it('merges the key into the name column and concurrency into the group column', async () => {
+    localStorage.clear()
+    listKeys.mockResolvedValue({ items: [createApiKey()], total: 1, page: 1, page_size: 20, pages: 1 })
+    const wrapper = await mountPortal({ DataTable: MergedTableStub })
+
+    expect(wrapper.get('[data-test="columns"]').text()).toBe('name,group,usage,expires_at,status,created_at,actions')
+    expect(wrapper.get('[data-test="labels"]').text()).not.toContain('Current Concurrency')
+    expect(wrapper.get('[data-test="portal-key-secret"] code').text()).not.toBe('')
+    expect(wrapper.get('[data-test="portal-key-concurrency"]').text()).toBe('3')
+    expect(wrapper.text()).not.toContain('keys.importToCcSwitch')
+    expect(wrapper.text()).not.toContain('keys.selectGroup')
+    await wrapper.get('[data-test="portal-key-secret"] button').trigger('click')
+    expect(copyToClipboard).toHaveBeenCalledWith('sk-test-key', expect.any(String))
+    wrapper.unmount()
+  })
+
+  it('drops the merged lines that the column settings hide', async () => {
+    localStorage.clear()
+    localStorage.setItem('api-key-hidden-columns', JSON.stringify(['id', 'rate_limit', 'last_used_at', 'last_used_ip', 'key', 'current_concurrency']))
+    localStorage.setItem('api-key-column-settings-version', '3')
+    listKeys.mockResolvedValue({ items: [createApiKey()], total: 1, page: 1, page_size: 20, pages: 1 })
+    const wrapper = await mountPortal({ DataTable: MergedTableStub })
+
+    expect(wrapper.get('[data-test="labels"]').text().split(',').slice(0, 2)).toEqual(['Name', 'Group'])
+    expect(wrapper.find('[data-test="portal-key-secret"]').exists()).toBe(false)
+    expect(wrapper.find('[data-test="portal-key-concurrency"]').exists()).toBe(false)
+    wrapper.unmount()
+  })
+
+  it.each([true, false])('keeps standalone concurrency when group is hidden (desktop: %s)', async (desktop) => {
+    localStorage.clear()
+    localStorage.setItem('api-key-hidden-columns', JSON.stringify(['group']))
+    localStorage.setItem('api-key-column-settings-version', '3')
+    const matchMedia = window.matchMedia.bind(window)
+    vi.spyOn(window, 'matchMedia').mockImplementation((query) => ({ ...matchMedia(query), matches: desktop }))
+    listKeys.mockResolvedValue({ items: [createApiKey()], total: 1, page: 1, page_size: 20, pages: 1 })
+    const wrapper = await mountPortal({ DataTable: false })
+
+    const table = wrapper.findComponent({ name: 'DataTable' })
+    expect(table.props('columns').map((column: { key: string }) => column.key)).toContain('current_concurrency')
+    expect(wrapper.get('[data-test="portal-key-concurrency"]').text()).toBe('3')
+
+    await wrapper.get('button[title="Column Settings"]').trigger('click')
+    await getButtonByText(wrapper, 'Current Concurrency').trigger('click')
+    expect(wrapper.find('[data-test="portal-key-concurrency"]').exists()).toBe(false)
+    await getButtonByText(wrapper, 'Current Concurrency').trigger('click')
+    expect(wrapper.get('[data-test="portal-key-concurrency"]').text()).toBe('3')
+    await getButtonByText(wrapper, 'Group').trigger('click')
+    expect(table.props('columns').map((column: { key: string }) => column.key)).not.toContain('current_concurrency')
+    expect(wrapper.findAll('[data-test="portal-key-concurrency"]')).toHaveLength(1)
+    wrapper.unmount()
+  })
+
+  it('shows a retryable error instead of the empty guide when the list fails', async () => {
+    listKeys.mockRejectedValueOnce(new Error('down'))
+    const wrapper = await mountPortal()
+
+    expect(showError).toHaveBeenCalledWith('keys.failedToLoad')
+    const error = wrapper.get('.portal-state-error')
+    expect(wrapper.find('[data-test="empty-guide"]').exists()).toBe(false)
+    listKeys.mockResolvedValueOnce({ items: [], total: 0, page: 1, page_size: 20, pages: 0 })
+    await error.get('button').trigger('click')
+    await flushPromises()
+    expect(wrapper.find('.portal-state-error').exists()).toBe(false)
+    expect(wrapper.find('[data-test="empty-guide"]').exists()).toBe(true)
+    wrapper.unmount()
   })
 })

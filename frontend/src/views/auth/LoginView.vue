@@ -11,7 +11,7 @@
         </p>
       </div>
       <!-- Login Form -->
-      <form @submit.prevent="handleLogin" class="space-y-5">
+      <form novalidate @submit.prevent="handleLogin" class="space-y-5">
         <!-- Email Input -->
         <div>
           <label for="email" class="input-label">
@@ -31,11 +31,14 @@
               :disabled="authActionDisabled"
               class="input pl-11"
               :class="{ 'input-error': errors.email }"
+              :aria-invalid="Boolean(errors.email)"
+              :aria-describedby="errors.email ? 'login-email-error' : undefined"
               :placeholder="t('auth.emailPlaceholder')"
             />
           </div>
         </div>
 
+        <p v-if="errors.email" id="login-email-error" class="!mt-1 text-xs text-red-600 dark:text-red-400" role="alert">{{ errors.email }}</p>
         <!-- Password Input -->
         <div>
           <label for="password" class="input-label">
@@ -54,6 +57,8 @@
               :disabled="authActionDisabled"
               class="input pl-11 pr-11"
               :class="{ 'input-error': errors.password }"
+              :aria-invalid="Boolean(errors.password)"
+              :aria-describedby="errors.password ? 'login-password-error' : undefined"
               :placeholder="t('auth.passwordPlaceholder')"
             />
             <button
@@ -78,6 +83,9 @@
           </div>
         </div>
 
+        <p v-if="errors.password" id="login-password-error" class="!mt-1 text-xs text-red-600 dark:text-red-400" role="alert">{{ errors.password }}</p>
+        <p v-if="errorMessage" class="border border-red-300 bg-red-50 p-3 text-sm text-red-700 dark:border-red-800 dark:bg-red-950 dark:text-red-300" role="alert" data-testid="login-error">{{ errorMessage }}</p>
+        <p v-if="errors.turnstile" class="text-xs text-red-600 dark:text-red-400" role="alert">{{ errors.turnstile }}</p>
         <!-- Turnstile Widget -->
         <div v-if="captchaEnabled">
           <TurnstileWidget
@@ -159,7 +167,9 @@
             {{ passkeyLoading ? t('auth.passkeySigningIn') : t('auth.passkeySignIn') }}
           </button>
 
+          <div class="portal-login-providers grid gap-3 sm:grid-cols-2">
           <EmailOAuthButtons
+            class="sm:col-span-2"
             :disabled="authActionDisabled"
             :github-enabled="githubOAuthEnabled"
             :google-enabled="googleOAuthEnabled"
@@ -192,6 +202,7 @@
             :show-divider="false"
             @start="handleOAuthStart"
           />
+          </div>
         </div>
       </form>
     </div>
@@ -225,7 +236,7 @@
 import { computed, ref, reactive, onMounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
-import { AuthLayout } from '@/components/layout'
+import AuthLayout from '@/custom-portal/components/auth/PortalLoginLayout.vue'
 import LinuxDoOAuthSection from '@/components/auth/LinuxDoOAuthSection.vue'
 import DingTalkOAuthSection from '@/components/auth/DingTalkOAuthSection.vue'
 import OidcOAuthSection from '@/components/auth/OidcOAuthSection.vue'
@@ -566,6 +577,8 @@ async function handleLogin(): Promise<void> {
 
   // Validate form
   if (!validateForm()) {
+    const field = errors.email ? 'email' : errors.password ? 'password' : null
+    if (field) document.getElementById(field)?.focus()
     return
   }
 

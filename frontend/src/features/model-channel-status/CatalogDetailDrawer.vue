@@ -2,10 +2,10 @@
   <Teleport to="body">
     <Transition name="drawer">
       <div v-if="selected" class="fixed inset-0 z-50 flex justify-end" data-testid="detail-drawer-root">
-        <div class="absolute inset-0 bg-black/30" aria-hidden="true" data-testid="detail-backdrop" @click="emit('close')" />
+        <div class="catalog-detail-backdrop absolute inset-0" aria-hidden="true" data-testid="detail-backdrop" @click="emit('close')" />
         <aside
           ref="panelRef"
-          class="card relative flex h-full w-full max-w-xl flex-col overflow-hidden !rounded-none bg-white dark:!bg-dark-800"
+          class="catalog-detail-panel card relative flex h-full w-full max-w-[600px] flex-col overflow-hidden !rounded-none bg-white dark:!bg-dark-800"
           role="dialog"
           aria-modal="true"
           :aria-labelledby="titleId"
@@ -13,8 +13,9 @@
         >
           <header class="flex items-start justify-between gap-3 border-b-[3px] border-double border-gray-300 px-5 py-4 dark:border-dark-600">
             <div class="min-w-0">
+              <p class="mb-2 text-xs text-gray-500 dark:text-dark-400">{{ platformLabel(selected.row.platform) }} · {{ selected.group.name }} · {{ selected.group.user_rate_multiplier ?? selected.group.rate_multiplier }}×</p>
               <div class="flex min-w-0 items-center gap-1">
-                <h2 :id="titleId" class="m-0 truncate text-base font-semibold text-gray-900 dark:text-white" data-testid="detail-title">
+                <h2 :id="titleId" class="detail-model-title m-0 break-all text-gray-900 dark:text-white" data-testid="detail-title">
                   {{ selected.row.name }}
                 </h2>
                 <button
@@ -36,6 +37,7 @@
                   {{ platformLabel(selected.row.platform) }}
                 </span>
                 <span>{{ selected.group.name }}</span>
+                <span class="badge" :class="healthTextClass(selected.row.health)">{{ t(`modelChannelStatus.health.${selected.row.health}`) }}</span>
               </p>
             </div>
             <button
@@ -50,6 +52,13 @@
             </button>
           </header>
 
+          <div v-if="selected.group.models.length > 1" class="flex flex-wrap gap-1 border-b border-gray-200 px-5 py-3 dark:border-dark-700" role="group" :aria-label="selected.group.name">
+            <button v-for="model in selected.group.models" :key="model.key" type="button" class="inline-flex items-center gap-2 border px-2 py-1.5 font-mono text-xs" :class="model.key === selected.row.key ? 'bg-gray-900 text-white dark:bg-dark-100 dark:text-dark-900' : ''" :aria-pressed="model.key === selected.row.key" :title="`${model.name}: ${t(`modelChannelStatus.health.${model.health}`)}`" @click="emit('select', model, selected.group)"><span class="h-2 w-2" :class="healthBlockClass(model.health)" aria-hidden="true" />{{ model.name }}</button>
+          </div>
+          <nav class="flex flex-wrap gap-1 border-b border-gray-200 px-5 py-2 dark:border-dark-700" :aria-label="pt('refresh.details')">
+            <button v-for="section in ['overview', 'events', 'pricing', 'intelligence']" :key="section" type="button" class="px-2 py-2 text-xs hover:bg-gray-100 dark:hover:bg-dark-700" :aria-pressed="activeSection === section" @click="scrollToSection(section)">{{ pt(`refresh.sections.${section}`) }}<span v-if="section === 'events'"> ({{ details?.events.data?.total ?? selected.row.event_count }})</span></button>
+          </nav>
+
           <div class="flex-1 space-y-5 divide-y-[3px] divide-double divide-gray-200 overflow-y-auto px-5 py-4 dark:divide-dark-700 [&>*+*]:pt-5">
             <div v-if="loading" class="flex justify-center py-10" data-testid="detail-loading">
               <LoadingSpinner />
@@ -61,10 +70,10 @@
               </button>
             </div>
             <template v-else-if="details">
-              <DetailOverview :block="details.overview" :strip="details.strip" />
-              <DetailIntelligence :block="details.intelligence" />
-              <DetailPricing :block="details.pricing" />
-              <DetailEvents :block="details.events" :strip="details.strip" />
+              <DetailOverview id="catalog-section-overview" class="scroll-mt-4" :block="details.overview" :strip="details.strip" />
+              <DetailEvents id="catalog-section-events" class="scroll-mt-4" :block="details.events" :strip="details.strip" />
+              <DetailPricing id="catalog-section-pricing" class="scroll-mt-4" :block="details.pricing" />
+              <DetailIntelligence id="catalog-section-intelligence" class="scroll-mt-4" :block="details.intelligence" />
             </template>
           </div>
         </aside>
@@ -82,17 +91,24 @@ import { useClipboard } from '@/composables/useClipboard'
 import { extractApiErrorMessage } from '@/utils/apiError'
 import { platformBadgeLightClass, platformLabel } from '@/utils/platformColors'
 import { getCatalogDetails } from '@/api/channelStatusCatalog'
-import type { CatalogDetails } from '@/api/channelStatusCatalog'
+import type { CatalogDetails, CatalogGroup, CatalogModelRow } from '@/api/channelStatusCatalog'
+import { usePortalI18n } from '@/custom-portal/i18n'
 import DetailEvents from './DetailEvents.vue'
 import DetailIntelligence from './DetailIntelligence.vue'
 import DetailOverview from './DetailOverview.vue'
 import DetailPricing from './DetailPricing.vue'
-import type { SelectedCatalogRow } from './catalogFormat'
+import { healthBlockClass, healthTextClass, type SelectedCatalogRow } from './catalogFormat'
 
 const props = defineProps<{ selected: SelectedCatalogRow | null }>()
-const emit = defineEmits<{ close: [] }>()
+const emit = defineEmits<{ close: []; select: [row: CatalogModelRow, group: CatalogGroup] }>()
 
 const { t } = useI18n()
+const { pt } = usePortalI18n()
+const activeSection = ref('overview')
+function scrollToSection(section: string) {
+  activeSection.value = section
+  panelRef.value?.querySelector(`#catalog-section-${section}`)?.scrollIntoView({ block: 'start' })
+}
 const { copied, copyToClipboard } = useClipboard()
 const titleId = 'catalog-detail-title'
 
@@ -115,6 +131,7 @@ async function load() {
   controller = current
   const token = ++sequence
   loading.value = true
+  activeSection.value = 'overview'
   error.value = ''
   details.value = null
   try {
@@ -215,6 +232,18 @@ onBeforeUnmount(() => {
 </script>
 
 <style scoped>
+.detail-model-title { font: 400 24px/28px var(--pp-font-pixel); font-synthesis: none; }
+.catalog-detail-backdrop { background-color: rgba(44, 46, 51, 0.3); background-image: repeating-conic-gradient(rgba(44, 46, 51, 0.15) 0 25%, transparent 0 50%); background-size: 4px 4px; }
+.catalog-detail-panel > header { padding: 20px 24px; }
+.catalog-detail-panel > nav { padding: 0 24px; background: var(--pp-surface-2); }
+.catalog-detail-panel > nav > button { padding: 12px; font-size: 13px; }
+.catalog-detail-panel > nav > button { border-bottom: 3px solid transparent; }
+.catalog-detail-panel > nav > button[aria-pressed='true'] { border-bottom-color: var(--pp-ink); font-weight: 600; }
+.catalog-detail-panel > .overflow-y-auto { padding: 20px 24px; }
+.catalog-detail-panel :deep(h3) { margin-bottom: 12px; font-size: 14px; }
+@media (max-width: 639px) {
+  .catalog-detail-panel > header, .catalog-detail-panel > nav, .catalog-detail-panel > .overflow-y-auto { padding-inline: 16px; }
+}
 .drawer-enter-active,
 .drawer-leave-active {
   transition: opacity 0.15s ease;

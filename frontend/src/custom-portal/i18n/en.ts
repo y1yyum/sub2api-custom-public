@@ -1,6 +1,8 @@
 import type zh from './zh'
+import { refreshEn } from './refresh'
 
 const en: typeof zh = {
+  refresh: refreshEn,
   shell: {
     dockLabel: 'Main navigation',
     topbarLabel: 'Top bar',
@@ -105,7 +107,6 @@ const en: typeof zh = {
         loading: 'Loading…',
         empty: 'No usage in the selected range',
         error: 'Failed to load the trend',
-        retry: 'Retry',
         series: {
           input: 'Input',
           output: 'Output',
@@ -132,7 +133,6 @@ const en: typeof zh = {
         hint: 'Last 365 days, following the filters; select a day for its hourly detail',
         summary: '{requests} requests over {days} active days',
         error: 'Failed to load activity',
-        retry: 'Retry',
         gridLabel: 'Daily request heatmap',
         cellLabel: '{date}: {requests} requests',
         requests: 'Requests',
@@ -156,7 +156,7 @@ const en: typeof zh = {
       recordsLabel: 'Wallet records',
       history: 'Top-up history',
       historyEmpty: 'No top-ups yet.',
-      historyFailed: 'Could not load the top-up history. Refresh to try again.',
+      historyFailed: 'Could not load the top-up history',
       historyHint: 'Showing the latest {count} online top-ups and redeemed codes.',
       orderBalance: 'Online top-up',
       orderSubscription: 'Subscription purchase',
@@ -217,10 +217,6 @@ const en: typeof zh = {
       label: 'Platform overview',
       title: 'Connect models to apps',
       copy: 'Access AI services through {site} and manage keys, usage and costs in one place. Pick a model in the model plaza and follow the docs to connect your app.'
-    },
-    identity: {
-      label: 'Platform identity',
-      audience: 'For developers'
     },
     replay: 'Replay intro',
     pricing: {

@@ -1,14 +1,16 @@
 <template>
   <AppLayout>
     <div class="space-y-4" data-testid="portal-overview">
-      <header class="dash-rise relative z-20 flex flex-wrap items-start justify-between gap-3" :style="rise(0)">
-        <div class="min-w-0 space-y-1">
+      <header class="overview-header dash-rise relative z-20" :style="rise(0)">
+        <div class="overview-heading min-w-0">
           <h2 class="overview-title text-gray-900 dark:text-white">{{ pt('pages.overview.heading') }}</h2>
-          <p class="text-sm text-gray-500 dark:text-dark-400">{{ pt('pages.overview.welcome') }}</p>
-          <OverviewLiveStats ref="liveStats" class="pt-1" />
+          <p class="overview-description mt-2 text-sm text-gray-500 dark:text-dark-400">{{ pt('pages.overview.welcome') }}</p>
         </div>
+        <OverviewLiveStats ref="liveStats" @loaded="dashboardStats = $event" />
         <OverviewToolbar :refreshing="refreshing" @refresh="refreshAll" />
       </header>
+
+      <PortalFilterChips :items="filterChips" @remove="removeFilter" />
 
       <OverviewMetricCards class="dash-rise" :style="rise(1)" />
 
@@ -22,7 +24,7 @@
       <OverviewHeatmap class="dash-rise overview-deferred" :style="rise(3)" @drill="scrollToMainChart" />
 
       <div class="dash-rise overview-deferred grid grid-cols-1 gap-4 lg:grid-cols-3" :style="rise(4)">
-        <div class="lg:order-2 lg:col-span-1"><UserDashboardQuickActions /></div>
+        <div class="lg:order-2 lg:col-span-1"><UserDashboardQuickActions ref="quickActions" :stats="dashboardStats" /></div>
         <div class="lg:order-1 lg:col-span-2"><OverviewAnnouncements ref="announcements" /></div>
       </div>
     </div>
@@ -30,10 +32,11 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted, ref } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import { usePreferredReducedMotion } from '@vueuse/core'
 import AppLayout from '@/components/layout/AppLayout.vue'
-import UserDashboardQuickActions from '@/components/user/dashboard/UserDashboardQuickActions.vue'
+import UserDashboardQuickActions from '../components/overview/OverviewQuickActions.vue'
+import type { UserDashboardStats } from '@/api/usage'
 import { useAuthStore } from '@/stores/auth'
 import OverviewAnnouncements from '../components/overview/OverviewAnnouncements.vue'
 import OverviewHeatmap from '../components/overview/OverviewHeatmap.vue'
@@ -44,12 +47,18 @@ import OverviewTopModels from '../components/overview/OverviewTopModels.vue'
 import OverviewUsageChart from '../components/overview/OverviewUsageChart.vue'
 import { usePortalI18n } from '../i18n'
 import { provideOverviewState } from '../overview/usageChartState'
+import type { OverviewFilters } from '../overview/usageChartState'
+import PortalFilterChips from '../components/common/PortalFilterChips.vue'
 
 const { pt } = usePortalI18n()
 const authStore = useAuthStore()
 const state = provideOverviewState()
+const dashboardStats = ref<UserDashboardStats | null>(null)
+const filterChips = computed(() => Object.entries(state.filters.value).map(([key, value]) => ({ key, label: `${pt(`pages.overview.toolbar.${{ apiKeyId: 'apiKey', groupId: 'group', requestType: 'requestType', model: 'model' }[key]}`)}: ${value}` })))
+function removeFilter(key: string) { state.setFilters({ [key as keyof OverviewFilters]: undefined }) }
 const reducedMotion = usePreferredReducedMotion()
 
+const quickActions = ref<InstanceType<typeof UserDashboardQuickActions> | null>(null)
 const liveStats = ref<InstanceType<typeof OverviewLiveStats> | null>(null)
 const announcements = ref<InstanceType<typeof OverviewAnnouncements> | null>(null)
 const mainChart = ref<HTMLElement | null>(null)
@@ -73,7 +82,7 @@ async function refreshUser() {
 async function refreshAll() {
   refreshing.value = true
   try {
-    await Promise.allSettled([refreshUser(), state.refresh(), liveStats.value?.reload(), announcements.value?.reload()])
+    await Promise.allSettled([refreshUser(), state.refresh(), liveStats.value?.reload(), announcements.value?.reload(), quickActions.value?.reload()])
   } finally {
     refreshing.value = false
   }
@@ -89,19 +98,40 @@ onMounted(() => {
 /* Pixel title on the 12px grid, underlined by the square-spiral band. */
 .overview-title {
   width: fit-content;
-  padding-bottom: 12px;
-  background: var(--pp-huiwen) left bottom / 8px 8px repeat-x;
   font-family: var(--pp-font-pixel);
   font-size: 24px;
   font-synthesis: none;
   font-weight: 400;
-  line-height: 1;
+  line-height: 28px;
 }
-
-@media (min-width: 640px) {
-  .overview-title {
-    font-size: 36px;
-  }
+.overview-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 16px;
+  padding-bottom: 4px;
+}
+.overview-description {
+  padding-bottom: 20px;
+  position: relative;
+}
+.overview-description::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 96px;
+  height: 8px;
+  background: var(--pp-huiwen) left bottom / 8px 8px repeat-x;
+}
+.overview-header > :last-child { margin-left: auto; }
+@media (min-width: 1280px) {
+  .overview-header { column-gap: 24px; }
+  .overview-heading { max-width: 255px; }
+  .overview-header > :last-child { max-width: 460px; }
+}
+@media (max-width: 767px) {
+  .overview-header > :last-child { margin-left: 0; width: 100%; }
 }
 
 .dash-rise {

@@ -76,7 +76,7 @@ const openId = ref<string | null>(null)
 const dockRef = ref<HTMLElement | null>(null)
 
 const itemClass =
-  'flex min-h-[44px] min-w-[3.25rem] flex-col items-center justify-center gap-0.5 rounded-xl px-2 py-1.5 text-[11px] font-medium transition-colors sm:min-h-[48px] sm:min-w-[4rem] sm:px-3'
+  'flex min-h-[52px] min-w-[3.25rem] flex-col items-center justify-center gap-1 rounded-xl px-2 py-1.5 text-[11px] font-medium transition-colors sm:min-h-[56px] sm:min-w-[4rem] sm:px-3'
 const activeClass = 'portal-dock-active bg-primary-500 text-gray-900 dark:bg-primary-400 dark:text-dark-900'
 const idleClass = 'text-gray-600 hover:bg-gray-100 hover:text-gray-900 dark:text-dark-300 dark:hover:bg-dark-800 dark:hover:text-white'
 

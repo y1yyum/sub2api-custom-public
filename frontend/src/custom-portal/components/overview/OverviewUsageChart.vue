@@ -7,11 +7,12 @@
     :aria-busy="state.loading.value"
     data-testid="overview-usage-chart"
   >
-    <div class="mb-4 flex min-h-7 flex-wrap items-center justify-between gap-2">
+    <div class="chart-heading mb-4 flex min-h-7 flex-wrap items-center justify-between gap-2">
       <div class="flex items-baseline gap-2">
         <h2 class="text-sm font-semibold text-gray-900 dark:text-white">
           {{ pt('pages.overview.chart.title', { metric: pt(`pages.overview.metrics.${metric}`) }) }}
         </h2>
+        <span v-if="summaryText" class="hidden text-xs text-gray-500 dark:text-dark-400 lg:inline" data-testid="overview-chart-summary">{{ summaryText }}</span>
         <span class="text-xs text-gray-500 dark:text-dark-400" data-testid="overview-chart-granularity">
           {{ pt(`pages.overview.chart.granularity.${state.range.value.granularity}`) }}
         </span>
@@ -64,37 +65,37 @@
           {{ pt('pages.overview.chart.previous') }}
         </button>
       </div>
+      <button v-if="metric === 'tokens'" type="button" class="legend-chip" :aria-pressed="showPrevious" data-testid="overview-chart-previous-toggle" @click="showPrevious = !showPrevious">{{ pt('pages.overview.chart.previous') }}</button>
     </div>
 
-    <div class="relative h-64 sm:h-80">
-      <div
-        v-if="trendFailed"
-        class="flex h-full flex-col items-center justify-center gap-3 text-sm text-gray-500 dark:text-dark-400"
-        role="alert"
-        data-testid="overview-chart-error"
-      >
-        <span>{{ pt('pages.overview.chart.error') }}</span>
-        <button type="button" class="btn btn-secondary btn-sm" :disabled="state.loading.value" @click="state.refresh()">
-          {{ pt('pages.overview.chart.retry') }}
-        </button>
+    <div class="relative h-64 sm:h-[300px]">
+      <div v-if="trendFailed" class="flex h-full items-center justify-center">
+        <PortalState
+          kind="error"
+          class="w-full max-w-md"
+          :title="pt('pages.overview.chart.error')"
+          :last-success="state.lastSuccessAt.value ? new Date(state.lastSuccessAt.value).toLocaleString() : undefined"
+          data-testid="overview-chart-error"
+          @retry="state.refresh()"
+        />
       </div>
       <div
         v-else-if="state.loading.value && !hasBuckets"
         class="flex h-full items-center justify-center"
         data-testid="overview-chart-loading"
       >
-        <LoadingSpinner />
-        <span class="sr-only">{{ pt('pages.overview.chart.loading') }}</span>
+        <PortalState kind="loading" class="h-full w-full" />
       </div>
       <div
         v-else-if="isEmpty"
         class="flex h-full items-center justify-center text-sm text-gray-500 dark:text-dark-400"
         data-testid="overview-chart-empty"
       >
-        {{ pt('pages.overview.chart.empty') }}
+        <PortalState kind="empty" :title="pt('pages.overview.chart.empty')" guide />
       </div>
       <template v-else>
-        <Line :key="metric === 'tokens' ? 'tokens' : 'compare'" :data="chartData" :options="chartOptions" />
+        <Chart v-if="metric === 'tokens'" type="bar" :data="tokenChartData" :options="tokenChartOptions" />
+        <Line v-else :data="chartData" :options="chartOptions" />
         <div
           v-if="state.loading.value"
           class="absolute inset-0 flex items-center justify-center bg-white/40 dark:bg-dark-900/40"
@@ -102,7 +103,6 @@
         >
           <LoadingSpinner />
         </div>
-        <p v-if="summaryText" class="sr-only" data-testid="overview-chart-summary">{{ summaryText }}</p>
       </template>
     </div>
   </section>
@@ -113,6 +113,9 @@ import { computed, ref } from 'vue'
 import { useMutationObserver, usePreferredReducedMotion } from '@vueuse/core'
 import {
   CategoryScale,
+  BarElement,
+  BarController,
+  LineController,
   Chart as ChartJS,
   Filler,
   Legend,
@@ -126,15 +129,16 @@ import {
   type ScriptableLineSegmentContext,
   type TooltipItem
 } from 'chart.js'
-import { Line } from 'vue-chartjs'
+import { Chart, Line } from 'vue-chartjs'
 import LoadingSpinner from '@/components/common/LoadingSpinner.vue'
+import PortalState from '../common/PortalState.vue'
 import type { TrendDataPoint } from '@/types'
 import { usePortalI18n } from '../../i18n'
 import { injectOverviewState } from '../../overview/usageChartState'
 import { metricSeries, peakAndMean, todayKey, type Granularity, type OverviewMetric } from '../../overview/usageChartData'
 import { COMPARISON_LINE_COLOR, metricTone, TOKEN_SERIES, TOKEN_SERIES_COLORS, type TokenSeries } from '../../overview/metricTones'
 
-ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend, Filler)
+ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, BarElement, BarController, LineController, Title, Tooltip, Legend, Filler)
 
 withDefaults(defineProps<{ id?: string }>(), { id: 'overview-usage-chart' })
 
@@ -231,6 +235,56 @@ const segment = {
 const markers = computed(() => (metric.value === 'tokens' ? null : peakAndMean(currentSeries.value)))
 
 const labels = computed(() => state.current.value.map((point) => formatBucketLabel(point.date, state.range.value.granularity)))
+
+const tokenChartData = computed<ChartData<'bar' | 'line', (number | null)[], string>>(() => ({
+  labels: labels.value,
+  datasets: [
+    ...TOKEN_SERIES.map((series) => ({
+      type: 'bar' as const,
+      label: pt(`pages.overview.chart.series.${series}`),
+      data: state.current.value.map((point) => point[TOKEN_FIELDS[series]]),
+      backgroundColor: TOKEN_SERIES_COLORS[series],
+      borderColor: TOKEN_SERIES_COLORS[series],
+      stack: 'tokens',
+      order: 1,
+      hidden: hiddenSeries.value.has(series)
+    })),
+    {
+      type: 'line' as const,
+      label: pt('pages.overview.chart.previous'),
+      data: state.current.value.map((_, index) => state.failedParts.value.includes('previous') ? null : state.previous.value[index]?.total_tokens ?? null),
+      borderColor: COMPARISON_LINE_COLOR,
+      borderDash: [5, 5],
+      borderWidth: 2,
+      pointRadius: 0,
+      stepped: true,
+      stack: 'previous',
+      order: 0,
+      hidden: !showPrevious.value
+    }
+  ]
+}))
+
+const tokenChartOptions = computed<ChartOptions<'bar' | 'line'>>(() => ({
+  responsive: true,
+  maintainAspectRatio: false,
+  animation: reducedMotion.value === 'reduce' ? false : undefined,
+  interaction: { intersect: false, mode: 'index' },
+  plugins: {
+    legend: { display: false },
+    tooltip: {
+      callbacks: {
+        title: (items) => state.current.value[items[0]?.dataIndex]?.date ?? '',
+        label: (item) => `${item.dataset.label}: ${compact(Number(item.raw))}`,
+        footer: (items) => `${pt('refresh.total')}: ${compact(items.filter((item) => item.dataset.type === 'bar').reduce((sum, item) => sum + Number(item.raw), 0))}`
+      }
+    }
+  },
+  scales: {
+    x: { stacked: true, grid: { display: false }, ticks: { color: axisColors.value.text, maxRotation: 0 } },
+    y: { stacked: true, beginAtZero: true, grid: { color: axisColors.value.grid }, ticks: { color: axisColors.value.text, callback: (value) => compact(Number(value)) } }
+  }
+}))
 
 const chartData = computed<ChartData<'line', (number | null)[], string>>(() => {
   if (metric.value === 'tokens') {
@@ -347,6 +401,11 @@ const summaryText = computed(() => {
 .legend-chip {
   @apply inline-flex items-center gap-1.5 rounded-none border px-2.5 py-1 text-xs font-medium transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 motion-reduce:transition-none;
 }
+.chart-heading { display: grid; grid-template-columns: minmax(0, 1fr) auto; row-gap: 16px; }
+.chart-heading > :first-child { flex-wrap: wrap; grid-column: 1 / -1; padding-bottom: 16px; border-bottom: 1px solid var(--pp-divider); }
+.chart-heading > [data-testid='overview-chart-legend'] { justify-content: flex-start; }
+.legend-chip-on, .legend-chip-off { border: 0; padding-inline: 0; }
+.chart-heading > button { padding-left: 8px; }
 
 .legend-chip-on {
   @apply border-gray-200 text-gray-700 dark:border-dark-600 dark:text-dark-200;

@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"compress/gzip"
 	"compress/zlib"
+	"context"
 	"errors"
 	"fmt"
 	"io"
@@ -164,7 +165,7 @@ func (r customBoundaryErrorReader) Read([]byte) (int, error) { return 0, r.err }
 
 func TestCustomCompressedBodyReadErrorsRemainDiscoverable(t *testing.T) {
 	want := errors.New("synthetic reader failure")
-	if _, err := readDecompressedRequestBody(customBoundaryErrorReader{err: want}); !errors.Is(err, want) {
+	if _, err := readDecompressedRequestBodyWithBudget(context.Background(), customBoundaryErrorReader{err: want}, maxDecompressedBodySize); !errors.Is(err, want) {
 		t.Fatalf("decoded reader error lost: %v", err)
 	}
 	req := customBoundaryRequest(nil, "gzip")

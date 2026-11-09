@@ -4,11 +4,13 @@ import (
 	"context"
 	"crypto/sha256"
 	"encoding/hex"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"math"
 	"strings"
 
+	"github.com/Wei-Shaw/sub2api/internal/custombridge"
 	"github.com/shopspring/decimal"
 )
 
@@ -21,6 +23,8 @@ type UsageBillingCommand struct {
 	APIKeyID           int64
 	RequestFingerprint string
 	RequestPayloadHash string
+	BridgeRequest      *custombridge.Request
+	BridgeUsage        json.RawMessage
 
 	UserID              int64
 	AccountID           int64
@@ -169,6 +173,7 @@ type AccountQuotaState struct {
 
 type UsageBillingApplyResult struct {
 	Applied              bool
+	BridgeReceipt        *custombridge.Receipt
 	APIKeyQuotaExhausted bool
 	NewBalance           *float64           // post-deduction balance (nil = no balance deduction)
 	BalanceOverdrafted   bool               // true when the sufficient-balance guard missed and debt was still recorded

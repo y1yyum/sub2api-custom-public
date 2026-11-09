@@ -4,9 +4,11 @@ import { reactive } from 'vue'
 import { enableAutoUnmount, flushPromises, mount } from '@vue/test-utils'
 import { createI18n } from 'vue-i18n'
 import type { ModelPlazaGroup, ModelPlazaResponse, PlazaModel } from '@/api/modelPlaza'
+import type { CatalogStripConfig } from '@/api/channelStatusCatalog'
 import { summarizeHomepageModels, type HomepageModel } from '../api/homepage'
-import { createHash } from 'node:crypto'
 import postcss from 'postcss'
+import { readFileSync } from 'node:fs'
+import { resolve as resolvePath } from 'node:path'
 import { contrastRatio, declarationsIn, scopedStyles } from './contrast'
 import homeSource from '../components/rhine/RhineHomePage.vue?raw'
 import { PIXEL_LOGO_DATA_URI } from '../theme/pixelLogo'
@@ -35,6 +37,9 @@ vi.mock('@/views/HomeView.vue', async () => {
   const { h } = await import('vue')
   return { __esModule: true, default: { name: 'UpstreamHomeStub', render: () => h('div', { 'data-testid': 'upstream-home' }) } }
 })
+
+const getCatalog = vi.fn()
+vi.mock('@/api/channelStatusCatalog', () => ({ getCatalog: (range: string, signal?: AbortSignal) => getCatalog(range, signal) }))
 
 const RouterLinkStub = { props: ['to'], template: '<a :href="to"><slot /></a>' }
 
@@ -106,6 +111,7 @@ function setReducedMotion(reduce: boolean) {
 }
 
 beforeEach(() => {
+  getCatalog.mockReset()
   fetchHomepageModels.mockReset()
   fetchHomepageModels.mockReturnValue(new Promise(() => {}))
   Object.assign(appStore, {
@@ -189,9 +195,15 @@ describe('summarizeHomepageModels', () => {
 })
 
 describe('RhineModelPricing', () => {
-  async function mountPricing(access = 'open') {
+  const strip: CatalogStripConfig = {
+    mode: 'time', call_window: 200, blocks: 40, min_calls: 3,
+    availability: { green: 0.99, yellow: 0.95 },
+    cache: { high: 0.5, mid: 0.2, low: 0.01 }
+  }
+
+  async function mountPricing(access = 'open', status = 'guest') {
     const { default: RhineModelPricing } = await import('../components/rhine/RhineModelPricing.vue')
-    return mountWith(RhineModelPricing, 'zh', { access })
+    return mountWith(RhineModelPricing, 'zh', { access, status })
   }
 
   it('waits for the public settings and never requests a plaza the visitor cannot read', async () => {
@@ -238,8 +250,8 @@ describe('RhineModelPricing', () => {
 
   it('renders names as text and prices per million tokens or per unit', async () => {
     const rows: HomepageModel[] = [
-      { id: 'anthropic:<b>A</b>', name: '<b>A</b>', platform: 'anthropic', price: { kind: 'token', input: 3e-6, output: null } },
-      { id: 'openai:img', name: 'img', platform: 'openai', price: { kind: 'image', unit: 0.04 } }
+      { id: 'anthropic:<b>A</b>', groupId: 1, name: '<b>A</b>', platform: 'anthropic', price: { kind: 'token', input: 3e-6, output: null } },
+      { id: 'openai:img', groupId: 2, name: 'img', platform: 'openai', price: { kind: 'image', unit: 0.04 } }
     ]
     fetchHomepageModels.mockResolvedValue(rows)
     const wrapper = await mountPricing()
@@ -248,8 +260,89 @@ describe('RhineModelPricing', () => {
     const [token, image] = wrapper.findAll('[data-testid="rhine-model-row"]')
     expect(token.find('strong').text()).toBe('<b>A</b>')
     expect(token.find('b').exists()).toBe(false)
-    expect(token.findAll('.model-metric').map((cell) => cell.text())).toEqual(['$3.00', '-'])
+    expect(token.findAll('.model-metric').map((cell) => cell.text())).toEqual(['$3.00', '-', '-', '-'])
     expect(image.find('.model-unit').text()).toBe('$0.04 / 张')
+    expect(getCatalog).not.toHaveBeenCalled()
+    expect(wrapper.get('[data-testid="rhine-model-status-note"]').text()).toBe('登录后显示可用率与缓存命中率')
+  })
+
+  it.each([
+    ['time', '可用率与缓存命中率 · 近 24 小时'],
+    ['calls', '可用率与缓存命中率 · 最近 200 次调用']
+  ] as const)('labels the priced group metrics with the %s window', async (mode, note) => {
+    fetchHomepageModels.mockResolvedValue([
+      { id: 'anthropic:a', groupId: 1, name: 'a', platform: 'anthropic', price: { kind: 'token', input: 3e-6, output: 15e-6 } },
+      { id: 'anthropic:b', groupId: 1, name: 'b', platform: 'anthropic', price: { kind: 'token', input: 1e-6, output: 5e-6 } }
+    ])
+    const bucket = (health: string, cache_rate: number | null) => ({ health, cache_rate })
+    getCatalog.mockResolvedValue({
+      strip: { ...strip, mode },
+      groups: [
+        { id: 2, models: [{ name: 'a', platform: 'anthropic', health: 'critical', success_rate: 0.1, buckets: [bucket('critical', 0.9)] }] },
+        {
+          id: 1,
+          models: [
+            { name: 'a', platform: 'anthropic', health: 'warning', success_rate: 0.95, buckets: [bucket('warning', 0.4), bucket('healthy', 0.2), bucket('unknown', 1)] },
+            { name: 'b', platform: 'anthropic', health: 'unknown', success_rate: 0.5, buckets: [bucket('unknown', null)] }
+          ]
+        }
+      ]
+    })
+    const wrapper = await mountPricing('open', 'on')
+    await flushPromises()
+
+    expect(getCatalog).toHaveBeenCalledWith('24h', expect.any(AbortSignal))
+    const [a, b] = wrapper.findAll('[data-testid="rhine-model-row"]')
+    expect(a.get('[data-testid="rhine-model-availability"]').text()).toBe('95.0%')
+    expect(a.get('[data-testid="rhine-model-cache"]').text()).toBe('30.0%')
+    expect(b.get('[data-testid="rhine-model-availability"]').text()).toBe('-')
+    expect(b.get('[data-testid="rhine-model-cache"]').text()).toBe('-')
+    expect(wrapper.get('[data-testid="rhine-model-status-note"]').text()).toBe(note)
+  })
+
+  it.each(['network', 'status_error_code'])('keeps prices and reports the %s failure', async (failure) => {
+    fetchHomepageModels.mockResolvedValue([
+      { id: 'anthropic:a', groupId: 1, name: 'a', platform: 'anthropic', price: { kind: 'token', input: 3e-6, output: 15e-6 } }
+    ])
+    if (failure === 'network') getCatalog.mockRejectedValue(new Error('down'))
+    else getCatalog.mockResolvedValue({ groups: [], strip, status_error_code: 'unavailable' })
+    const wrapper = await mountPricing('open', 'on')
+    await flushPromises()
+
+    expect(wrapper.get('[data-testid="rhine-model-pricing"]').attributes('data-state')).toBe('ready')
+    expect(wrapper.get('[data-testid="rhine-model-availability"]').text()).toBe('-')
+    expect(wrapper.get('[data-testid="rhine-model-status-note"]').text()).toBe('可用率读取失败，可点击刷新重试')
+  })
+
+  it('keeps same-name model metrics separate across platforms in one group', async () => {
+    fetchHomepageModels.mockResolvedValue(['openai', 'anthropic'].map((platform) => ({
+      id: `${platform}:shared-model`, groupId: 7, name: 'shared-model', platform,
+      price: { kind: 'token', input: 1e-6, output: 5e-6 }
+    })))
+    getCatalog.mockResolvedValue({
+      strip,
+      groups: [{ id: 7, models: [
+        { name: 'shared-model', platform: 'openai', health: 'healthy', success_rate: 1, buckets: [{ health: 'healthy', cache_rate: 0.8 }] },
+        { name: 'shared-model', platform: 'anthropic', health: 'critical', success_rate: 0.1, buckets: [{ health: 'critical', cache_rate: 0.2 }] }
+      ] }]
+    })
+    const wrapper = await mountPricing('open', 'on')
+    await flushPromises()
+
+    expect(wrapper.findAll('[data-testid="rhine-model-availability"]').map((cell) => cell.text())).toEqual(['100.0%', '10.0%'])
+    expect(wrapper.findAll('[data-testid="rhine-model-availability"]').map((cell) => cell.attributes('data-health'))).toEqual(['healthy', 'critical'])
+    expect(wrapper.findAll('[data-testid="rhine-model-cache"]').map((cell) => cell.text())).toEqual(['80.0%', '20.0%'])
+  })
+
+  it('marks availability with the catalog health and stops reading status when prices fail', async () => {
+    fetchHomepageModels.mockRejectedValue(new Error('down'))
+    getCatalog.mockReturnValue(new Promise(() => {}))
+    const wrapper = await mountPricing('open', 'on')
+    await flushPromises()
+
+    expect(wrapper.get('[data-testid="rhine-model-pricing"]').attributes('data-state')).toBe('unavailable')
+    expect(wrapper.get('[data-testid="rhine-model-status-note"]').text()).toBe('美元 / 百万 Token')
+    expect((getCatalog.mock.calls[0][1] as AbortSignal).aborted).toBe(true)
   })
 
   it('refreshes on demand and aborts the request on unmount', async () => {
@@ -288,19 +381,18 @@ describe('RhineHomePage', () => {
     appStore.cachedPublicSettings = { model_plaza_enabled: false }
     const wrapper = await mountPage()
     expect(fetchHomepageModels).not.toHaveBeenCalled()
-    expect(wrapper.find('[data-testid="rhine-nav-models"]').exists()).toBe(false)
+    expect(wrapper.find('.section-nav').exists()).toBe(false)
   })
 
   it('sends visitors to login and signed-in users, admins included, to the user console', async () => {
     const wrapper = await mountPage()
-    const start = () => wrapper.get('[data-testid="rhine-nav-start"]')
+    const start = () => wrapper.get('[data-testid="rhine-console"]')
     expect(start().attributes('href')).toBe('/login?redirect=/dashboard')
-    expect(start().text()).toContain('立即使用')
+    expect(start().text()).toContain('进入控制台')
 
     authStore.isAuthenticated = true
     await flushPromises()
     expect(start().attributes('href')).toBe('/dashboard')
-    expect(start().text()).toContain('进入控制台')
 
     authStore.isAdmin = true
     await flushPromises()
@@ -314,15 +406,47 @@ describe('RhineHomePage', () => {
   it('uses the public site name and only links a sanitized doc_url', async () => {
     appStore.cachedPublicSettings = { site_name: 'ai2e.cc', doc_url: 'javascript:alert(1)' }
     const wrapper = await mountPage('en')
-    expect(wrapper.find('[data-testid="rhine-nav-docs"]').exists()).toBe(false)
+    const docs = () => wrapper.findAll('.home-nav-links a').filter((link) => link.attributes('target') === '_blank')
+    expect(docs()).toHaveLength(0)
     expect(wrapper.text()).toContain('AI2E.CC / 01')
     expect(wrapper.text()).toContain('Access AI services through ai2e.cc')
 
     appStore.cachedPublicSettings = { site_name: 'ai2e.cc', doc_url: 'https://docs.example.com/start' }
     await flushPromises()
-    const docs = wrapper.get('[data-testid="rhine-nav-docs"]')
-    expect(docs.attributes('href')).toBe('https://docs.example.com/start')
-    expect(docs.attributes('rel')).toBe('noopener noreferrer')
+    expect(docs()).toHaveLength(1)
+    expect(docs()[0].attributes('href')).toBe('https://docs.example.com/start')
+    expect(docs()[0].attributes('rel')).toBe('noopener noreferrer')
+  })
+
+  it('drops the pricing links once the unified status page replaces the pricing view', async () => {
+    const pricingLinks = (wrapper: Awaited<ReturnType<typeof mountPage>>) =>
+      wrapper.findAll('a').filter((link) => link.attributes('href')?.includes('view=pricing'))
+    appStore.cachedPublicSettings = { model_plaza_enabled: true }
+    const wrapper = await mountPage()
+    expect(pricingLinks(wrapper)).toHaveLength(2)
+
+    appStore.cachedPublicSettings = { model_plaza_enabled: true, channel_monitor_enabled: true, channel_monitor_mode: 'v2', unified_model_channel_status_enabled: true }
+    await flushPromises()
+    expect(pricingLinks(wrapper)).toHaveLength(0)
+  })
+
+  it('reads the channel catalog only for signed-in users with the unified status page on', async () => {
+    const unified = { model_plaza_enabled: true, channel_monitor_enabled: true, channel_monitor_mode: 'v2', unified_model_channel_status_enabled: true }
+    fetchHomepageModels.mockResolvedValue([])
+    getCatalog.mockResolvedValue({ groups: [] })
+    appStore.cachedPublicSettings = unified
+    await mountPage()
+    await flushPromises()
+    expect(getCatalog).not.toHaveBeenCalled()
+
+    authStore.isAuthenticated = true
+    appStore.cachedPublicSettings = { ...unified, unified_model_channel_status_enabled: false }
+    await flushPromises()
+    expect(getCatalog).not.toHaveBeenCalled()
+
+    appStore.cachedPublicSettings = unified
+    await flushPromises()
+    expect(getCatalog).toHaveBeenCalledTimes(1)
   })
 
   it('shows a signed-out visitor the base URL and copies it or a curl example', async () => {
@@ -468,14 +592,15 @@ describe('Rhine homepage styles', () => {
     }
   })
 
-  it('keeps the DOM of the landing page identical to the pre-restyle templates', () => {
-    // sha256 of each <template> block at 9ef2bea2e^; the pixel restyle must not touch markup.
-    const templateHash = (source: string) =>
-      createHash('sha256')
-        .update(source.replace(/\r\n/g, '\n').match(/^<template>[\s\S]*?^<\/template>$/m)![0])
-        .digest('hex')
-    expect(templateHash(homeSource)).toBe('fecbbe2e3031aec87c5fbff72f281b93f0c3a730b0cf60e5ca80d86364f56545')
-    expect(templateHash(pricingSource)).toBe('ffd9a8f10fc5a8e1ae466f32585f7c378e00f8b5e6d50b6edf00a2b12e74bc87')
+  it('adds navigation, a primary key action and three actionable setup steps', async () => {
+    const { default: Home } = await import('../components/rhine/RhineHomePage.vue')
+    const wrapper = mountWith(Home)
+    expect(wrapper.get('[data-testid="home-login"]').attributes('href')).toBe('/login')
+    expect(wrapper.get('[data-testid="home-get-key"]').attributes('href')).toContain('redirect=/keys')
+    expect(wrapper.findAll('.home-steps li')).toHaveLength(3)
+    expect(wrapper.find('.section-nav').exists()).toBe(false)
+    expect(wrapper.find('.home-endpoints').exists()).toBe(false)
+    expect(wrapper.get('[data-testid="rhine-console"]').text()).toContain('进入控制台')
   })
 
   it('sets pixel-font text only at whole multiples of the 12px grid', () => {
@@ -493,7 +618,7 @@ describe('Rhine homepage styles', () => {
       })
     }
     expect([...pixelSelectors]).toEqual(
-      expect.arrayContaining(['.brand-name', '.greeting h1', '.quick-url', '.quick-actions button', '.nav-name', '.information-title h2', '.model-metric'])
+      expect.arrayContaining(['.brand-name', '.greeting h1', '.quick-url', '.nav-name', '.information-title h2', '.model-metric'])
     )
     const blurry = [...pixelSelectors].flatMap((selector) =>
       (sizes.get(selector) ?? []).filter((size) => !/^(12|24|36|48)px$/.test(size)).map((size) => `${selector}: ${size}`)
@@ -501,36 +626,45 @@ describe('Rhine homepage styles', () => {
     expect(blurry).toEqual([])
   })
 
+  it('keeps the quick-start title, endpoint and secondary labels readable in both themes', () => {
+    const home = scopedStyles(homeSource)
+    const theme = readFileSync(resolvePath(__dirname, '../theme/rhine-theme.css'), 'utf8')
+    for (const mode of [':where(html.theme-rhine)', ':where(html.theme-rhine).dark']) {
+      const tokens = declarationsIn(theme, mode)
+      const resolve = (value: string) => value.replace(/var\((--[\w-]+)\)/g, (_, name: string) => tokens[name])
+      for (const [selector, background] of [
+        ['.rhine-home .greeting-label', 'var(--pp-ink)'],
+        ['.rhine-home .quick-url', 'var(--pp-surface-2)'],
+        ['.rhine-home .nav-number', 'var(--pp-surface)'],
+        ['.rhine-home .home-console .nav-name', 'var(--pp-tone-sage)'],
+        ['.rhine-home .home-console .nav-number', 'var(--pp-tone-sage)'],
+        ['.rhine-home .rh-footer', 'var(--pp-canvas)']
+      ]) {
+        expect(contrastRatio(resolve(declarationsIn(home, selector).color), resolve(background)), `${mode}: ${selector}`).toBeGreaterThanOrEqual(4.5)
+      }
+    }
+  })
+
   describe('text contrast', () => {
     const home = scopedStyles(homeSource)
     const pricing = scopedStyles(pricingSource)
-    const tokens = declarationsIn(home, '.rhine-home')
+    const tokens = { ...declarationsIn(readFileSync(resolvePath(__dirname, '../theme/rhine-theme.css'), 'utf8'), ':where(html.theme-rhine)'), ...declarationsIn(home, '.rhine-home') }
     const resolve = (value: string) => value.replace(/var\((--[\w-]+)\)/g, (_, name: string) => tokens[name])
     const paper = tokens['--rh-paper']
     const surface = '#ffffff'
 
     type Sample = [css: string, selector: string, background: string, foreground?: string]
     const samples: Sample[] = [
-      [home, '.side-label', paper],
       [home, '.brand-caption', paper],
       [home, '.quick-label', surface],
-      [home, '.quick-actions button', 'self'],
-      [home, '.quick-actions button:hover', 'self'],
       [home, '.rhine-home :deep(::selection)', 'self'],
       [home, '.greeting p', paper],
       [home, '.panel-topline', surface],
       [home, '.nav-number', surface],
       [home, '.nav-number', '#f4f2ea'],
-      [home, '.nav-item.primary-action', 'self'],
-      [home, '.primary-action .nav-number', 'var(--rh-accent)'],
-      [home, '.primary-action .nav-number', 'var(--rh-accent-hover)'],
-      [home, '.nav-item.primary-action:hover', 'self', declarationsIn(home, '.nav-item.primary-action').color],
       [home, '.information-tab', 'self'],
       [home, '.information-title > span', 'var(--rh-ink)'],
       [home, '.information-copy p', '#faf9f5'],
-      [home, '.panel-index', surface],
-      [home, '.identity-label', paper],
-      [home, '.identity-bottom', paper],
       [home, '.rh-footer', paper],
       [home, '.footer-copy span + span', paper],
       [pricing, '.model-columns', surface],
@@ -554,7 +688,7 @@ describe('Rhine homepage styles', () => {
   describe('pixel cues', () => {
     const home = scopedStyles(homeSource)
     const pricing = scopedStyles(pricingSource)
-    const tokens = declarationsIn(home, '.rhine-home')
+    const tokens = { ...declarationsIn(readFileSync(resolvePath(__dirname, '../theme/rhine-theme.css'), 'utf8'), ':where(html.theme-rhine)'), ...declarationsIn(home, '.rhine-home') }
 
     const outsideMedia = (rule: postcss.Rule) => rule.parent?.type !== 'atrule'
     /** Property names of every rule outside @media listing `selector`, in source order. */
@@ -585,8 +719,7 @@ describe('Rhine homepage styles', () => {
     ]
     const doubled: [css: string, selector: string][] = [
       [home, '.quick-url'],
-      [home, '.quick-actions button'],
-      [home, '.nav-item.primary-action'],
+      [home, '.home-console'],
       [home, '.replay'],
       [pricing, '.status-card-bottom button']
     ]
@@ -641,10 +774,9 @@ describe('Rhine homepage styles', () => {
           rule.walkDecls('transform', (decl) => expect(decl.value, rule.selector).toBe('none'))
         })
       }
-      expect(declarationsIn(home, '.rhine-home.entered .display-panel:hover')['border-image-source']).toBe('none')
+      expect(declarationsIn(home, '.rhine-home.entered .display-panel:hover')['border-image-source']).toBe('var(--pp-frame)')
       for (const [css, selector] of [
-        [home, '.quick-actions button:active'],
-        [home, '.nav-item.primary-action:active'],
+        [home, '.home-console:active'],
         [home, '.replay:active'],
         [pricing, '.status-card-bottom button:active:not(:disabled)']
       ]) {
@@ -664,9 +796,9 @@ describe('Rhine homepage styles', () => {
       expect(declarationsIn(home, '.replay span').transition).toBe('transform 0.6s steps(4)')
     })
 
-    it('shows the pixel logo at 64px beside the wordmark and 32px in the identity strip', () => {
+    it('shows the pixel logo at 64px beside the wordmark', () => {
       expect(tokens['--rh-logo']).toBe(`url("${PIXEL_LOGO_DATA_URI}")`)
-      for (const [selector, size] of [['.brand-name::before', '64px'], ['.identity-name i', '32px']]) {
+      for (const [selector, size] of [['.brand-name::before', '64px']]) {
         const own = declarationsIn(home, selector)
         expect(own.background, selector).toBe(`var(--rh-logo) center / ${size} ${size} no-repeat`)
         expect([own.width, own.height], selector).toEqual([size, size])
@@ -695,7 +827,7 @@ describe('Rhine homepage styles', () => {
       { css: pricing, selector: '.model-columns', under: '#ffffff', ink: declarationsIn(pricing, '.model-columns').color }
     ])('keeps $selector text readable on the darkest dither cell', ({ css, selector, under, ink }) => {
       const cell = blend(declarationsIn(css, selector)['background-image'], under)
-      expect(contrastRatio(ink, cell), `${ink} on ${cell}`).toBeGreaterThanOrEqual(4.5)
+      expect(contrastRatio(ink === 'var(--pp-ink)' ? tokens['--pp-ink'] : ink, cell), `${ink} on ${cell}`).toBeGreaterThanOrEqual(4.5)
     })
 
     it('stops every animation and transition when reduced motion is preferred', () => {

@@ -28,6 +28,31 @@ export default {
     question: '题目',
     expectedAnswer: '答案',
     upstreamModel: '模型',
+    page: {
+      title: '智力检测',
+      description: '集中管理各账号的智力题、字符检测计划与智力题库',
+      tabs: {
+        plans: '检测计划',
+        questions: '题库'
+      },
+      allKinds: '全部类型',
+      search: '搜索账号或模型',
+      account: '账号',
+      recent: '最近结果',
+      passed: '答对 {passed}/{total}',
+      succeeded: '成功 {passed}/{total}',
+      noRuns: '暂无结果',
+      empty: '暂无智力题或字符检测计划',
+      pickAccount: '选择账号',
+      pickAccountHint: '计划按账号执行，下一步在该账号的定时测试中填写',
+      next: '下一步',
+      outcomes: {
+        pass: '答对',
+        fail: '答错',
+        success: '成功',
+        error: '请求失败'
+      }
+    },
     bank: {
       title: '智力题库',
       add: '新建题目',

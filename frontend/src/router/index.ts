@@ -550,6 +550,18 @@ const routes: RouteRecordRaw[] = [
     }
   },
   {
+    path: '/admin/intelligence',
+    name: 'AdminIntelligence',
+    component: () => import('@/views/admin/IntelligenceView.vue'),
+    meta: {
+      requiresAuth: true,
+      requiresAdmin: true,
+      title: 'Intelligence Checks',
+      titleKey: 'admin.scheduledTestKinds.page.title',
+      descriptionKey: 'admin.scheduledTestKinds.page.description'
+    }
+  },
+  {
     path: '/admin/plugins',
     name: 'AdminPlugins',
     component: () => import('@/views/admin/PluginsView.vue'),

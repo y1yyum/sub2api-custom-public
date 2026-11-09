@@ -91,6 +91,15 @@ function mountLogin() {
 }
 
 describe('LoginView registration entry', () => {
+  it('associates inline validation errors with their fields', async () => {
+    const wrapper = mountLogin()
+    await flushPromises()
+    await wrapper.get('form').trigger('submit')
+    expect(wrapper.get('#login-email-error').text()).toBe('auth.emailRequired')
+    expect(wrapper.get('#email').attributes('aria-describedby')).toBe('login-email-error')
+    expect(wrapper.get('#password').attributes('aria-invalid')).toBe('true')
+    expect(wrapper.get('#login-password-error').text()).toBe('auth.passwordRequired')
+  })
   beforeEach(() => {
     getPublicSettingsMock.mockReset()
     pushMock.mockReset()

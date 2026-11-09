@@ -28,6 +28,14 @@
  * a 3px double border, which keeps their state colours.
  */
 :where(html.theme-rhine) {
+  --pp-canvas: #f8f7f2;
+  --pp-surface: #ffffff;
+  --pp-surface-2: #f8f7f2;
+  --pp-divider: #e3e1d9;
+  --pp-heat-1: #c9d8c4;
+  --pp-heat-2: #a3bca0;
+  --pp-heat-3: #58724f;
+  --pp-heat-4: #364a31;
   --pp-font-pixel: 'Fusion Pixel 12', ui-monospace, monospace;
   --pp-ink: #2c2e33;
   --pp-edge: #2c2e33;
@@ -54,6 +62,14 @@
 }
 
 :where(html.theme-rhine).dark {
+  --pp-canvas: #1c1e26;
+  --pp-surface: #232630;
+  --pp-surface-2: #1c1e26;
+  --pp-divider: #383c4a;
+  --pp-heat-1: #2f4a33;
+  --pp-heat-2: #3f6b47;
+  --pp-heat-3: #6f9a6a;
+  --pp-heat-4: #b4c8ae;
   --pp-ink: #e6e8ee;
   --pp-edge: #383c4a;
   --pp-control: #6b7186;
@@ -276,6 +292,62 @@
 
 :where(html.theme-rhine) .table tbody tr {
   @apply hover:bg-primary-50 dark:hover:bg-dark-700/40;
+}
+
+:where(html.theme-rhine) .portal-shell .table-wrapper .sticky-header-cell {
+  background-color: var(--pp-surface-2);
+  background-image: repeating-conic-gradient(var(--pp-dither) 0 25%, transparent 0 50%);
+  background-size: 4px 4px;
+  border-bottom-width: 2px;
+  border-bottom-style: solid;
+  border-bottom-color: var(--pp-ink);
+  color: var(--pp-ink);
+}
+
+:where(html.theme-rhine) .portal-shell .table-wrapper tbody .sticky-col {
+  background-color: var(--pp-surface);
+}
+
+:where(html.theme-rhine) .portal-shell .table-wrapper tbody tr:hover .sticky-col {
+  background-color: var(--pp-surface-2);
+}
+
+:where(html.theme-rhine) .portal-shell .table-wrapper tbody tr[class*='bg-primary'] .sticky-col {
+  background-color: var(--pp-tone-mint);
+}
+
+/* The upstream scoped container falls back to slate in dark mode; match the table body instead. */
+:where(html.theme-rhine).dark .portal-shell .table-scroll-container.table-scroll-container {
+  background-color: var(--pp-surface-2);
+}
+
+/* Dark table bodies sit on surface-2 and hover to surface, so pinned cells follow the same pair. */
+:where(html.theme-rhine).dark .portal-shell .table-wrapper tbody .sticky-col {
+  background-color: var(--pp-surface-2);
+}
+
+:where(html.theme-rhine).dark .portal-shell .table-wrapper tbody tr:hover:not([class*='bg-primary']) .sticky-col {
+  background-color: var(--pp-surface);
+}
+
+:where(html.theme-rhine) .portal-shell .is-scrollable .sticky-col-left::after,
+:where(html.theme-rhine) .portal-shell .is-scrollable .sticky-col-left-second::after,
+:where(html.theme-rhine) .portal-shell .is-scrollable .sticky-col-right::before {
+  background: none;
+  border-inline-start-width: 1px;
+  border-inline-start-style: solid;
+  border-inline-start-color: var(--pp-divider);
+}
+
+/* Columns scrolled under the pinned actions fade into dither instead of being cut mid-word. */
+:where(html.theme-rhine) .portal-shell .is-scrollable .sticky-col-right::before {
+  border-inline-start-width: 0;
+  border-inline-end-width: 1px;
+  border-inline-end-style: solid;
+  border-inline-end-color: var(--pp-ink);
+  background-image: repeating-conic-gradient(var(--pp-dither) 0 25%, transparent 0 50%);
+  background-size: 4px 4px;
+  background-color: var(--pp-surface);
 }
 
 /* ============ Badges ============ */

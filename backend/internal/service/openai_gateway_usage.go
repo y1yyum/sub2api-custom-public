@@ -5,6 +5,7 @@ package service
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"net/http"
@@ -13,6 +14,7 @@ import (
 	"time"
 
 	"github.com/Wei-Shaw/sub2api/internal/config"
+	"github.com/Wei-Shaw/sub2api/internal/custombridge"
 	"github.com/Wei-Shaw/sub2api/internal/pkg/logger"
 	"github.com/Wei-Shaw/sub2api/internal/pkg/openai"
 	"github.com/Wei-Shaw/sub2api/internal/pkg/timezone"
@@ -34,6 +36,10 @@ type OpenAIRecordUsageInput struct {
 	RequestPayloadHash string
 	APIKeyService      APIKeyQuotaUpdater
 	QuotaPlatform      string // user×platform quota platform resolved by the handler before async billing.
+
+	BridgeRequest       *custombridge.Request // 仅由可信内部入口捕获并显式传给异步 worker。
+	BridgeCoreRequestID string                // 受管请求的稳定 Core 请求标识，不从 worker context 恢复。
+
 	// PricingAt 是请求级定价时刻（请求开始捕获，与利润门的 D 同源）：高峰因子
 	// 按该时刻计算，保证同一请求从准入到扣费不中途变价。零值回退记录时刻
 	//（既有行为），供未装配的路径（图片/异步/cyber 等）沿用。
@@ -51,14 +57,16 @@ type OpenAIRecordUsageInput struct {
 // 用量按上游真实 token 计费，与 WS cyber 及正常请求口径一致（InputTokens/OutputTokens
 // 取自上游 response.failed 报告的 usage，即 mark.UpstreamInTok/OutTok）。
 type CyberPolicyUsageInput struct {
-	APIKey       *APIKey
-	Account      *Account
-	Subscription *UserSubscription
-	RequestID    string
-	Model        string
-	Stream       bool
-	InputTokens  int
-	OutputTokens int
+	APIKey              *APIKey
+	Account             *Account
+	Subscription        *UserSubscription
+	RequestID           string
+	Model               string
+	Stream              bool
+	InputTokens         int
+	OutputTokens        int
+	BridgeRequest       *custombridge.Request
+	BridgeCoreRequestID string
 	// 渠道归因与请求级 meta，使 cyber 计费行与正常 RecordUsage 行口径一致
 	// （否则 cyber 行 channel_id 等为空，渠道维度统计会遗漏 cyber 命中）。
 	InboundEndpoint    string
@@ -92,21 +100,23 @@ func (s *OpenAIGatewayService) RecordCyberPolicyUsageLog(ctx context.Context, in
 		},
 	}
 	if err := s.RecordUsage(ctx, &OpenAIRecordUsageInput{
-		Result:             result,
-		APIKey:             in.APIKey,
-		User:               in.APIKey.User,
-		Account:            in.Account,
-		Subscription:       in.Subscription,
-		InboundEndpoint:    in.InboundEndpoint,
-		UpstreamEndpoint:   in.UpstreamEndpoint,
-		UserAgent:          in.UserAgent,
-		IPAddress:          in.IPAddress,
-		SessionID:          in.SessionID,
-		RequestPayloadHash: in.RequestPayloadHash,
-		APIKeyService:      in.APIKeyService,
-		ChannelUsageFields: in.ChannelUsageFields,
-		CyberBlocked:       true,
-		NativeCompactionV2: in.NativeCompactionV2,
+		Result:              result,
+		APIKey:              in.APIKey,
+		User:                in.APIKey.User,
+		Account:             in.Account,
+		Subscription:        in.Subscription,
+		InboundEndpoint:     in.InboundEndpoint,
+		UpstreamEndpoint:    in.UpstreamEndpoint,
+		UserAgent:           in.UserAgent,
+		IPAddress:           in.IPAddress,
+		SessionID:           in.SessionID,
+		RequestPayloadHash:  in.RequestPayloadHash,
+		BridgeRequest:       in.BridgeRequest,
+		BridgeCoreRequestID: in.BridgeCoreRequestID,
+		APIKeyService:       in.APIKeyService,
+		ChannelUsageFields:  in.ChannelUsageFields,
+		CyberBlocked:        true,
+		NativeCompactionV2:  in.NativeCompactionV2,
 	}); err != nil {
 		logger.LegacyPrintf("service.openai_gateway", "cyber usage record failed: request_id=%s err=%v", in.RequestID, err)
 	}
@@ -159,6 +169,23 @@ func (s *OpenAIGatewayService) RecordUsage(ctx context.Context, input *OpenAIRec
 	result := input.Result
 	if result == nil {
 		return errors.New("openai usage result is nil")
+	}
+	var bridgeUsage json.RawMessage
+	if input.BridgeRequest != nil {
+		if input.Account == nil || input.Account.ID != input.BridgeRequest.AccountID {
+			return custombridge.ErrReceiptAccountMismatch
+		}
+		if strings.TrimSpace(input.BridgeCoreRequestID) == "" {
+			return ErrUsageBillingRequestIDRequired
+		}
+		if s.cfg != nil && s.cfg.RunMode == config.RunModeSimple && !simpleModeKeyRateLimitBillingEnabled(s.cfg, input.APIKey) {
+			return custombridge.ErrReceiptBillingUnavailable
+		}
+		var err error
+		bridgeUsage, err = json.Marshal(result.Usage)
+		if err != nil {
+			return fmt.Errorf("encode bridge raw usage: %w", err)
+		}
 	}
 	if s.rateLimitService != nil && input.Account != nil && input.Account.Platform == PlatformOpenAI {
 		s.rateLimitService.ResetOpenAI403Counter(ctx, input.Account.ID)
@@ -356,6 +383,9 @@ func (s *OpenAIGatewayService) RecordUsage(ctx context.Context, input *OpenAIRec
 			requestID = stable
 		}
 	}
+	if input.BridgeRequest != nil {
+		requestID = strings.TrimSpace(input.BridgeCoreRequestID)
+	}
 
 	// 确定 RequestedModel（渠道映射前的原始模型）
 	requestedModel := result.Model
@@ -515,6 +545,8 @@ func (s *OpenAIGatewayService) RecordUsage(ctx context.Context, input *OpenAIRec
 		Account:                    account,
 		Subscription:               subscription,
 		RequestPayloadHash:         resolveUsageBillingPayloadFingerprint(ctx, input.RequestPayloadHash),
+		BridgeRequest:              input.BridgeRequest,
+		BridgeUsage:                bridgeUsage,
 		IsSubscriptionBill:         isSubscriptionBilling && !simpleModeKeyRateLimitOnly,
 		AccountRateMultiplier:      accountRateMultiplier,
 		APIKeyService:              input.APIKeyService,

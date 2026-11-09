@@ -182,6 +182,7 @@ export default {
     modelPlaza: '模型广场',
     subscriptions: '订阅管理',
     accounts: '账号管理',
+    intelligence: '智力检测',
     plugins: '插件管理',
     proxies: 'IP管理',
     redeemCodes: '兑换码',
@@ -248,6 +249,7 @@ export default {
     loginFailed: '登录失败，请检查您的凭据后重试。',
     errors: {
       USER_NOT_ACTIVE: '账号已被禁用',
+      EMAIL_BLOCKED: '该邮箱不允许注册，请更换其他邮箱。',
     },
     registrationFailed: '注册失败，请重试。',
     emailDomainRegistrationLimit:

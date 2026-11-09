@@ -1,8 +1,10 @@
 <template>
   <AppLayout>
     <TablePageLayout>
+      <template v-if="portal" #actions><PortalPageHeading :title="pt('refresh.keys')" :description="pt('refresh.description.keys')" /></template>
       <template #filters>
         <div class="flex flex-col gap-3">
+          <PortalKeySummary v-if="portal" ref="keySummary" :keys="apiKeys" @renew="editKey" />
           <div class="flex flex-wrap items-center gap-3">
             <SearchInput
               v-model="filterSearch"
@@ -16,7 +18,11 @@
               :options="groupFilterOptions"
               @update:model-value="onGroupFilterChange"
             />
+            <div v-if="portal" class="flex flex-wrap border-[3px] border-double border-gray-900 dark:border-dark-500" role="group" :aria-label="t('common.status')">
+              <button v-for="option in statusFilterOptions" :key="String(option.value)" type="button" class="px-3 py-2 text-xs" :class="filterStatus === option.value ? 'bg-primary-500 text-gray-900' : ''" :aria-pressed="filterStatus === option.value" @click="onStatusFilterChange(option.value)">{{ option.label }}</button>
+            </div>
             <Select
+              v-else
               :model-value="filterStatus"
               class="w-40"
               :options="statusFilterOptions"
@@ -74,7 +80,8 @@
             :api-base-url="publicSettings?.api_base_url || ''"
             :custom-endpoints="publicSettings?.custom_endpoints || []"
           />
-          <div v-if="selectedIds.length" class="flex flex-wrap items-center gap-3 text-sm">
+          <PortalKeyBatchActions v-if="portal && selectedIds.length" :ids="selectedIds" @updated="handleBulkUpdated" @edit="showBulkEditModal = true" @clear="selectedIds = []" />
+          <div v-else-if="selectedIds.length" class="flex flex-wrap items-center gap-3 text-sm">
             <span class="text-gray-600 dark:text-gray-300">
               {{ t('keys.bulkEdit.selectedCount', { count: selectedIds.length }) }}
             </span>
@@ -94,7 +101,11 @@
       </template>
 
       <template #table>
+        <div class="grid min-h-0 flex-1 overflow-auto" :class="portal && integrationKey ? 'xl:grid-cols-[minmax(0,1fr)_380px]' : ''">
+        <div class="flex min-h-[240px] min-w-0 flex-col overflow-auto">
         <DataTable
+          :clickable-rows="portal"
+          @row-click="integrationKey = $event"
           :columns="columns"
           :data="apiKeys"
           :loading="loading"
@@ -149,13 +160,25 @@
                 :title="t('keys.ipRestrictionEnabled')"
               />
             </div>
+            <div v-if="portal && isColumnVisible('key')" class="mt-1 flex items-center gap-1" data-test="portal-key-secret">
+              <code class="code text-xs">{{ maskApiKey(row.key) }}</code>
+              <button
+                type="button"
+                class="p-1 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+                :title="copiedKeyId === row.id ? t('keys.copied') : t('keys.copyToClipboard')"
+                :aria-label="copiedKeyId === row.id ? t('keys.copied') : t('keys.copyToClipboard')"
+                @click.stop="copyToClipboard(row.key, row.id)"
+              >
+                <Icon :name="copiedKeyId === row.id ? 'check' : 'clipboard'" size="xs" />
+              </button>
+            </div>
           </template>
 
           <template #cell-group="{ row }">
             <div class="group/dropdown relative">
               <button
                 :ref="(el) => setGroupButtonRef(row.id, el)"
-                @click="openGroupSelector(row)"
+                @click.stop="openGroupSelector(row)"
                 class="-mx-2 -my-1 flex cursor-pointer items-center gap-2 rounded-lg px-2 py-1 transition-all duration-200 hover:bg-gray-100 dark:hover:bg-dark-700"
                 :title="t('keys.clickToChangeGroup')"
               >
@@ -174,7 +197,7 @@
                 <span v-else class="text-sm text-gray-400 dark:text-dark-500">{{
                   t('keys.noGroup')
                 }}</span>
-                <span class="text-xs text-gray-500 dark:text-gray-400">{{ t('keys.selectGroup') }}</span>
+                <span v-if="!portal" class="text-xs text-gray-500 dark:text-gray-400">{{ t('keys.selectGroup') }}</span>
                 <svg
                   class="h-3.5 w-3.5 text-gray-400 opacity-60 transition-opacity group-hover/dropdown:opacity-100"
                   fill="none"
@@ -189,11 +212,14 @@
                   />
                 </svg>
               </button>
+              <PortalKeyConcurrency v-if="portal && isColumnVisible('current_concurrency')" class="mt-1.5" :value="row.current_concurrency ?? 0" />
             </div>
           </template>
 
           <template #cell-current_concurrency="{ value }">
+            <PortalKeyConcurrency v-if="portal" :value="value ?? 0" />
             <span
+              v-else
               :class="[
                 'inline-flex min-w-8 items-center justify-center rounded px-2 py-1 text-sm font-semibold tabular-nums',
                 (value ?? 0) > 0
@@ -350,9 +376,10 @@
           <template #cell-expires_at="{ value }">
             <span v-if="value" :class="[
               'text-sm',
+              portal && 'md:whitespace-pre-line',
               new Date(value) < new Date() ? 'text-red-500 dark:text-red-400' : 'text-gray-500 dark:text-dark-400'
             ]">
-              {{ formatDateTime(value) }}
+              {{ tableDateTime(value) }}
             </span>
             <span v-else class="text-sm text-gray-400 dark:text-dark-500">{{ t('keys.noExpiration') }}</span>
           </template>
@@ -370,8 +397,8 @@
           </template>
 
           <template #cell-last_used_at="{ value }">
-            <span v-if="value" class="text-sm text-gray-500 dark:text-dark-400">
-              {{ formatDateTime(value) }}
+            <span v-if="value" class="text-sm text-gray-500 dark:text-dark-400" :class="portal && 'md:whitespace-pre-line'">
+              {{ tableDateTime(value) }}
             </span>
             <span v-else class="text-sm text-gray-400 dark:text-dark-500">-</span>
           </template>
@@ -384,7 +411,7 @@
           </template>
 
           <template #cell-created_at="{ value }">
-            <span class="text-sm text-gray-500 dark:text-dark-400">{{ formatDateTime(value) }}</span>
+            <span class="text-sm text-gray-500 dark:text-dark-400" :class="portal && 'md:whitespace-pre-line'">{{ tableDateTime(value) }}</span>
           </template>
 
           <template #cell-actions="{ row }">
@@ -399,7 +426,7 @@
               </button>
               <!-- Import to CC Switch Button -->
               <button
-                v-if="!publicSettings?.hide_ccs_import_button"
+                v-if="!portal && !publicSettings?.hide_ccs_import_button"
                 @click="importToCcswitch(row)"
                 class="flex flex-col items-center gap-0.5 rounded-lg p-1.5 text-gray-500 transition-colors hover:bg-blue-50 hover:text-blue-600 dark:hover:bg-blue-900/20 dark:hover:text-blue-400"
               >
@@ -440,7 +467,9 @@
           </template>
 
           <template #empty>
+            <PortalState v-if="portal && loadFailed" kind="error" class="w-full text-left" :title="t('keys.failedToLoad')" @retry="loadApiKeys" />
             <EmptyState
+              v-else
               :title="t('keys.noKeysYet')"
               :description="t('keys.createFirstKey')"
               :action-text="t('keys.createKey')"
@@ -448,6 +477,9 @@
             />
           </template>
         </DataTable>
+        </div>
+        <PortalKeyIntegration v-if="portal && integrationKey" :key="`${integrationKey.id}:${integrationKey.group_id}`" :api-key="integrationKey" :base-url="publicSettings?.api_base_url || ''" :hide-import="publicSettings?.hide_ccs_import_button" @close="integrationKey = null" @import="importToCcswitch" />
+        </div>
       </template>
 
       <template #pagination>
@@ -1205,6 +1237,18 @@ import { getPersistedPageSize } from '@/composables/usePersistedPageSize'
 
 const { t } = useI18n()
 import { keysAPI, authAPI, usageAPI, userGroupsAPI } from '@/api'
+import { portalPagesActive } from '@/custom-portal/pageRoutes'
+import { usePortalI18n } from '@/custom-portal/i18n'
+import PortalPageHeading from '@/custom-portal/components/common/PortalPageHeading.vue'
+import PortalKeyConcurrency from '@/custom-portal/components/keys/PortalKeyConcurrency.vue'
+import PortalKeySummary from '@/custom-portal/components/keys/PortalKeySummary.vue'
+import PortalState from '@/custom-portal/components/common/PortalState.vue'
+import PortalKeyIntegration from '@/custom-portal/components/keys/PortalKeyIntegration.vue'
+import PortalKeyBatchActions from '@/custom-portal/components/keys/PortalKeyBatchActions.vue'
+const portal = portalPagesActive()
+const { pt } = usePortalI18n()
+const integrationKey = ref<ApiKey | null>(null)
+const keySummary = ref<InstanceType<typeof PortalKeySummary> | null>(null)
 import AppLayout from '@/components/layout/AppLayout.vue'
 import TablePageLayout from '@/components/layout/TablePageLayout.vue'
 import BulkEditKeysModal from '@/components/keys/BulkEditKeysModal.vue'
@@ -1223,7 +1267,7 @@ import BulkEditKeysModal from '@/components/keys/BulkEditKeysModal.vue'
 	import type { ApiKey, Group, PublicSettings, SubscriptionType, GroupPlatform, UpdateApiKeyRequest } from '@/types'
 import type { Column } from '@/components/common/types'
 import type { BatchApiKeyUsageStats } from '@/api/usage'
-import { formatDateTime } from '@/utils/format'
+import { formatDateOnly, formatDateTime, formatTime } from '@/utils/format'
 import { maskApiKey } from '@/utils/maskApiKey'
 import PlatformIcon from '@/components/common/PlatformIcon.vue'
 import { platformBadgeLightClass } from '@/utils/platformColors'
@@ -1349,9 +1393,25 @@ const toggleColumn = (key: string) => {
 
 const isColumnVisible = (key: string) => !hiddenColumns.has(key)
 
-const columns = computed<Column[]>(() =>
-  allColumns.value.filter((col) => ALWAYS_VISIBLE_COLUMNS.has(col.key) || !hiddenColumns.has(col.key))
-)
+const PORTAL_MERGED_COLUMNS: Record<string, { into: string; label: string }> = {
+  key: { into: 'name', label: 'refresh.keyIdentity' },
+  current_concurrency: { into: 'group', label: 'refresh.keyGroup' }
+}
+
+const columns = computed<Column[]>(() => {
+  const visible = allColumns.value.filter((col) => ALWAYS_VISIBLE_COLUMNS.has(col.key) || !hiddenColumns.has(col.key))
+  if (!portal) return visible
+  const merged = Object.entries(PORTAL_MERGED_COLUMNS).filter(([key, target]) => isColumnVisible(key) && isColumnVisible(target.into))
+  return visible
+    .filter((col) => !merged.some(([key]) => key === col.key))
+    .map((col) => {
+      const match = merged.find(([, target]) => target.into === col.key)
+      return match ? { ...col, label: pt(match[1].label) } : col
+    })
+})
+
+const tableDateTime = (value: string) =>
+  portal ? `${formatDateOnly(value)}\n${formatTime(value)}` : formatDateTime(value)
 
 const apiKeys = ref<ApiKey[]>([])
 const selectedIds = ref<number[]>([])
@@ -1371,6 +1431,7 @@ const handleBulkUpdated = (succeededIds: number[]) => {
 
 const groups = ref<Group[]>([])
 const loading = ref(false)
+const loadFailed = ref(false)
 const submitting = ref(false)
 const now = ref(new Date())
 let resetTimer: ReturnType<typeof setInterval> | null = null
@@ -1605,7 +1666,9 @@ const loadApiKeys = async () => {
       signal
     })
     if (signal.aborted) return
+    loadFailed.value = false
     apiKeys.value = response.items
+    if (integrationKey.value) integrationKey.value = response.items.find((key) => key.id === integrationKey.value!.id) ?? null
     handleSelectionChange(selectedIds.value)
     pagination.value.total = response.total
     pagination.value.pages = response.pages
@@ -1627,6 +1690,7 @@ const loadApiKeys = async () => {
     if (isAbortError(error)) {
       return
     }
+    loadFailed.value = true
     appStore.showError(t('keys.failedToLoad'))
   } finally {
     if (abortController === controller) {
@@ -1660,6 +1724,10 @@ const loadPublicSettings = async () => {
 }
 
 const openUseKeyModal = (key: ApiKey) => {
+  if (portal) {
+    integrationKey.value = key
+    return
+  }
   selectedKey.value = key
   showUseKeyModal.value = true
 }

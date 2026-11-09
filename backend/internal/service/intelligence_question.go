@@ -59,6 +59,11 @@ type IntelligenceQuestionRepository interface {
 	SetPlanQuestions(ctx context.Context, planID int64, questionIDs []int64) error
 	// AdvanceRotation increments the plan's rotation cursor and returns its previous value.
 	AdvanceRotation(ctx context.Context, planID int64) (int, error)
+	// ListIntelligencePlans returns the char art and quiz plans of live
+	// accounts, newest first, with the account name and platform.
+	ListIntelligencePlans(ctx context.Context) ([]*IntelligencePlanOverview, error)
+	// ListRecentResults returns up to perPlan newest results of each plan.
+	ListRecentResults(ctx context.Context, planIDs []int64, perPlan int) ([]*ScheduledTestResult, error)
 }
 
 func invalidIntelligenceQuestion(message string) error {

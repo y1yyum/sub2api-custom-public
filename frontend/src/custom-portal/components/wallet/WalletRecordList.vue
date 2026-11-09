@@ -4,11 +4,11 @@
       <div class="h-6 w-6 animate-spin rounded-full border-2 border-primary-500 border-t-transparent"></div>
     </div>
     <p
-      v-else-if="!records.length"
+      v-else-if="!records.length && !failed"
       class="py-10 text-center text-sm text-gray-500 dark:text-dark-400"
       data-testid="wallet-history-empty"
     >
-      {{ failed ? pt('pages.wallet.historyFailed') : pt('pages.wallet.historyEmpty') }}
+      {{ pt('pages.wallet.historyEmpty') }}
     </p>
     <ul v-else class="divide-y divide-gray-100 dark:divide-dark-700">
       <li
@@ -17,7 +17,8 @@
         class="flex items-center justify-between gap-3 py-3"
         :data-testid="`wallet-record-${record.source}`"
       >
-        <div class="min-w-0">
+        <PixelIcon :name="RECORD_STYLES[record.source].icon" size="sm" />
+        <div class="min-w-0 flex-1">
           <div class="truncate text-sm font-medium text-gray-900 dark:text-white">{{ title(record) }}</div>
           <div class="text-xs text-gray-500 dark:text-dark-400">{{ formatDateTimeToMinute(record.at) }}</div>
         </div>
@@ -27,6 +28,7 @@
         </div>
       </li>
     </ul>
+    <PortalState v-if="failed" kind="error" compact class="mt-3 !p-0" :title="pt('pages.wallet.historyFailed')" :last-success="lastSuccess || undefined" @retry="refresh" />
     <p v-if="records.length" class="pt-2 text-xs text-gray-400 dark:text-dark-500">
       {{ pt('pages.wallet.historyHint', { count: HISTORY_LIMIT }) }}
     </p>
@@ -39,6 +41,8 @@ import { useI18n } from 'vue-i18n'
 import { paymentAPI } from '@/api/payment'
 import { redeemAPI, type RedeemHistoryItem } from '@/api/redeem'
 import OrderStatusBadge from '@/components/payment/OrderStatusBadge.vue'
+import PixelIcon from '../common/PixelIcon.vue'
+import PortalState from '../common/PortalState.vue'
 import { currencySymbol } from '@/components/payment/currency'
 import { formatDateTimeToMinute } from '@/utils/format'
 import { usePortalI18n } from '../../i18n'
@@ -47,6 +51,7 @@ import { mergeWalletRecords, type WalletRecord } from '../../views/walletRecords
 const props = defineProps<{ includeOrders: boolean }>()
 
 const HISTORY_LIMIT = 20
+const RECORD_STYLES = { order: { icon: 'creditCard' }, redeem: { icon: 'gift' } } as const
 
 const { t: translateGlobal } = useI18n()
 const { pt } = usePortalI18n()
@@ -54,6 +59,7 @@ const { pt } = usePortalI18n()
 const records = ref<WalletRecord[]>([])
 const loading = ref(false)
 const failed = ref(false)
+const lastSuccess = ref('')
 let request = 0
 
 const REDEEM_TITLES: Record<string, string> = {
@@ -96,7 +102,9 @@ function amount(record: WalletRecord): string {
 
 function amountClass(record: WalletRecord): string {
   const negative = record.source === 'redeem' && record.redeem.value < 0
-  return negative ? 'text-red-600 dark:text-red-400' : 'text-gray-900 dark:text-white'
+  if (negative) return 'text-red-600 dark:text-red-400'
+  const credited = record.source === 'redeem' || record.order.status === 'COMPLETED'
+  return credited ? 'text-green-600 dark:text-green-400' : 'text-gray-900 dark:text-white'
 }
 
 async function refresh() {
@@ -110,11 +118,12 @@ async function refresh() {
   ])
   if (current !== request) return
   records.value = mergeWalletRecords(
-    orders.status === 'fulfilled' ? orders.value : [],
-    redeems.status === 'fulfilled' ? redeems.value : [],
+    orders.status === 'fulfilled' ? orders.value : records.value.flatMap((record) => record.source === 'order' ? [record.order] : []),
+    redeems.status === 'fulfilled' ? redeems.value : records.value.flatMap((record) => record.source === 'redeem' ? [record.redeem] : []),
     HISTORY_LIMIT
   )
-  failed.value = orders.status === 'rejected' && redeems.status === 'rejected'
+  failed.value = orders.status === 'rejected' || redeems.status === 'rejected'
+  if (!failed.value) lastSuccess.value = new Date().toLocaleString()
   loading.value = false
 }
 

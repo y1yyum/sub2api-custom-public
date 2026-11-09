@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	dbent "github.com/Wei-Shaw/sub2api/ent"
+	"github.com/Wei-Shaw/sub2api/internal/custombridge"
 	"github.com/Wei-Shaw/sub2api/internal/pkg/logger"
 	"github.com/Wei-Shaw/sub2api/internal/service"
 )
@@ -31,6 +32,24 @@ func (r *usageBillingRepository) Apply(ctx context.Context, cmd *service.UsageBi
 	if cmd.RequestID == "" {
 		return nil, service.ErrUsageBillingRequestIDRequired
 	}
+	var receipt *custombridge.Receipt
+	if cmd.BridgeRequest != nil {
+		if cmd.AccountID != cmd.BridgeRequest.AccountID {
+			return nil, custombridge.ErrReceiptAccountMismatch
+		}
+		receipt = &custombridge.Receipt{
+			ReservationID: cmd.BridgeRequest.ReservationID, AttemptID: cmd.BridgeRequest.AttemptID,
+			CoreRequestID: cmd.RequestID, InternalKeyID: cmd.APIKeyID, AccountID: cmd.AccountID,
+			UserID: cmd.UserID, RequestFingerprint: cmd.RequestFingerprint, RawUsage: cmd.BridgeUsage,
+			Billing: custombridge.ReceiptBilling{
+				Model: cmd.Model, ServiceTier: cmd.ServiceTier, ReasoningEffort: cmd.ReasoningEffort,
+				BillingType: cmd.BillingType, SubscriptionID: cmd.SubscriptionID,
+				BalanceCost: cmd.BalanceCost, SubscriptionCost: cmd.SubscriptionCost,
+				APIKeyQuotaCost: cmd.APIKeyQuotaCost, APIKeyRateLimitCost: cmd.APIKeyRateLimitCost,
+				AccountQuotaCost: cmd.AccountQuotaCost,
+			},
+		}
+	}
 
 	tx, err := r.db.BeginTx(ctx, nil)
 	if err != nil {
@@ -47,12 +66,25 @@ func (r *usageBillingRepository) Apply(ctx context.Context, cmd *service.UsageBi
 		return nil, err
 	}
 	if !applied {
-		return &service.UsageBillingApplyResult{Applied: false}, nil
+		result := &service.UsageBillingApplyResult{Applied: false}
+		if receipt != nil {
+			result.BridgeReceipt, err = custombridge.ReceiptForRetry(ctx, tx, receipt)
+			if err != nil {
+				return nil, err
+			}
+		}
+		return result, nil
 	}
 
 	result := &service.UsageBillingApplyResult{Applied: true}
 	if err := r.applyUsageBillingEffects(ctx, tx, cmd, result); err != nil {
 		return nil, err
+	}
+	if receipt != nil {
+		if err := custombridge.InsertReceipt(ctx, tx, receipt); err != nil {
+			return nil, err
+		}
+		result.BridgeReceipt = receipt
 	}
 
 	if err := tx.Commit(); err != nil {

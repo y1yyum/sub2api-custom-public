@@ -28,6 +28,31 @@ export default {
     question: 'Question',
     expectedAnswer: 'Answer',
     upstreamModel: 'Model',
+    page: {
+      title: 'Intelligence Checks',
+      description: 'Manage quiz and char art plans of all accounts and the quiz question bank',
+      tabs: {
+        plans: 'Plans',
+        questions: 'Question bank'
+      },
+      allKinds: 'All kinds',
+      search: 'Search account or model',
+      account: 'Account',
+      recent: 'Recent runs',
+      passed: '{passed}/{total} correct',
+      succeeded: '{passed}/{total} succeeded',
+      noRuns: 'No runs yet',
+      empty: 'No quiz or char art plans yet',
+      pickAccount: 'Choose an account',
+      pickAccountHint: 'Plans run per account; fill in the plan in the scheduled tests of that account next',
+      next: 'Next',
+      outcomes: {
+        pass: 'Correct',
+        fail: 'Wrong',
+        success: 'Succeeded',
+        error: 'Request failed'
+      }
+    },
     bank: {
       title: 'Question bank',
       add: 'New question',

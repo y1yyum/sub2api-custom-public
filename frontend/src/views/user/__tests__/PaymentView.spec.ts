@@ -96,6 +96,12 @@ vi.mock('@/stores', async () => {
   }
 })
 
+const portal = vi.hoisted(() => ({ active: false }))
+vi.mock('@/custom-portal/pageRoutes', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@/custom-portal/pageRoutes')>()),
+  portalPagesActive: () => portal.active
+}))
+
 vi.mock('@/api/payment', () => ({
   paymentAPI: {
     getCheckoutInfo,
@@ -295,6 +301,114 @@ async function mountSubscriptionPlanList(planCount: number) {
   await flushPromises()
   return wrapper
 }
+
+describe('PaymentView with the portal pages active', () => {
+  beforeEach(() => {
+    portal.active = true
+    vi.useRealTimers()
+    routeState.path = '/purchase'
+    routeState.query = {}
+    routerReplace.mockReset().mockResolvedValue(undefined)
+    createOrder.mockReset()
+    showError.mockReset()
+    window.localStorage.clear()
+  })
+  afterEach(() => {
+    portal.active = false
+  })
+
+  async function mountFailedCheckout(checkout = checkoutInfoFixture()) {
+    getCheckoutInfo.mockReset().mockRejectedValueOnce(new Error('down')).mockResolvedValue(checkout)
+    const wrapper = shallowMount(PaymentView, {
+      global: {
+        stubs: { AppLayout: { template: '<div><slot /></div>' }, Teleport: true, Transition: false, PortalState: false },
+      },
+    })
+    await flushPromises()
+    expect(wrapper.find('.portal-state-error').exists()).toBe(true)
+    return wrapper
+  }
+
+  it('resumes the WeChat callback after checkout retry succeeds', async () => {
+    routeState.query = { wechat_resume: '1', wechat_resume_token: 'retry-resume-token' }
+    createOrder.mockResolvedValue({
+      order_id: 123,
+      amount: 88,
+      pay_amount: 88,
+      payment_type: 'wxpay',
+      qr_code: 'wechat-retry-qr',
+      expires_at: '2099-01-01T00:10:00.000Z',
+    })
+    const wrapper = await mountFailedCheckout()
+    expect(createOrder).not.toHaveBeenCalled()
+
+    await wrapper.get('.portal-state-error button').trigger('click')
+    await flushPromises()
+    expect(routerReplace).toHaveBeenCalledWith({ path: '/purchase', query: {} })
+    expect(createOrder).toHaveBeenCalledOnce()
+    expect(createOrder).toHaveBeenCalledWith(expect.objectContaining({
+      wechat_resume_token: 'retry-resume-token', payment_type: 'wxpay', order_type: 'balance',
+    }))
+    expect(wrapper.findComponent({ name: 'PaymentStatusPanel' }).props('orderId')).toBe(123)
+    wrapper.unmount()
+  })
+
+  it('restores the existing payment snapshot after checkout retry succeeds', async () => {
+    const snapshot = {
+      orderId: 888, amount: 66, qrCode: 'saved-qr', expiresAt: '2099-01-01T00:10:00.000Z',
+      paymentType: 'wxpay', payUrl: '', outTradeNo: 'saved-order', clientSecret: '', intentId: '',
+      currency: '', countryCode: '', paymentEnv: '', payAmount: 66, orderType: 'balance',
+      paymentMode: 'popup', resumeToken: '', createdAt: Date.now(),
+    }
+    window.localStorage.setItem(PAYMENT_RECOVERY_STORAGE_KEY, JSON.stringify(snapshot))
+    const wrapper = await mountFailedCheckout()
+    expect(window.localStorage.getItem(PAYMENT_RECOVERY_STORAGE_KEY)).toBe(JSON.stringify(snapshot))
+
+    await wrapper.get('.portal-state-error button').trigger('click')
+    await flushPromises()
+    expect(wrapper.findComponent({ name: 'PaymentStatusPanel' }).props()).toMatchObject({
+      orderId: 888, qrCode: 'saved-qr', outTradeNo: 'saved-order',
+    })
+    expect(createOrder).not.toHaveBeenCalled()
+    wrapper.unmount()
+  })
+
+  it.each([1, 2])('restores renewal navigation for %i matching plans after checkout retry', async (count) => {
+    routeState.query = { tab: 'subscription', group: '3' }
+    const base = checkoutInfoWithPlansFixture()
+    const plans = Array.from({ length: count }, (_, index) => ({ ...base.data.plans[0], id: index + 7 }))
+    const wrapper = await mountFailedCheckout({ data: { ...base.data, plans } })
+
+    await wrapper.get('.portal-state-error button').trigger('click')
+    await flushPromises()
+    if (count === 1) {
+      expect(wrapper.text()).toContain('Starter')
+      expect(wrapper.findComponent(AmountInput).exists()).toBe(false)
+      expect(wrapper.findAllComponents(SubscriptionPlanCard)).toHaveLength(0)
+    } else {
+      expect(wrapper.text()).toContain('payment.selectPlan')
+      expect(wrapper.get('.fixed.inset-0').findAllComponents(SubscriptionPlanCard).map((card) => card.props('plan').id)).toEqual([7, 8])
+    }
+    wrapper.unmount()
+  })
+
+  it('offers a retry instead of the closed-recharge notice when checkout info fails', async () => {
+    getCheckoutInfo.mockReset().mockRejectedValueOnce(new Error('down')).mockResolvedValue(checkoutInfoFixture())
+    const wrapper = shallowMount(PaymentView, {
+      global: {
+        stubs: { AppLayout: { template: '<div><slot /></div>' }, Teleport: true, Transition: false, PortalState: false },
+      },
+    })
+    await flushPromises()
+
+    expect(showError).toHaveBeenCalled()
+    expect(wrapper.text()).not.toContain('payment.notAvailable')
+    await wrapper.get('.portal-state-error button').trigger('click')
+    await flushPromises()
+    expect(getCheckoutInfo).toHaveBeenCalledTimes(2)
+    expect(wrapper.find('.portal-state-error').exists()).toBe(false)
+  })
+})
 
 describe('PaymentView help text', () => {
   beforeEach(() => {
