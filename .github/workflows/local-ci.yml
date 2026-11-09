@@ -49,6 +49,7 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 10
     outputs:
+      required_jobs: ${{ steps.scope.outputs.required_jobs }}
       unit: ${{ steps.scope.outputs.unit }}
       unit_selected: ${{ steps.scope.outputs.unit_selected }}
       unit_run: ${{ steps.scope.outputs.unit_run }}
@@ -78,7 +79,7 @@ jobs:
   # The runner takes jobs in this order with 3 slots: longest jobs first.
   unit:
     needs: changes
-    if: needs.changes.outputs.unit != '' || needs.changes.outputs.unit_selected != ''
+    if: contains(fromJSON(needs.changes.outputs.required_jobs), 'unit')
     runs-on: ubuntu-24.04
     # Full unit took 9m21s in run 306; the release lane needs the headroom.
     timeout-minutes: 20
@@ -113,11 +114,11 @@ jobs:
 
   integration:
     needs: changes
-    if: needs.changes.outputs.integration != '' || needs.changes.outputs.integration_selected != ''
+    if: contains(fromJSON(needs.changes.outputs.required_jobs), 'integration')
     strategy:
       fail-fast: false
       matrix:
-        shard: ${{ fromJSON(needs.changes.outputs.integration == './...' && '["owner", "remaining"]' || '["scoped"]') }}
+        shard: ${{ fromJSON(needs.changes.outputs.integration == './...' && '["owner", "repository-rest", "other-packages"]' || '["scoped"]') }}
     runs-on: ubuntu-24.04
     timeout-minutes: 20
     steps:
@@ -133,6 +134,7 @@ jobs:
       - name: Integration tests
         working-directory: backend
         env:
+          GOMAXPROCS: ${{ matrix.shard == 'scoped' && env.GOMAXPROCS || '' }}
           PACKAGES: ${{ needs.changes.outputs.integration }}
           SELECTED: ${{ needs.changes.outputs.integration_selected }}
           RUN: ${{ needs.changes.outputs.integration_run }}
@@ -140,7 +142,7 @@ jobs:
 
   golangci-lint:
     needs: changes
-    if: needs.changes.outputs.lint != ''
+    if: contains(fromJSON(needs.changes.outputs.required_jobs), 'golangci-lint')
     runs-on: ubuntu-24.04
     # Cold analysis exceeded 10 minutes in run 372 (Issue #204).
     timeout-minutes: 20
@@ -165,7 +167,7 @@ jobs:
 
   frontend:
     needs: changes
-    if: needs.changes.outputs.frontend == 'true'
+    if: contains(fromJSON(needs.changes.outputs.required_jobs), 'frontend')
     runs-on: ubuntu-24.04
     timeout-minutes: 20
     # vitest otherwise starts (host CPUs - 1) forks and exhausts --pids-limit.
@@ -327,7 +329,7 @@ jobs:
   # simple-mode check moved here from upstream's test job.
   shell:
     needs: changes
-    if: needs.changes.outputs.shell == 'true'
+    if: contains(fromJSON(needs.changes.outputs.required_jobs), 'shell')
     runs-on: ubuntu-24.04
     timeout-minutes: 10
     steps:
@@ -346,7 +348,7 @@ jobs:
 
   release-helpers:
     needs: changes
-    if: needs.changes.outputs.release == 'true'
+    if: contains(fromJSON(needs.changes.outputs.required_jobs), 'release-helpers')
     runs-on: ubuntu-24.04
     timeout-minutes: 10
     steps:
@@ -370,23 +372,29 @@ jobs:
     needs: [changes, unit, integration, golangci-lint, frontend, security, shell, release-helpers]
     steps:
       - name: Require every job to pass
-        shell: bash
+        shell: python3 {0}
+        env:
+          REQUIRED_JOBS: ${{ needs.changes.outputs.required_jobs }}
         run: |
-          set -euo pipefail
-          failed=0
-          check() {
-            case " $2 " in
-              *" $3 "*) ;;
-              *) echo "job '$1' result is '$3', expected: $2" >&2; failed=1 ;;
-            esac
+          import json
+          import os
+          import sys
+
+          required = {'changes', 'security', *json.loads(os.environ['REQUIRED_JOBS'])}
+          results = {
+              'changes': '${{ needs.changes.result }}',
+              'security': '${{ needs.security.result }}',
+              'unit': '${{ needs.unit.result }}',
+              'integration': '${{ needs.integration.result }}',
+              'golangci-lint': '${{ needs.golangci-lint.result }}',
+              'frontend': '${{ needs.frontend.result }}',
+              'shell': '${{ needs.shell.result }}',
+              'release-helpers': '${{ needs.release-helpers.result }}',
           }
-          check changes success "${{ needs.changes.result }}"
-          check security success "${{ needs.security.result }}"
-          check unit "success skipped" "${{ needs.unit.result }}"
-          check integration "success skipped" "${{ needs.integration.result }}"
-          check golangci-lint "success skipped" "${{ needs.golangci-lint.result }}"
-          check frontend "success skipped" "${{ needs.frontend.result }}"
-          check shell "success skipped" "${{ needs.shell.result }}"
-          check release-helpers "success skipped" "${{ needs.release-helpers.result }}"
-          test "$failed" -eq 0
-          echo "Local CI passed for ${{ github.sha }}"
+          errors = []
+          for job, actual in results.items():
+              expected = 'success' if job in required else 'skipped'
+              if actual != expected:
+                  errors.append(f'{job}: expected {expected}, got {actual}')
+          if errors:
+              sys.exit('\n'.join(errors))
