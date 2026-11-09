@@ -66,6 +66,9 @@ func GatewayJSONModelUniquenessWithEndpointLimits(maxNormalizedBytes int64, endp
 			c.Next()
 			return
 		}
+		if RejectRequestBodyReadError(c, err) {
+			return
+		}
 		status, message := http.StatusBadRequest, "Failed to read request body"
 		var maxErr *http.MaxBytesError
 		if errors.As(err, &maxErr) {

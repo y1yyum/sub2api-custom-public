@@ -18,6 +18,8 @@ export type HomepageModelPrice =
 
 export interface HomepageModel {
   id: string
+  /** Group whose paid price is shown; its channel status is shown beside it. */
+  groupId: number
   name: string
   platform: string
   price: HomepageModelPrice
@@ -89,7 +91,7 @@ export function summarizeHomepageModels(response: ModelPlazaResponse, max = HOME
       const id = `${platform}:${model.name}`
       const current = best.get(id)
       if (current && !cheaper(price, current.price)) continue
-      best.set(id, { id, name: model.name, platform, price, officialOutput: model.official_pricing?.output_price ?? null })
+      best.set(id, { id, groupId: group.id, name: model.name, platform, price, officialOutput: model.official_pricing?.output_price ?? null })
     }
   }
   return [...best.values()]

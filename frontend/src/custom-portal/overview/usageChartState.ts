@@ -55,6 +55,7 @@ export interface OverviewHeatmapState {
 }
 
 export interface OverviewState {
+  lastSuccessAt: Readonly<Ref<string | null>>
   preset: Readonly<Ref<RangePreset>>
   range: Readonly<Ref<DateRange>>
   previousRange: ComputedRef<DateRange>
@@ -74,6 +75,7 @@ export interface OverviewState {
   previousTotals: ComputedRef<TrendTotals>
   metricSummaries: ComputedRef<Record<OverviewMetric, MetricSummary>>
   models: Readonly<Ref<ModelStat[]>>
+  modelsLoading: Readonly<Ref<boolean>>
   loading: Readonly<Ref<boolean>>
   failedParts: Readonly<Ref<OverviewLoadPart[]>>
   error: ComputedRef<boolean>
@@ -89,6 +91,7 @@ export interface OverviewState {
   clearFilters: () => void
   /** Recomputes preset ranges against the clock and reloads everything now. */
   refresh: () => Promise<void>
+  retryModels: () => Promise<void>
 }
 
 export interface OverviewStateOptions {
@@ -183,8 +186,10 @@ export function createOverviewState(options: OverviewStateOptions = {}): Overvie
   const currentRaw = shallowRef<TrendDataPoint[]>([])
   const previousRaw = shallowRef<TrendDataPoint[]>([])
   const models = shallowRef<ModelStat[]>([])
+  const modelsLoading = ref(false)
   const loading = ref(false)
   const failedParts = shallowRef<OverviewLoadPart[]>([])
+  const lastSuccessAt = ref<string | null>(null)
 
   const heatmapRange = shallowRef<DateRange>(resolveHeatmapRange(now()))
   const heatmapPoints = shallowRef<TrendDataPoint[]>([])
@@ -234,6 +239,7 @@ export function createOverviewState(options: OverviewStateOptions = {}): Overvie
       if (heatmapActive) void loadHeatmap()
     }
     const seq = ++requestSeq
+    modelsLoading.value = false
     const span = range.value
     const prior = previousRange(span)
     const filterParams = toUsageFilterParams(filters.value)
@@ -251,6 +257,7 @@ export function createOverviewState(options: OverviewStateOptions = {}): Overvie
     current.value = filled
     currentRaw.value = currentPoints
     if (currentTrend.status === 'rejected') failed.push('trend')
+    else lastSuccessAt.value = now().toISOString()
     if (previousTrend.status === 'fulfilled') {
       const priorPoints = previousTrend.value.trend ?? []
       previous.value = alignPrevious(fillTrendBuckets(priorPoints, prior), filled)
@@ -267,6 +274,26 @@ export function createOverviewState(options: OverviewStateOptions = {}): Overvie
     }
     failedParts.value = failed
     loading.value = false
+  }
+
+  async function retryModels(): Promise<void> {
+    if (loading.value || modelsLoading.value) return
+    const seq = requestSeq
+    const span = range.value
+    modelsLoading.value = true
+    try {
+      const response = await usageAPI.getDashboardModels({
+        start_date: span.start, end_date: span.end, ...toUsageFilterParams(filters.value), model_source: 'requested'
+      })
+      if (seq !== requestSeq) return
+      models.value = response.models ?? []
+      failedParts.value = failedParts.value.filter((part) => part !== 'models')
+    } catch (error) {
+      if (seq !== requestSeq) return
+      console.error('Failed to load overview models:', error)
+    } finally {
+      if (seq === requestSeq) modelsLoading.value = false
+    }
   }
 
   async function loadHeatmap({ force = false }: { force?: boolean } = {}): Promise<void> {
@@ -390,6 +417,7 @@ export function createOverviewState(options: OverviewStateOptions = {}): Overvie
 
   return {
     preset,
+    lastSuccessAt,
     range,
     previousRange: previousDateRange,
     metric,
@@ -401,6 +429,7 @@ export function createOverviewState(options: OverviewStateOptions = {}): Overvie
     previousTotals,
     metricSummaries,
     models,
+    modelsLoading,
     loading,
     failedParts,
     error: computed(() => failedParts.value.length > 0),
@@ -419,7 +448,8 @@ export function createOverviewState(options: OverviewStateOptions = {}): Overvie
     toggleModel,
     drillToDay,
     clearFilters,
-    refresh
+    refresh,
+    retryModels
   }
 }
 

@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"compress/gzip"
 	"compress/zlib"
+	"context"
 	"errors"
 	"io"
 	"net/http"
@@ -26,7 +27,7 @@ func (r *endpointDecodedCounter) Read(p []byte) (int, error) {
 }
 func TestEndpointDecodedReaderStopsAtLimitProbe(t *testing.T) {
 	r := &endpointDecodedCounter{Reader: strings.NewReader(strings.Repeat("x", 4096))}
-	_, err := readDecompressedRequestBodyWithLimit(r, 64)
+	_, err := readDecompressedRequestBodyWithBudget(context.Background(), r, 64)
 	var maxErr *http.MaxBytesError
 	if !errors.As(err, &maxErr) || maxErr.Limit != 64 || r.read != 65 {
 		t.Fatalf("err=%v consumed=%d want65", err, r.read)

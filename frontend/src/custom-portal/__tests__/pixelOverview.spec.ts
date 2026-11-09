@@ -33,22 +33,22 @@ describe('pixel console overview', () => {
     }
   })
 
-  it('draws metric cards in their tone, solid when selected, with pixel numbers', () => {
+  it('draws surface cards with a sage selection underline and pixel numbers', () => {
     const css = scopedStyles(cardsSource)
     const base = withoutMedia(css)
     expect(declarationsIn(base, '.metric-card.card')).toMatchObject({
-      'background-color': 'var(--metric-tint)',
-      'border-color': 'var(--metric-rule)',
-      'border-image-source': 'var(--metric-frame)'
+      'background-color': 'var(--pp-surface)',
+      'border-color': 'var(--pp-edge)',
+      'border-image-source': 'var(--pp-frame)'
     })
-    expect(declarationsIn(base, ':where(html.dark) .metric-card.card')['border-image-source']).toBe('var(--metric-frame-dark)')
-    expect(declarationsIn(base, ".metric-card.card[aria-selected='true']")['border-image-source']).toBe('none')
+    expect(declarationsIn(base, ':where(html.dark) .metric-card.card')['border-image-source']).toBe('var(--pp-frame)')
+    expect(declarationsIn(base, ".metric-card.card[aria-selected='true']::after").background).toBe('var(--pp-tone-sage)')
     // Vue compiles `:global(x) .y` to a bare `x`, which would restyle the page root.
     expect(css).not.toMatch(/:global\(/)
-    expect(declarationsIn(css, '.metric-icon').border).toBe(DOUBLE_RULE)
+    expect(declarationsIn(css, '.metric-delta').border).toBe('0')
     expect(declarationsIn(base, '.metric-value')).toMatchObject({ 'font-family': 'var(--pp-font-pixel)', 'font-size': '24px' })
     expect(css).toMatch(/@media \(min-width: 640px\) \{\s*\.metric-value \{\s*font-size: 36px;/)
-    expect(cardsSource).toMatch(/<PixelIcon :name="card\.tone\.icon" size="md" \/>/)
+    expect(cardsSource).toMatch(/<PixelIcon :name="card\.tone\.icon" size="sm" \/>/)
     expect(cardsSource).not.toMatch(/border-primary-600|rounded-full/)
   })
 
@@ -69,7 +69,7 @@ describe('pixel console overview', () => {
     expect(dark['--pp-huiwen']).toBe(light['--pp-huiwen'].replace('%232c2e33', '%23e6e8ee'))
     const title = declarationsIn(withoutMedia(scopedStyles(overviewSource)), '.overview-title')
     expect(title).toMatchObject({ 'font-family': 'var(--pp-font-pixel)', 'font-size': '24px' })
-    expect(title.background).toBe('var(--pp-huiwen) left bottom / 8px 8px repeat-x')
+    expect(declarationsIn(scopedStyles(overviewSource), '.overview-description::after').background).toBe('var(--pp-huiwen) left bottom / 8px 8px repeat-x')
   })
 
   it('double-rules the ranking bars and gives the leader a butter number', () => {

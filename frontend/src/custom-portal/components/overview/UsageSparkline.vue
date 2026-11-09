@@ -17,6 +17,10 @@
       fill="currentColor"
       data-testid="usage-sparkline-baseline"
     />
+    <template v-else-if="area">
+      <path :d="areaPath" fill="currentColor" fill-opacity="0.45" />
+      <path :d="stepPath" fill="none" stroke="var(--pp-ink)" stroke-width="1" vector-effect="non-scaling-stroke" />
+    </template>
     <template v-else>
       <rect
         v-for="bar in bars"
@@ -47,6 +51,7 @@ const props = withDefaults(
     values: readonly (number | null)[]
     width?: number
     height?: number
+    area?: boolean
   }>(),
   { width: BAR_COUNT * BAR_PITCH, height: 32 }
 )
@@ -80,4 +85,18 @@ const bars = computed(() => {
     ]
   })
 })
+const stepSegments = computed(() => {
+  const segments: { start: number; path: string }[] = []
+  let end = -1
+  for (const bar of bars.value ?? []) {
+    const y = props.height - bar.height
+    if (bar.x !== end) segments.push({ start: bar.x, path: `M${bar.x} ${y}` })
+    else segments[segments.length - 1].path += `V${y}`
+    end = bar.x + BAR_PITCH
+    segments[segments.length - 1].path += `H${end}`
+  }
+  return segments
+})
+const stepPath = computed(() => stepSegments.value.map((segment) => segment.path).join(''))
+const areaPath = computed(() => stepSegments.value.map((segment) => `${segment.path}V${props.height}H${segment.start}Z`).join(''))
 </script>

@@ -1,4 +1,7 @@
+import { refreshZh } from './refresh'
+
 const zh = {
+  refresh: refreshZh,
   shell: {
     dockLabel: '主导航',
     topbarLabel: '顶栏',
@@ -103,7 +106,6 @@ const zh = {
         loading: '加载中…',
         empty: '所选范围内暂无用量',
         error: '趋势数据加载失败',
-        retry: '重试',
         series: {
           input: '输入',
           output: '输出',
@@ -130,7 +132,6 @@ const zh = {
         hint: '近 365 天，跟随筛选条件；点击某天查看当天的小时明细',
         summary: '{requests} 次请求，{days} 天活跃',
         error: '活跃度数据加载失败',
-        retry: '重试',
         gridLabel: '每日请求量热力图',
         cellLabel: '{date}：{requests} 次请求',
         requests: '请求',
@@ -154,7 +155,7 @@ const zh = {
       recordsLabel: '钱包记录',
       history: '充值记录',
       historyEmpty: '暂无充值记录。',
-      historyFailed: '充值记录加载失败，请稍后刷新。',
+      historyFailed: '充值记录加载失败',
       historyHint: '显示最近 {count} 条在线充值与兑换记录。',
       orderBalance: '在线充值',
       orderSubscription: '购买订阅',
@@ -215,10 +216,6 @@ const zh = {
       label: '平台介绍',
       title: '连接模型与应用',
       copy: '在 {site} 统一接入 AI 服务，集中管理密钥、调用用量与费用。从模型广场选择模型，按接入文档连接你的应用。'
-    },
-    identity: {
-      label: '平台标识',
-      audience: '面向开发者'
     },
     replay: '重播入场',
     pricing: {

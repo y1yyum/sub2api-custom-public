@@ -17,23 +17,22 @@
       :aria-controls="controls"
       :tabindex="card.selected ? 0 : -1"
       class="metric-card card flex min-w-0 flex-col gap-1 overflow-hidden p-4 text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 sm:gap-3"
-      :style="card.surface"
       :data-testid="`overview-metric-${card.metric}`"
       @click="state.setMetric(card.metric)"
     >
-      <span class="flex min-w-0 items-start justify-between gap-2">
-        <span class="metric-label truncate text-xs" :class="card.tone.text">
+      <span class="metric-heading flex min-w-0 items-center gap-2">
+        <span class="metric-label order-2 truncate text-sm text-gray-500 dark:text-dark-400">
           {{ pt(`pages.overview.metrics.${card.metric}`) }}
         </span>
         <span
-          class="metric-icon flex h-10 w-10 shrink-0 items-center justify-center bg-white text-gray-900 dark:bg-dark-800 dark:text-dark-100"
+          class="metric-icon flex shrink-0 items-center justify-center text-gray-900 dark:text-dark-100"
           aria-hidden="true"
           data-testid="overview-metric-icon"
         >
-          <PixelIcon :name="card.tone.icon" size="md" />
+          <PixelIcon :name="card.tone.icon" size="sm" />
         </span>
       </span>
-      <span class="flex min-w-0 flex-wrap items-end justify-between gap-x-3 gap-y-2">
+      <span class="metric-main flex min-w-0 flex-wrap items-end justify-between gap-x-3 gap-y-2">
         <span
           class="metric-value min-w-0 truncate tabular-nums text-gray-900 dark:text-white"
           :class="{ 'opacity-60': state.loading.value }"
@@ -43,13 +42,13 @@
           {{ card.display }}
         </span>
         <span
-          class="h-8 w-20 shrink-0"
-          :class="card.selected ? 'text-primary-600 dark:text-primary-500' : 'text-gray-400 dark:text-dark-500'"
+          class="metric-sparkline h-7 w-24 shrink-0"
+          :style="{ color: card.tone.chart }"
         >
-          <UsageSparkline :values="card.series" />
+          <UsageSparkline :values="card.series" area />
         </span>
       </span>
-      <span class="flex min-w-0 flex-wrap items-center gap-1 text-xs text-gray-500 dark:text-dark-400 sm:gap-2">
+      <span class="metric-comparison flex min-w-0 flex-wrap items-center gap-1 text-xs text-gray-500 dark:text-dark-400 sm:gap-2">
         <span
           class="metric-delta inline-flex shrink-0 items-center gap-0.5 px-1.5 py-0.5 font-medium tabular-nums"
           :class="BADGE_CLASSES[card.badge.kind]"
@@ -74,8 +73,7 @@ import PixelIcon from '../common/PixelIcon.vue'
 import { usePortalI18n } from '../../i18n'
 import { injectOverviewState } from '../../overview/usageChartState'
 import { OVERVIEW_METRICS, type DeltaKind, type OverviewMetric } from '../../overview/usageChartData'
-import { metricTone, type MetricTone } from '../../overview/metricTones'
-import { pixelFrame } from '../../theme/pixelFrame'
+import { metricTone } from '../../overview/metricTones'
 import { useCountUp } from '../../overview/useCountUp'
 import UsageSparkline from './UsageSparkline.vue'
 
@@ -90,18 +88,6 @@ const BADGE_CLASSES: Record<DeltaKind, string> = {
   flat: 'bg-gray-100 text-gray-600 dark:bg-dark-700 dark:text-dark-300',
   new: 'bg-primary-50 text-primary-700 dark:bg-primary-900/30 dark:text-primary-300',
   none: 'bg-gray-100 text-gray-500 dark:bg-dark-700 dark:text-dark-400'
-}
-
-/** Custom properties read by the scoped frame rules below. */
-function surfaceStyle({ surface }: MetricTone): Record<string, string> {
-  return {
-    '--metric-tint': surface.light.tint,
-    '--metric-rule': surface.light.rule,
-    '--metric-frame': pixelFrame(surface.light.rule),
-    '--metric-tint-dark': surface.dark.tint,
-    '--metric-rule-dark': surface.dark.rule,
-    '--metric-frame-dark': pixelFrame(surface.dark.rule)
-  }
 }
 
 const tabId = (metric: OverviewMetric) => `overview-metric-tab-${metric}`
@@ -155,13 +141,13 @@ function badgeFor(kind: DeltaKind, delta: number | null) {
 const cards = computed(() =>
   OVERVIEW_METRICS.map((metric) => {
     const summary = state.metricSummaries.value[metric]
-    const unknown = trendFailed.value || summary.value === null
+    const unknown =
+      trendFailed.value || summary.value === null || (state.loading.value && !state.lastSuccessAt.value)
     const kind: DeltaKind = unknown ? 'none' : summary.deltaKind
     return {
       metric,
       selected: state.metric.value === metric,
       tone: metricTone(metric),
-      surface: surfaceStyle(metricTone(metric)),
       display: unknown ? '—' : formatMetric(metric, counters[metric].value),
       badge: badgeFor(kind, summary.delta),
       series: trendFailed.value ? [] : summary.series
@@ -205,33 +191,38 @@ function onKeydown(event: KeyboardEvent) {
 </script>
 
 <style scoped>
-/*
- * The card frame is three rules in the metric's colour; the selected card fills the gaps into one 5px rule.
- * `.card` is repeated to outrank the theme's card surface, including its dark variant.
- */
+/* 三线框保持稳定，底部 sage 线表示当前选中的指标。 */
 .metric-card.card {
-  background-color: var(--metric-tint);
-  border-color: var(--metric-rule);
-  border-image-source: var(--metric-frame);
+  position: relative;
+  background-color: var(--pp-surface);
+  border-color: var(--pp-edge);
+  border-image-source: var(--pp-frame);
   transition: background-color 80ms steps(2), border-color 80ms steps(2);
 }
 
 :where(html.dark) .metric-card.card {
-  background-color: var(--metric-tint-dark);
-  border-color: var(--metric-rule-dark);
-  border-image-source: var(--metric-frame-dark);
+  background-color: var(--pp-surface);
+  border-color: var(--pp-edge);
+  border-image-source: var(--pp-frame);
 }
 
 .metric-card.card[aria-selected='true'] {
-  border-image-source: none;
+  border-bottom-color: var(--pp-tone-sage);
+}
+.metric-card.card[aria-selected='true']::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background: var(--pp-tone-sage);
 }
 
-.metric-icon,
 .metric-delta {
-  border: 3px double currentColor;
+  border: 0;
 }
 
-.metric-label,
 .metric-value {
   font-family: var(--pp-font-pixel);
   font-synthesis: none;
@@ -240,7 +231,17 @@ function onKeydown(event: KeyboardEvent) {
 }
 
 .metric-label {
-  font-size: 12px;
+  font-size: 14px;
+}
+
+.metric-card { min-height: 152px; }
+.metric-main { margin-top: 4px; }
+.metric-sparkline { position: absolute; right: 16px; bottom: 16px; }
+.metric-comparison { margin-top: auto; padding-right: 100px; }
+@media (max-width: 639px) {
+  .metric-card { min-height: 144px; padding: 12px; }
+  .metric-comparison { padding-right: 0; }
+  .metric-sparkline { width: 52px; height: 20px; bottom: 40px; right: 12px; }
 }
 
 .metric-value {

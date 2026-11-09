@@ -1,10 +1,10 @@
 <!-- Adapted from TokenFlux/TokenRouter UserDashboardAnnouncements.vue (LGPL-3.0-or-later). -->
 <template>
   <section class="card overflow-hidden" :aria-labelledby="titleId" data-testid="overview-announcements">
-    <div class="flex min-h-[61px] items-center justify-between gap-3 border-b border-gray-100 px-6 py-4 dark:border-dark-700">
-      <div class="flex min-w-0 items-center gap-2.5">
-        <PixelIcon name="bell" size="md" class="shrink-0 text-primary-600 dark:text-primary-400" aria-hidden="true" />
-        <h2 :id="titleId" class="truncate text-lg font-semibold text-gray-900 dark:text-white">
+    <div class="flex min-h-7 items-center justify-between gap-3 border-b border-gray-100 px-4 py-3 dark:border-dark-700">
+      <div class="flex min-w-0 items-center gap-2">
+        <PixelIcon name="bell" size="sm" class="shrink-0 text-primary-600 dark:text-primary-400" aria-hidden="true" />
+        <h2 :id="titleId" class="truncate text-sm font-semibold text-gray-900 dark:text-white">
           {{ pt('pages.overview.announcements.title') }}
         </h2>
       </div>
@@ -26,7 +26,7 @@
       </span>
     </div>
 
-    <div class="p-6">
+    <div class="p-4">
       <div v-if="loading && !items.length" class="space-y-5 py-4" role="status" aria-busy="true" data-testid="overview-announcements-loading">
         <div v-for="row in 3" :key="row" class="flex items-start gap-4" aria-hidden="true">
           <span class="mt-1 h-3 w-3 shrink-0 animate-pulse rounded-full bg-gray-200 motion-reduce:animate-none dark:bg-dark-700"></span>

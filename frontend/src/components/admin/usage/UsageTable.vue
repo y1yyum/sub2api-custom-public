@@ -146,6 +146,7 @@
         </template>
 
         <template #cell-tokens="{ row }">
+          <TokenComposition v-if="portalEnhancements && !isImageUsage(row)" class="mb-2" :input="row.input_tokens" :output="row.output_tokens" :cache-write="row.cache_creation_tokens" :cache-read="row.cache_read_tokens" />
           <UsageDiagnostics v-if="showResponseDiagnostics" :diagnostics="row.response_diagnostics" />
           <!-- 图片生成请求（仅按次计费时显示图片格式） -->
           <div v-if="isImageUsage(row)" class="flex items-center gap-1.5">
@@ -230,11 +231,13 @@
             <div v-if="showAccountBilling && row.account_rate_multiplier != null" class="mt-0.5 text-[11px] text-orange-500 dark:text-orange-400">
               A ${{ accountBilled(row).toFixed(6) }}
             </div>
+            <PortalUsageDetail v-if="portalEnhancements" :row="row" />
           </div>
         </template>
 
         <!-- 合并首字/总耗时的健康度列：左侧色条上端随首字档、下端随总耗时档，中段(40%-60%)短渐变过渡，便于纵向扫视整体健康状况 -->
         <template #cell-latency="{ row }">
+          <span v-if="portalEnhancements && row.duration_ms > 30000" class="badge badge-warning mb-1" :title="pt('refresh.slowHint')">{{ pt('refresh.slow') }}</span>
           <div class="flex items-stretch gap-2">
             <span
               class="w-1 shrink-0 rounded-full"
@@ -536,6 +539,9 @@
 </template>
 
 <script setup lang="ts">
+import TokenComposition from '@/custom-portal/components/common/TokenComposition.vue'
+import PortalUsageDetail from '@/custom-portal/components/usage/PortalUsageDetail.vue'
+import { usePortalI18n } from '@/custom-portal/i18n'
 import UsageDiagnostics from './UsageDiagnostics.vue'
 import { computed, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
@@ -593,6 +599,7 @@ import type { AdminUsageLog } from '@/types'
 import type { Column } from '@/components/common/types'
 
 interface Props {
+  portalEnhancements?: boolean
   data: AdminUsageLog[]
   loading?: boolean
   columns: Column[]
@@ -622,6 +629,7 @@ const emit = defineEmits<{
   ipGeoBatchFailed: []
 }>()
 const { t } = useI18n()
+const { pt } = usePortalI18n()
 const appStore = useAppStore()
 const copiedRequestId = ref<string | null>(null)
 const showAccountBilling = props.showAccountBilling

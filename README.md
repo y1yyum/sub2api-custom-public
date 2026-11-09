@@ -2,7 +2,7 @@
 
 # Sub2API Custom Public
 
-[![Release](https://img.shields.io/badge/Release-v0.5.2-blue.svg)](https://github.com/y1yyum/sub2api-custom-public/releases)
+[![Release](https://img.shields.io/github/v/release/y1yyum/sub2api-custom-public?label=Release)](https://github.com/y1yyum/sub2api-custom-public/releases)
 [![Go Version](https://img.shields.io/badge/Go-1.27.3-00ADD8.svg)](https://golang.org/)
 [![Vue Version](https://img.shields.io/badge/Vue-3.4+-4FC08D.svg)](https://vuejs.org/)
 [![Docker Multi-Arch](https://img.shields.io/badge/Docker-amd64%20%7C%20arm64-2496ED.svg)](https://github.com/y1yyum/sub2api-custom-public/pkgs/container/sub2api-custom-public)
@@ -10,7 +10,7 @@
 
 **面向高可用实机生产环境的 AI API 聚合网关与订阅分发平台（基于 [Wei-Shaw/sub2api](https://github.com/Wei-Shaw/sub2api) 二开强化版）**
 
-[快速部署](#-快速实机部署) • [v0.5.2 核心特性](#-v052-核心特性与二开增强) • [数据库迁移](#-数据库迁移规范与向前兼容) • [升级与运维](#-升级与运维指南) • [供应链安全](#-供应链安全与可验证交付)
+[快速部署](#-快速实机部署) • [核心特性](#-核心特性与二开增强) • [数据库迁移](#-数据库迁移规范与向前兼容) • [升级与运维](#-升级与运维指南) • [供应链安全](#-供应链安全与可验证交付)
 
 </div>
 
@@ -18,9 +18,9 @@
 
 ## 📖 项目简介
 
-**Sub2API Custom Public** 是专为实机 Docker 生产环境打造的不可变 AI API 网关与配额管理平台。当前最新公开发行版本为 **v0.5.2**。
+**Sub2API Custom Public** 是专为实机 Docker 生产环境打造的不可变 AI API 网关与配额管理平台。当前正式版本、校验和及镜像 Digest 见[最新 Release](https://github.com/y1yyum/sub2api-custom-public/releases/latest)。
 
-在官方 Sub2API 核心能力的基础上，本项目已深度合并上游至 `4a4a83ee`（涵盖 v0.2.18 与 v0.2.19 核心生态兼容与安全加固），解决了高并发流式计费丢失、客户端断连漏扣、OAuth 凭据刷新悬挂、SSRF 探测逃逸及顶层模型混淆注入等关键生产缺陷。
+在官方 Sub2API 核心能力的基础上，本项目已深度合并上游至 `25608d216`（涵盖 v0.2.18 与 v0.2.19 核心生态兼容与安全加固），解决了高并发流式计费丢失、客户端断连漏扣、OAuth 凭据刷新悬挂、SSRF 探测逃逸及顶层模型混淆注入等关键生产缺陷。
 
 本项目提供专属的莱茵生命（Rhine Lab）主题门户与极客像素交互；支持管理 MCP 与 MCP OAuth 授权码体系（PKCE）；内置定时智力测试（quiz）题库本地图片渲染与多模态原生图片探测，配合自动下线与隔离策略保障上游账号质量；并在管理端调用日志中提供透明的流式响应诊断（用量缩放、输入变化率、流完整性）。
 
@@ -28,7 +28,7 @@
 
 ---
 
-## 🚀 v0.5.2 核心特性与二开增强
+## 🚀 核心特性与二开增强
 
 ### 1. 🎨 莱茵生命主题门户与前端交互增强 (Custom Portal)
 - **全新极客像素风格**：基于 `frontend/src/custom-portal/` 重构的 Rhine Lab 风格视觉体系，内嵌像素艺术图标系统（Pixel Art Icons）、定制线框与高对比度状态面板。
@@ -86,6 +86,11 @@
   - 支持按操作资源、分组、账户类型、IP/CIDR 掩码及过期时间配置的受限运维 Token，密钥只哈希存盘且支持二次验证（Step-up Auth），详见 [受限管理员密钥指南](docs/admin-api-keys.md)。
 - **全权限模式与用量统计 (v0.5.0)**：
   - 完善全权限模式与用量统计接口，修正权限判定边界。
+
+### 8. 门户、集中智力检测与可选网关（v0.6.0）
+- 用户门户更新概览、API Key、用量和钱包页面；管理员可在统一页面维护智力检测计划与图片题库。
+- 常规镜像仍只启动 Core。源码另提供默认关闭的受信桥接、影子选号、严格选号试点与独立调度工具；没有随镜像自动启用团队预算或账本。
+- 相对 v0.5.2，公开 Core 无新增自动数据库迁移；试点的独立扩展 SQL、切换前提和回退边界见 [v0.6.0 发布说明](https://github.com/y1yyum/sub2api-custom-public/releases/tag/v0.6.0)。
 
 ---
 
@@ -152,10 +157,10 @@ TOTP_ENCRYPTION_KEY=generate_a_random_32_byte_base64_string
 
 ### 2. 使用官方预构建镜像运行（推荐）
 
-直接在 `deploy/.env` 中指定 `v0.5.2` 镜像版本即可跳过本地耗时编译：
+直接在 `deploy/.env` 中指定 `v0.6.0` 镜像版本即可跳过本地耗时编译：
 
 ```ini
-SUB2API_IMAGE=ghcr.io/y1yyum/sub2api-custom-public:0.5.2
+SUB2API_IMAGE=ghcr.io/y1yyum/sub2api-custom-public:0.6.0
 ```
 
 执行容器拉取与启动：
@@ -182,7 +187,7 @@ docker compose -f deploy/docker-compose.local.yml up -d --build
 
 ## 🔄 升级与运维指南
 
-### 标准升级流程（升级至 v0.5.2）
+### 标准升级流程（升级至 v0.6.0）
 
 升级前请务必完整备份 `deploy/` 下的持久化数据目录及 `.env` 配置文件：
 
@@ -194,7 +199,7 @@ tar -czvf sub2api-backup-$(date +%F).tar.gz deploy/postgres_data deploy/data dep
 git pull --ff-only origin main
 
 # 3. 更新或配置 deploy/.env 中的镜像版本（存在则替换，缺失则追加）
-grep -q '^SUB2API_IMAGE=' deploy/.env && sed -i 's|^SUB2API_IMAGE=.*|SUB2API_IMAGE=ghcr.io/y1yyum/sub2api-custom-public:0.5.2|' deploy/.env || echo 'SUB2API_IMAGE=ghcr.io/y1yyum/sub2api-custom-public:0.5.2' >> deploy/.env
+grep -q '^SUB2API_IMAGE=' deploy/.env && sed -i 's|^SUB2API_IMAGE=.*|SUB2API_IMAGE=ghcr.io/y1yyum/sub2api-custom-public:0.6.0|' deploy/.env || echo 'SUB2API_IMAGE=ghcr.io/y1yyum/sub2api-custom-public:0.6.0' >> deploy/.env
 
 # 4. 更新镜像并启动（应用启动时会自动安全执行向前迁移）
 docker compose -f deploy/docker-compose.local.yml pull sub2api
@@ -222,7 +227,7 @@ docker compose -f deploy/docker-compose.local.yml ps
 
 - **自动化 CI 门禁**：每个 PR 必须通过包含 Go 单元测试、集成测试、前端 Lint & 关键 Vitest、golangci-lint 及变更集密钥扫描的完整门禁闭包。
 - **不可变 OCI 多架构镜像**：
-  - 镜像地址：`ghcr.io/y1yyum/sub2api-custom-public:0.5.2`（支持 `linux/amd64` 与 `linux/arm64`）。
+  - 镜像地址：`ghcr.io/y1yyum/sub2api-custom-public:0.6.0`（支持 `linux/amd64` 与 `linux/arm64`）。
   - 生产环境建议通过不可变 Digest 进行精准部署。
 - **官方二进制归档与校验和**：
   - 每个正式 Release 均由 GitHub Actions 官方流水线通过 GoReleaser 自动构建多平台二进制归档包，并同步提供 `checksums.txt`（SHA256）校验清单。

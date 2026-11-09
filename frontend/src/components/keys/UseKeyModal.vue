@@ -1,8 +1,7 @@
 <template>
-  <BaseDialog
-    :show="show"
-    :title="t('keys.useKeyModal.title')"
-    width="wide"
+  <component
+    :is="embedded ? 'section' : BaseDialog"
+    v-bind="embedded ? {} : { show, title: t('keys.useKeyModal.title'), width: 'wide' as const }"
     @close="emit('close')"
   >
     <div class="space-y-4">
@@ -253,7 +252,7 @@
       </template>
     </div>
 
-    <template #footer>
+    <template v-if="!embedded" #footer>
       <div class="flex justify-end">
         <button
           @click="emit('close')"
@@ -263,7 +262,7 @@
         </button>
       </div>
     </template>
-  </BaseDialog>
+  </component>
 </template>
 
 <script setup lang="ts">
@@ -283,6 +282,7 @@ import {
 } from '@/utils/codexCatalogConfig'
 
 interface Props {
+  embedded?: boolean
   show: boolean
   apiKey: string
   baseUrl: string

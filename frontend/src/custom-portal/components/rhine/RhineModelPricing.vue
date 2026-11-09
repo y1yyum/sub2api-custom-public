@@ -6,31 +6,36 @@
     data-testid="rhine-model-pricing"
     :data-state="state"
   >
+    <div class="pricing-heading"><strong>{{ pt('rhineHome.pricing.label') }}</strong><span>{{ pt('rhineHome.pricing.unit') }}</span></div>
     <div class="model-columns" :title="pt('rhineHome.pricing.priceHint')">
       <span>{{ pt('rhineHome.pricing.columnModel') }}</span>
       <span>{{ pt('rhineHome.pricing.columnInput') }}</span>
       <span>{{ pt('rhineHome.pricing.columnOutput') }}</span>
+      <span>{{ pt('refresh.availability') }}</span>
+      <span>{{ pt('refresh.cacheShort') }}</span>
     </div>
     <div class="model-rows" aria-live="polite">
-      <p v-if="state === 'loading'" class="status-empty">{{ pt('rhineHome.pricing.loading') }}</p>
+      <div v-if="state === 'loading'" class="space-y-4 py-6" role="status"><span class="sr-only">{{ pt('rhineHome.pricing.loading') }}</span><div v-for="n in 5" :key="n" class="h-8 bg-gray-100 dark:bg-dark-700" aria-hidden="true" /></div>
       <p v-else-if="state === 'unavailable'" class="status-empty">{{ pt('rhineHome.pricing.unavailable') }}</p>
       <p v-else-if="models.length === 0" class="status-empty">{{ pt('rhineHome.pricing.empty') }}</p>
       <template v-else>
         <div v-for="model in models" :key="model.id" class="model-row" data-testid="rhine-model-row">
           <div class="model-description">
             <strong :title="model.name">{{ model.name }}</strong>
-            <span>{{ model.platform }}</span>
+            <span>{{ platformLabel(model.platform) }}</span>
           </div>
           <template v-if="model.price.kind === 'token'">
             <span class="model-metric">{{ perMillion(model.price.input) }}</span>
             <span class="model-metric">{{ perMillion(model.price.output) }}</span>
           </template>
           <span v-else class="model-metric model-unit">{{ unitPrice(model.price) }}</span>
+          <span class="model-metric model-health" :data-health="statusOf(model)?.health" data-testid="rhine-model-availability">{{ formatPercent(statusOf(model)?.availability) }}</span>
+          <span class="model-metric model-health" data-testid="rhine-model-cache">{{ formatPercent(statusOf(model)?.cache) }}</span>
         </div>
       </template>
     </div>
     <div class="status-card-bottom">
-      <span class="status-unit">{{ pt('rhineHome.pricing.unit') }}</span>
+      <span class="status-unit" data-testid="rhine-model-status-note">{{ statusNote }}</span>
       <button
         type="button"
         :aria-label="pt('rhineHome.pricing.refresh')"
@@ -46,8 +51,12 @@
 </template>
 
 <script setup lang="ts">
-import { onBeforeUnmount, ref, shallowRef, watch } from 'vue'
+import { computed, onBeforeUnmount, ref, shallowRef, watch } from 'vue'
 import { formatScaled } from '@/utils/pricing'
+import { getCatalog, type CatalogHealth } from '@/api/channelStatusCatalog'
+import { platformLabel } from '@/utils/platformColors'
+import { formatPercent } from '@/features/model-channel-status/catalogFormat'
+import { rowCacheRate } from '@/features/model-channel-status/platformCards'
 import { usePortalI18n } from '../../i18n'
 import {
   fetchHomepageModels,
@@ -58,8 +67,16 @@ import {
 } from '../../api/homepage'
 
 type LoadState = 'loading' | 'ready' | 'unavailable'
+/** `idle` while no prices load; `guest` and `off` mean the catalog may not be read. */
+type HealthState = 'idle' | 'guest' | 'off' | 'loading' | 'ready' | 'failed'
+interface ModelStatus {
+  health: CatalogHealth
+  availability: number | null
+  cache: number | null
+}
 
-const props = defineProps<{ access: PlazaAccess }>()
+/** `status`: `on` when the visitor may read the channel catalog (signed in, unified page enabled). */
+const props = defineProps<{ access: PlazaAccess; status: 'guest' | 'off' | 'on' }>()
 
 const PER_MILLION = 1_000_000
 const MIN_DECIMALS = 2
@@ -67,7 +84,18 @@ const MIN_DECIMALS = 2
 const { pt } = usePortalI18n()
 const state = ref<LoadState>('loading')
 const models = shallowRef<HomepageModel[]>([])
+const healthState = ref<HealthState>('idle')
+const callWindow = ref<number | null>(null)
+const statuses = shallowRef(new Map<string, ModelStatus>())
 let controller: AbortController | null = null
+
+const statusNote = computed(() => {
+  if (healthState.value === 'idle') return pt('rhineHome.pricing.unit')
+  if (healthState.value === 'ready' && callWindow.value !== null) {
+    return pt('refresh.homeStatus.readyCalls', { count: callWindow.value })
+  }
+  return pt(`refresh.homeStatus.${healthState.value}`)
+})
 
 function perMillion(value: number | null): string {
   return formatScaled(value, PER_MILLION, MIN_DECIMALS)
@@ -78,6 +106,41 @@ function unitPrice(price: Extract<HomepageModelPrice, { unit: number }>): string
   return `${formatScaled(price.unit, 1, MIN_DECIMALS)} ${suffix}`
 }
 
+function statusOf(model: HomepageModel): ModelStatus | undefined {
+  return statuses.value.get(`${model.groupId}:${model.platform}:${model.name}`)
+}
+
+// Status is optional beside the prices, so its failure only changes the footnote.
+async function loadStatus(current: AbortController): Promise<void> {
+  statuses.value = new Map()
+  callWindow.value = null
+  if (props.status !== 'on') {
+    healthState.value = props.status
+    return
+  }
+  healthState.value = 'loading'
+  try {
+    const catalog = await getCatalog('24h', current.signal)
+    if (controller !== current) return
+    if (catalog.status_error_code) {
+      healthState.value = 'failed'
+      return
+    }
+    callWindow.value = catalog.strip.mode === 'calls' ? catalog.strip.call_window : null
+    statuses.value = new Map(
+      catalog.groups.flatMap((group) =>
+        group.models.map((row): [string, ModelStatus] => [
+          `${group.id}:${row.platform}:${row.name}`,
+          { health: row.health, availability: row.health === 'unknown' ? null : row.success_rate, cache: rowCacheRate(row) }
+        ])
+      )
+    )
+    healthState.value = 'ready'
+  } catch {
+    if (controller === current) healthState.value = 'failed'
+  }
+}
+
 async function load(): Promise<void> {
   if (controller || props.access !== 'open') return
   const current = new AbortController()
@@ -85,10 +148,15 @@ async function load(): Promise<void> {
   state.value = 'loading'
   const timer = setTimeout(() => current.abort(), HOMEPAGE_MODELS_TIMEOUT_MS)
   try {
-    models.value = await fetchHomepageModels(current.signal)
+    const [list] = await Promise.all([fetchHomepageModels(current.signal), loadStatus(current)])
+    if (controller !== current) return
+    models.value = list
     state.value = 'ready'
   } catch {
+    if (controller !== current) return
+    current.abort()
     models.value = []
+    healthState.value = 'idle'
     state.value = 'unavailable'
   } finally {
     clearTimeout(timer)
@@ -102,11 +170,13 @@ function abort() {
 }
 
 watch(
-  () => props.access,
-  (access) => {
-    if (access === 'open') return void load()
+  () => [props.access, props.status] as const,
+  ([access]) => {
     abort()
+    if (access === 'open') return void load()
     models.value = []
+    statuses.value = new Map()
+    healthState.value = 'idle'
     state.value = access === 'pending' ? 'loading' : 'unavailable'
   },
   { immediate: true }
@@ -310,4 +380,31 @@ defineExpose({ load })
   }
 }
 
-/* Forced colours repaint borders but not border images, which would keep the landing ink. */</style>
+.model-columns, .model-row { grid-template-columns: minmax(0, 1fr) repeat(4, 64px); }
+.model-columns { font-size: 12px; }
+.model-description strong { font-size: 13px; font-weight: 500; }
+.model-description > span, .status-card-bottom { font-size: 12px; }
+.model-unit { grid-column: 2 / 4; }
+.model-health { text-align: right; }
+@media (max-width: 639px) {
+  .model-columns, .model-row { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  .model-columns > span:first-child, .model-description { grid-column: 1 / -1; }
+  .model-unit { grid-column: 1 / 3; }
+}
+.model-row { padding: 16px 0; }
+.model-columns, .model-metric, .model-description strong, .model-description > span, .status-card-bottom, .status-empty { color: var(--pp-ink); }
+.model-rows { justify-content: flex-start; }
+.status-empty { background-color: var(--pp-surface-2); }
+.pricing-heading { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; padding: 14px 12px 10px; font: 13px/20px system-ui, sans-serif; }
+.pricing-heading span { font-size: 12px; opacity: 0.8; }
+.model-columns { padding: 10px 12px; border-bottom: 2px solid var(--pp-ink); font-weight: 400; letter-spacing: 0; }
+.model-row { padding: 8px 12px; border-color: var(--pp-divider); }
+.model-description strong { font: 500 13px/20px ui-monospace, 'Cascadia Mono', Consolas, monospace; }
+.model-description > span { margin-top: 0; font: 12px/16px system-ui, sans-serif; opacity: 0.8; }
+.model-health[data-health]::before { content: ''; display: inline-block; box-sizing: border-box; width: 8px; height: 8px; margin-right: 6px; vertical-align: 1px; border: 1px solid currentColor; background: var(--pp-tone-mint-mid); }
+.model-health[data-health='warning']::before { background: var(--pp-tone-butter-mid); }
+.model-health[data-health='critical']::before { background: var(--pp-tone-peach-mid); }
+.model-health[data-health='unknown']::before { display: none; }
+.model-health[data-health='critical'] { color: var(--pp-tone-peach-ink); }
+.status-card-bottom { padding: 10px 12px; border-top: 1px solid var(--pp-divider); }
+</style>

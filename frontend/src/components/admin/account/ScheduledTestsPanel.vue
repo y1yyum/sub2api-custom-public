@@ -12,9 +12,14 @@
           {{ t('admin.scheduledTests.title') }}
         </p>
         <div class="flex items-center gap-2">
-          <button class="btn btn-secondary text-sm" @click="showQuestionBank = true">
+          <RouterLink
+            :to="{ path: '/admin/intelligence', query: { tab: 'questions' } }"
+            class="btn btn-secondary text-sm"
+            data-test="bank-page-link"
+            @click="emit('close')"
+          >
             {{ t('admin.scheduledTestKinds.openBank') }}
-          </button>
+          </RouterLink>
           <button
             @click="showAddForm = !showAddForm"
             class="btn btn-primary flex items-center gap-1.5 text-sm"
@@ -524,7 +529,7 @@ import ScheduledTestResultMeta from './ScheduledTestResultMeta.vue'
 import IntelligenceQuestionBankModal from './IntelligenceQuestionBankModal.vue'
 import { useScheduledTestKinds, newKindFields, kindFieldsFromPlan, kindFieldsRequest } from './useScheduledTestKinds'
 import { mappedModelLabel } from '@/utils/scheduledTestModels'
-import type { ScheduledTestPlan, ScheduledTestResult } from '@/types'
+import type { ScheduledTestKind, ScheduledTestPlan, ScheduledTestResult } from '@/types'
 
 const { t } = useI18n()
 const appStore = useAppStore()
@@ -533,6 +538,10 @@ const props = defineProps<{
   show: boolean
   accountId: number | null
   modelOptions: SelectOption[]
+  /** Opens this plan's edit form once the plans load. */
+  editPlanId?: number | null
+  /** Opens the add form with this kind selected. */
+  addKind?: ScheduledTestKind | null
 }>()
 
 const emit = defineEmits<{
@@ -602,6 +611,12 @@ watch(
   async (visible) => {
     if (visible && props.accountId) {
       await loadPlans()
+      const target = plans.value.find((p) => p.id === props.editPlanId)
+      if (target) startEdit(target)
+      if (props.addKind) {
+        newPlan.kind = props.addKind
+        showAddForm.value = true
+      }
     } else {
       plans.value = []
       results.value = []

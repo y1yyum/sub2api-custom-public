@@ -9,6 +9,7 @@ import (
 	"strings"
 	"testing"
 
+	pkghttputil "github.com/Wei-Shaw/sub2api/internal/pkg/httputil"
 	"github.com/gin-gonic/gin"
 )
 
@@ -135,5 +136,18 @@ func TestGatewayModelUniquenessEndpointCompressedExpansion(t *testing.T) {
 	r.ServeHTTP(w, req)
 	if w.Code != http.StatusRequestEntityTooLarge || strings.Contains(w.Body.String(), "duplicate model field") {
 		t.Fatalf("decoded cap must precede scan: %d %s", w.Code, w.Body.String())
+	}
+}
+
+func TestGatewayModelUniquenessReportsBodyMemoryOverload(t *testing.T) {
+	r := gin.New()
+	r.POST("/*path", RequestBodyLimit(4096, pkghttputil.NewBodyMemoryBudget(256)), GatewayJSONModelUniqueness(4096), func(c *gin.Context) {
+		t.Fatal("overloaded request reached handler")
+	})
+	w := httptest.NewRecorder()
+	body := `{"model":"a","input":"` + strings.Repeat("x", 700) + `"}`
+	r.ServeHTTP(w, httptest.NewRequest(http.MethodPost, "/v1/responses", strings.NewReader(body)))
+	if w.Code != http.StatusServiceUnavailable || w.Header().Get("Retry-After") != "1" {
+		t.Fatalf("status=%d retry-after=%q body=%s", w.Code, w.Header().Get("Retry-After"), w.Body.String())
 	}
 }

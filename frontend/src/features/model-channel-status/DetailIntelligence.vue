@@ -10,7 +10,8 @@
       {{ t('modelChannelStatus.detail.intelligence.unavailable') }}
     </p>
     <template v-else>
-      <div v-if="data.quiz.items.length > 0" class="flex items-center gap-3" data-testid="intelligence-quiz">
+      <div v-if="data.quiz.items.length && data.char_art.length" class="mb-3 flex gap-1" role="group" :aria-label="t('modelChannelStatus.detail.intelligence.title')"><button v-for="kind in ['quiz', 'charArt'] as const" :key="kind" type="button" class="border px-3 py-1 text-xs" :class="selection?.kind === kind ? 'bg-gray-900 text-white dark:bg-dark-100 dark:text-dark-900' : ''" :aria-pressed="selection?.kind === kind" @click="select(kind, (kind === 'quiz' ? data.quiz.items.length : data.char_art.length) - 1)">{{ t(`modelChannelStatus.detail.intelligence.${kind}`) }}</button></div>
+      <div v-if="data.quiz.items.length > 0" v-show="selection?.kind === 'quiz'" class="flex items-center gap-3" data-testid="intelligence-quiz">
         <span class="w-12 shrink-0 text-xs text-gray-500 dark:text-dark-400">{{ t('modelChannelStatus.detail.intelligence.quiz') }}</span>
         <div class="flex h-5 flex-1 items-stretch gap-px" role="group" :aria-label="t('modelChannelStatus.detail.intelligence.quiz')">
           <button
@@ -35,7 +36,7 @@
         </span>
       </div>
 
-      <div v-if="data.char_art.length > 0" class="mt-2 flex items-center gap-3" data-testid="intelligence-char-art">
+      <div v-if="data.char_art.length > 0" v-show="selection?.kind === 'charArt'" class="mt-2 flex items-center gap-3" data-testid="intelligence-char-art">
         <span class="w-12 shrink-0 text-xs text-gray-500 dark:text-dark-400">{{ t('modelChannelStatus.detail.intelligence.charArt') }}</span>
         <div
           ref="charScroller"

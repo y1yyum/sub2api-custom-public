@@ -1,5 +1,5 @@
 <template>
-  <div class="space-y-4">
+  <div class="amount-input space-y-4" :class="{ 'portal-amount-input': portal }">
     <!-- Quick Amount Buttons -->
     <div>
       <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
@@ -19,6 +19,7 @@
                 : 'border-gray-200 bg-white text-gray-700 hover:border-gray-300 dark:border-dark-600 dark:bg-dark-800 dark:text-gray-200 dark:hover:border-dark-500',
           ]"
           :data-testid="`quick-amount-${amt}`"
+          :aria-pressed="modelValue === amt"
           @click="selectAmount(amt)"
         >
           <!-- 促销价签（单行）：仅命中档位的金额显示；红底白字、内圈点线、右侧圆孔、整体旋转 -->
@@ -34,10 +35,11 @@
               <span class="h-1 w-1 shrink-0 rounded-full bg-white"></span>
             </span>
           </span>
-          <span class="block">{{ amt }}</span>
+          <span class="amount-value block">{{ portal ? currencySymbol(currency || 'USD') : '' }}{{ amt }}</span>
+          <span v-if="portal && lastAmount === amt" class="mt-1 block text-xs text-gray-500 dark:text-dark-400">{{ pt('refresh.lastAmount') }}</span>
           <!-- 配置了优惠阶梯时，所有按钮都显示第二行，保持高度一致：赠金显示到账 USD，折扣显示折后实付 -->
           <span
-            v-if="showSecondLine"
+            v-if="showSecondLine || portal"
             :class="[
               'mt-0.5 block text-[11px] font-normal leading-tight',
               quoteFor(amt).percent > 0 ? 'text-red-600 dark:text-red-300' : 'text-gray-400 dark:text-gray-500',
@@ -55,7 +57,7 @@
       </label>
       <div class="relative">
         <span class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 dark:text-dark-500">
-          $
+          {{ portal ? currencySymbol(currency || 'USD') : '$' }}
         </span>
         <input
           type="text"
@@ -75,7 +77,10 @@ import { ref, computed, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import type { RechargeBonusTier } from '@/types/payment'
 import { formatRechargeBonusNumber, quoteRechargeBonus, type RechargeBonusMode } from '@/utils/rechargeBonus'
-import { formatPaymentAmount } from './currency'
+import { currencySymbol, formatPaymentAmount } from './currency'
+import { useStorage } from '@vueuse/core'
+import { portalPagesActive } from '@/custom-portal/pageRoutes'
+import { usePortalI18n } from '@/custom-portal/i18n'
 
 const props = withDefaults(defineProps<{
   amounts?: number[]
@@ -105,6 +110,10 @@ const emit = defineEmits<{
 }>()
 
 const { t } = useI18n()
+const { pt } = usePortalI18n()
+const portal = portalPagesActive()
+const lastChoice = useStorage('portal-last-recharge', { currency: '', amount: 0 }, undefined, { writeDefaults: false })
+const lastAmount = computed(() => lastChoice.value.currency === (props.currency || 'USD') ? lastChoice.value.amount : null)
 
 const customText = ref('')
 
@@ -156,6 +165,7 @@ const placeholderText = computed(() => {
 const AMOUNT_PATTERN = /^\d*(\.\d{0,2})?$/
 
 function selectAmount(amt: number) {
+  if (portal) lastChoice.value = { currency: props.currency || 'USD', amount: amt }
   customText.value = String(amt)
   emit('update:modelValue', amt)
 }

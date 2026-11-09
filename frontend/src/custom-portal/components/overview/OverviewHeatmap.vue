@@ -1,6 +1,6 @@
 <template>
   <section ref="root" class="card space-y-3 p-4" :aria-labelledby="titleId" data-testid="overview-heatmap">
-    <div class="flex items-center justify-between gap-2">
+    <div class="heatmap-heading flex flex-wrap items-center justify-between gap-2">
       <h2 :id="titleId" class="text-sm font-semibold text-gray-900 dark:text-white" :title="pt('pages.overview.heatmap.hint')">
         {{ pt('pages.overview.heatmap.title') }}
       </h2>
@@ -10,7 +10,7 @@
         <span>{{ pt('pages.overview.heatmap.more') }}</span>
       </div>
     </div>
-    <p v-if="heatmap.loaded.value" class="sr-only" data-testid="overview-heatmap-summary">
+    <p v-if="heatmap.loaded.value" class="text-xs text-gray-500 dark:text-dark-400" data-testid="overview-heatmap-summary">
       {{ pt('pages.overview.heatmap.summary', { requests: totalRequests.toLocaleString(), days: activeDays }) }}
     </p>
 
@@ -21,26 +21,17 @@
       data-testid="overview-heatmap-loading"
     ></div>
 
-    <div
+    <PortalState
       v-else-if="heatmap.error.value"
-      class="flex flex-col items-center justify-center gap-2 py-8 text-sm text-red-600 dark:text-red-400"
-      role="alert"
+      kind="error"
+      compact
+      :title="pt('pages.overview.heatmap.error')"
       data-testid="overview-heatmap-error"
-    >
-      <span>{{ pt('pages.overview.heatmap.error') }}</span>
-      <button
-        type="button"
-        class="btn btn-secondary btn-sm"
-        :disabled="heatmap.loading.value"
-        data-testid="overview-heatmap-retry"
-        @click="retry"
-      >
-        {{ pt('pages.overview.heatmap.retry') }}
-      </button>
-    </div>
+      @retry="retry"
+    />
 
-    <div v-else-if="heatmap.loaded.value" class="relative" :class="{ 'opacity-60': heatmap.loading.value }">
-      <div ref="scroller" class="overflow-x-auto pb-1">
+    <div v-else-if="heatmap.loaded.value" class="relative grid gap-4 xl:grid-cols-[minmax(0,1fr)_240px]" :class="{ 'opacity-60': heatmap.loading.value }">
+      <div ref="scroller" class="min-w-0 overflow-x-auto pb-1">
         <div class="inline-flex flex-col" :style="{ gap: `${GAP}px` }">
           <div class="flex" :style="{ gap: `${GAP}px`, paddingLeft: `${LABEL_WIDTH + GAP}px` }" aria-hidden="true">
             <span
@@ -95,6 +86,18 @@
         </div>
       </div>
 
+      <aside class="border border-gray-200 bg-gray-50 p-4 dark:border-dark-700 dark:bg-dark-900" data-testid="overview-heatmap-detail" aria-live="polite">
+        <p class="text-xs text-gray-500 dark:text-dark-400">{{ pt('refresh.selectedDay') }}</p>
+        <template v-if="detailCell">
+          <p class="my-2 font-mono text-sm">{{ formatDay(detailCell.date) }}</p>
+          <dl class="space-y-2 text-sm">
+            <div class="flex justify-between gap-3"><dt>{{ pt('pages.overview.heatmap.requests') }}</dt><dd>{{ detailCell.point.requests.toLocaleString() }}</dd></div>
+            <div class="flex justify-between gap-3"><dt>{{ pt('pages.overview.heatmap.tokens') }}</dt><dd>{{ formatCompactNumber(detailCell.point.total_tokens) }}</dd></div>
+            <div class="flex justify-between gap-3"><dt>{{ pt('pages.overview.heatmap.cost') }}</dt><dd>{{ formatUsd(detailCell.point.actual_cost) }}</dd></div>
+          </dl>
+        </template>
+        <p class="mt-3 text-xs text-gray-500 dark:text-dark-400">{{ pt('refresh.dayHint') }}</p>
+      </aside>
       <div
         v-if="tip && tipCell"
         :id="tipId"
@@ -117,6 +120,7 @@ import { computed, nextTick, onMounted, ref, useId } from 'vue'
 import { useIntersectionObserver, useResizeObserver } from '@vueuse/core'
 import type { TrendDataPoint } from '@/types'
 import { formatCompactNumber } from '@/utils/format'
+import PortalState from '../common/PortalState.vue'
 import { usePortalI18n } from '../../i18n'
 import { injectOverviewState } from '../../overview/usageChartState'
 import { addDays, parseDateKey } from '../../overview/usageChartData'
@@ -214,7 +218,7 @@ const cellStyle = computed(() => ({ width: `${cellSize.value}px`, height: `${cel
 const totalRequests = computed(() => heatmap.points.value.reduce((sum, point) => sum + point.requests, 0))
 const activeDays = computed(() => heatmap.points.value.filter((point) => point.requests > 0).length)
 
-useResizeObserver(root, (entries) => {
+useResizeObserver(scroller, (entries) => {
   const entry = entries[0]
   if (entry) containerWidth.value = entry.contentRect.width
 })
@@ -276,8 +280,11 @@ function drill(date: string) {
 
 const tip = ref<{ date: string; x: number; y: number } | null>(null)
 const tipCell = computed(() => (tip.value ? cellsByDate.value.get(tip.value.date) ?? null : null))
+const detailDate = ref<string | null>(null)
+const detailCell = computed(() => cellsByDate.value.get(detailDate.value ?? focusDate.value ?? '') ?? null)
 
 function showTip(date: string, event: Event) {
+  detailDate.value = date
   const target = event.currentTarget as HTMLElement | null
   const wrapper = scroller.value?.parentElement
   if (!target || !wrapper) return
@@ -305,3 +312,11 @@ function formatUsd(value: number): string {
   return `$${value.toFixed(value >= 1 ? 2 : 4)}`
 }
 </script>
+
+<style scoped>
+.heatmap-heading { margin: -16px -16px 0; padding: 12px 16px; border-bottom: 1px solid var(--pp-divider); }
+[data-level='1'] { background-color: var(--pp-heat-1); }
+[data-level='2'] { background-color: var(--pp-heat-2); }
+[data-level='3'] { background-color: var(--pp-heat-3); }
+[data-level='4'] { background-color: var(--pp-heat-4); }
+</style>

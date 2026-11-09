@@ -91,6 +91,19 @@ func (h *ScheduledTestHandler) ListQuestions(c *gin.Context) {
 	c.JSON(http.StatusOK, questions)
 }
 
+// ListIntelligencePlans GET /admin/intelligence-plans
+func (h *ScheduledTestHandler) ListIntelligencePlans(c *gin.Context) {
+	plans, err := h.scheduledTestSvc.ListIntelligencePlans(c.Request.Context())
+	if err != nil {
+		response.ErrorFrom(c, err)
+		return
+	}
+	if plans == nil {
+		plans = []*service.IntelligencePlanOverview{}
+	}
+	c.JSON(http.StatusOK, plans)
+}
+
 // CreateQuestion POST /admin/intelligence-questions
 func (h *ScheduledTestHandler) CreateQuestion(c *gin.Context) {
 	var req intelligenceQuestionRequest

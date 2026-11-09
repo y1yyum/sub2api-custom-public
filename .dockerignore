@@ -96,3 +96,7 @@ CLAUDE.md
 /deploy/local-gitea/backup/
 /deploy/local-gitea/.env
 **/.runner
+
+# 本地 UI 验收的浏览器记录、夹具与构建输出不进入镜像上下文（Issue #201）。
+/.playwright-cli/
+/output/

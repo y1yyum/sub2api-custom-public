@@ -5,77 +5,55 @@
     :class="{ 'is-entering': entryState === 'entering', entered: entryState === 'entered' }"
     data-testid="rhine-home"
   >
-    <div class="registration-grid" aria-hidden="true">
-      <i v-for="n in 12" :key="n"></i>
-    </div>
+    <nav class="home-top-nav" :aria-label="pt('rhineHome.nav.label')">
+      <router-link to="/" class="flex items-center gap-3 font-semibold"><img :src="PIXEL_LOGO_DATA_URI" alt="" class="h-8 w-8" />{{ siteName }}</router-link>
+      <div class="home-nav-links hidden items-center gap-6 lg:flex">
+        <router-link to="/home">{{ pt('refresh.home') }}</router-link>
+        <router-link v-if="showPricingLink" :to="`${MODELS_PATH}?view=pricing`">{{ pt('rhineHome.nav.models') }}</router-link>
+        <router-link :to="MODELS_PATH">{{ pt('refresh.status') }}</router-link>
+        <a v-if="docUrl" :href="docUrl" target="_blank" rel="noopener noreferrer">{{ pt('rhineHome.nav.docs') }}</a>
+      </div>
+      <div class="ml-auto flex flex-wrap items-center gap-3"><LocaleSwitcher /><ThemeToggle /><router-link v-if="!authStore.isAuthenticated" class="btn btn-secondary" to="/login" data-testid="home-login">{{ pt('refresh.login') }}</router-link><router-link class="btn btn-secondary" :to="authStore.isAuthenticated ? dashboardPath : '/login?redirect=/dashboard'">{{ pt('refresh.start') }}</router-link></div>
+    </nav>
 
     <header class="brand">
       <div class="brand-name" :aria-label="siteName">
         <span>{{ wordmark.head }}</span><span v-if="wordmark.tail">{{ wordmark.tail }}</span><b aria-hidden="true">+</b>
       </div>
       <div class="brand-subtitle">UNIFIED MODEL ACCESS</div>
-      <div class="brand-system">AI <span>GATEWAY</span><i aria-hidden="true"></i></div>
+      <div class="brand-system">AI <span>{{ pt('refresh.gateway') }}</span></div>
       <div class="brand-caption">{{ pt('rhineHome.caption') }}</div>
+      <p class="home-lead">{{ pt('rhineHome.info.copy', { site: siteName }) }}</p>
+      <router-link class="btn btn-primary mt-5" :to="authStore.isAuthenticated ? '/keys' : '/login?redirect=/keys'" data-testid="home-get-key">{{ pt('refresh.getKey') }} →</router-link>
+      <router-link v-if="showPricingLink" class="btn btn-secondary ml-3 mt-5" :to="`${MODELS_PATH}?view=pricing`">{{ pt('rhineHome.nav.models') }}</router-link>
+      <div class="home-features">
+        <div v-for="(icon, index) in ['users', 'bolt', 'swap', 'dollar'] as const" :key="icon">
+          <PixelIcon :name="icon" size="sm" />
+          <div><h2>{{ pt(`refresh.featureTitles.${index}`) }}</h2><p>{{ pt(`refresh.featureDescriptions.${index}`) }}</p></div>
+        </div>
+      </div>
     </header>
-
-    <div class="side-label" aria-hidden="true">{{ siteCode }} — UNIFIED ACCESS / DEVELOPER PORTAL</div>
 
     <section class="greeting" aria-labelledby="rhine-greeting-title">
       <div class="greeting-label">QUICK START <span aria-hidden="true">↗</span></div>
       <div class="quick-start" data-testid="rhine-quick-start">
         <h1 id="rhine-greeting-title">{{ pt('rhineHome.quickStart.title') }}</h1>
-        <span class="quick-label">BASE URL</span>
-        <code class="quick-url" data-testid="rhine-base-url">{{ baseUrl }}</code>
-        <div class="quick-actions">
-          <button type="button" data-testid="rhine-copy-url" @click="copy('url', baseUrl)">
-            {{ copyLabel('url', pt('rhineHome.quickStart.copyUrl')) }}
-          </button>
-          <button type="button" data-testid="rhine-copy-curl" @click="copy('curl', curlExample)">
-            {{ copyLabel('curl', pt('rhineHome.quickStart.copyCurl')) }}
-          </button>
-        </div>
-        <span class="title-square" aria-hidden="true"></span>
+        <ol class="home-steps">
+          <li><span class="step-number">1</span><span>{{ pt('refresh.createKey') }}</span><router-link class="step-action" :to="authStore.isAuthenticated ? '/keys' : '/login?redirect=/keys'">{{ pt('refresh.createKey') }} →</router-link></li>
+          <li><span class="step-number">2</span><span class="min-w-0"><span class="quick-label">BASE URL</span><code class="quick-url" data-testid="rhine-base-url">{{ baseUrl }}</code></span><button class="step-action" type="button" data-testid="rhine-copy-url" @click="copy('url', baseUrl)">{{ copyLabel('url', pt('rhineHome.quickStart.copyUrl')) }}</button></li>
+          <li><span class="step-number">3</span><span>Claude Code · Codex CLI · curl</span><button class="step-action" type="button" data-testid="rhine-copy-curl" @click="copy('curl', curlExample)">{{ copyLabel('curl', pt('rhineHome.quickStart.copyCurl')) }}</button></li>
+        </ol>
       </div>
       <p>{{ pt('rhineHome.greetingLead') }}<br />{{ pt('rhineHome.greetingTail') }}</p>
     </section>
 
     <section class="display-panel" :aria-label="pt('rhineHome.panelLabel')">
       <div class="panel-topline"><span>MODEL ACCESS PLATFORM</span><span>{{ siteCode }} / 01</span></div>
-      <div class="panel-corner corner-tl" aria-hidden="true"></div>
-      <div class="panel-corner corner-br" aria-hidden="true"></div>
 
-      <RhineModelPricing class="image-card" :access="plazaAccess" />
+      <RhineModelPricing class="image-card" :access="plazaAccess" :status="channelStatus" />
+    </section>
 
-      <nav class="section-nav" :aria-label="pt('rhineHome.nav.label')">
-        <template v-for="(item, index) in navItems" :key="item.key">
-          <a
-            v-if="item.external"
-            class="nav-item"
-            :href="item.target"
-            :title="item.title"
-            target="_blank"
-            rel="noopener noreferrer"
-            :data-testid="`rhine-nav-${item.key}`"
-          >
-            <span class="nav-number">{{ navNumber(index, item.code) }}</span>
-            <span class="nav-name">{{ item.label }}</span>
-            <span class="nav-arrow" aria-hidden="true">{{ item.arrow }}</span>
-          </a>
-          <router-link
-            v-else
-            class="nav-item"
-            :class="{ 'primary-action': item.primary }"
-            :to="item.target"
-            :title="item.title"
-            :data-testid="`rhine-nav-${item.key}`"
-          >
-            <span class="nav-number">{{ navNumber(index, item.code) }}</span>
-            <span class="nav-name">{{ item.label }}</span>
-            <span class="nav-arrow" aria-hidden="true">{{ item.arrow }}</span>
-          </router-link>
-        </template>
-      </nav>
-
+    <div class="home-details">
       <section class="information" :aria-label="pt('rhineHome.info.label')">
         <div class="information-tab">PLATFORM / OVERVIEW</div>
         <div class="information-title">
@@ -87,15 +65,17 @@
           <span class="copy-mark" aria-hidden="true">+</span>
         </div>
       </section>
-
-      <div class="panel-index" aria-hidden="true"><span>API / GATEWAY</span><div></div><span>MODELS → APPS</span></div>
-    </section>
-
-    <aside class="identity" :aria-label="pt('rhineHome.identity.label')">
-      <div class="identity-label"><span>YOUR AI CONNECTION</span><span>{{ siteCode }}</span></div>
-      <div class="identity-name"><i aria-hidden="true"></i>{{ siteName }}</div>
-      <div class="identity-bottom"><span>API KEY · USAGE · BILLING</span><span>{{ pt('rhineHome.identity.audience') }}</span></div>
-    </aside>
+      <router-link
+        class="home-console"
+        :to="authStore.isAuthenticated ? dashboardPath : '/login?redirect=/dashboard'"
+        :title="authStore.isAuthenticated ? pt('rhineHome.nav.consoleTitle') : pt('rhineHome.nav.startTitle')"
+        data-testid="rhine-console"
+      >
+        <span class="nav-number">GET STARTED</span>
+        <span class="nav-name">{{ pt('rhineHome.nav.console') }}</span>
+        <span class="console-arrow" aria-hidden="true">→</span>
+      </router-link>
+    </div>
 
     <footer class="rh-footer">
       <div class="footer-copy"><span>{{ siteName }} · POWERED BY SUB2API</span><span>MODEL ACCESS · KEY MANAGEMENT</span></div>
@@ -115,6 +95,8 @@ import { computed, nextTick, onBeforeUnmount, onMounted, ref } from 'vue'
 import { useAppStore, useAuthStore } from '@/stores'
 import { useClipboard } from '@/composables/useClipboard'
 import LocaleSwitcher from '@/components/common/LocaleSwitcher.vue'
+import ThemeToggle from '@/components/common/ThemeToggle.vue'
+import PixelIcon from '../common/PixelIcon.vue'
 import { sanitizeUrl } from '@/utils/url'
 import { FeatureFlags, resolveFeatureFlag } from '@/utils/featureFlags'
 import { usePortalI18n } from '../../i18n'
@@ -123,17 +105,8 @@ import type { PlazaAccess } from '../../api/homepage'
 import RhineModelPricing from './RhineModelPricing.vue'
 import { buildQuickStartCurl, resolveQuickStartBaseUrl } from './quickStart'
 import { preloadPixelFont } from '../../theme/pixelFont'
+import { PIXEL_LOGO_DATA_URI } from '../../theme/pixelLogo'
 
-interface NavItem {
-  key: string
-  code: string
-  label: string
-  title: string
-  arrow: string
-  target: string
-  external?: boolean
-  primary?: boolean
-}
 
 type CopyTarget = 'url' | 'curl'
 
@@ -189,50 +162,26 @@ const plazaAccess = computed<PlazaAccess>(() => {
   if (!showModelPricing.value) return 'closed'
   return appStore.cachedPublicSettings?.model_plaza_require_auth && !authStore.isAuthenticated ? 'closed' : 'open'
 })
+// Same rule as isUnifiedModelChannelStatusEnabled, read from the pure resolver.
+const unifiedStatusPage = computed(() => {
+  const settings = appStore.cachedPublicSettings
+  return (
+    resolveFeatureFlag(settings, FeatureFlags.channelMonitor) &&
+    settings?.channel_monitor_mode === 'v2' &&
+    resolveFeatureFlag(settings, FeatureFlags.unifiedModelChannelStatus)
+  )
+})
+// The unified page replaces the pricing view, as in the portal nav.
+const showPricingLink = computed(() => showModelPricing.value && !unifiedStatusPage.value)
+// The catalog is a signed-in, opt-in API; a 401 would clear the session like the plaza does.
+const channelStatus = computed<'guest' | 'off' | 'on'>(() => {
+  if (!authStore.isAuthenticated) return 'guest'
+  return unifiedStatusPage.value ? 'on' : 'off'
+})
 // Only backend mode, where the user console is blocked, sends admins to /admin.
 const dashboardPath = computed(() =>
   authStore.isAdmin && appStore.backendModeEnabled ? '/admin/dashboard' : '/dashboard'
 )
-
-const navItems = computed<NavItem[]>(() => {
-  const items: NavItem[] = []
-  if (showModelPricing.value) {
-    items.push({
-      key: 'models',
-      code: 'MODELS',
-      label: pt('rhineHome.nav.models'),
-      title: pt('rhineHome.nav.modelsTitle'),
-      arrow: '↗',
-      target: `${MODELS_PATH}?view=pricing`
-    })
-  }
-  if (docUrl.value) {
-    items.push({
-      key: 'docs',
-      code: 'DOCUMENTS',
-      label: pt('rhineHome.nav.docs'),
-      title: pt('rhineHome.nav.docsTitle'),
-      arrow: '↗',
-      target: docUrl.value,
-      external: true
-    })
-  }
-  const signedIn = authStore.isAuthenticated
-  items.push({
-    key: 'start',
-    code: 'GET STARTED',
-    label: signedIn ? pt('rhineHome.nav.console') : pt('rhineHome.nav.start'),
-    title: signedIn ? pt('rhineHome.nav.consoleTitle') : pt('rhineHome.nav.startTitle'),
-    arrow: '→',
-    target: signedIn ? dashboardPath.value : '/login?redirect=/dashboard',
-    primary: true
-  })
-  return items
-})
-
-function navNumber(index: number, code: string): string {
-  return `${String(index + 1).padStart(2, '0')} / ${code}`
-}
 
 function prefersReducedMotion(): boolean {
   return typeof window.matchMedia === 'function' && window.matchMedia('(prefers-reduced-motion: reduce)').matches
@@ -326,22 +275,6 @@ onBeforeUnmount(() => {
   -webkit-tap-highlight-color: transparent;
 }
 
-.registration-grid {
-  position: absolute;
-  inset: 10% 4% 13% 43%;
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  grid-template-rows: repeat(3, 1fr);
-  align-items: center;
-  justify-items: center;
-  pointer-events: none;
-  opacity: 0.25;
-}
-.registration-grid i { width: 9px; height: 9px; position: relative; }
-.registration-grid i::before,
-.registration-grid i::after { content: ''; position: absolute; background: #969c8a; }
-.registration-grid i::before { top: 4px; width: 9px; height: 1px; }
-.registration-grid i::after { left: 4px; width: 1px; height: 9px; }
 
 .brand { position: absolute; top: 7%; left: 3.5%; width: clamp(250px, 22vw, 340px); z-index: 5; }
 .brand-name { display: flex; justify-content: flex-start; align-items: center; gap: 0.08em; position: relative; font-family: var(--pp-font-pixel); font-size: 48px; font-weight: 400; font-synthesis: none; line-height: 1; letter-spacing: 0; }
@@ -351,11 +284,8 @@ onBeforeUnmount(() => {
 .brand-subtitle { font-size: 12px; letter-spacing: 0.085em; font-family: var(--pp-font-pixel); margin-top: 12px; border-top: 0; padding-top: 15px; background: var(--rh-huiwen) left top / 8px 8px repeat-x; white-space: nowrap; font-weight: 700; }
 .brand-system { font-size: clamp(22px, 2.4vw, 37px); letter-spacing: -0.035em; margin-top: 3px; line-height: 1.1; display: flex; align-items: center; gap: 9px; font-weight: 300; }
 .brand-system span { font-weight: 800; }
-.brand-system i { margin-left: auto; width: 18px; height: 18px; background: var(--rh-accent); border: 2px solid var(--rh-ink); position: relative; }
-.brand-system i::after { content: ''; position: absolute; inset: 3px; background: #ffffff; }
 .brand-caption { margin-top: 15px; font-size: 10px; letter-spacing: 0.15em; font-family: ui-monospace, 'Courier New', monospace; color: #62695c; }
 
-.side-label { position: absolute; left: 3.5%; top: 48%; writing-mode: vertical-rl; font-size: 9px; letter-spacing: 0.18em; font-family: ui-monospace, 'Courier New', monospace; color: #62695c; }
 
 .greeting { position: absolute; top: 36%; left: 14.8%; width: clamp(210px, 19vw, 300px); z-index: 1; transform-origin: center; }
 .greeting::before,
@@ -366,13 +296,8 @@ onBeforeUnmount(() => {
 .greeting h1 { font-size: 36px; line-height: 1; letter-spacing: 0.02em; margin: 0 0 6px; font-weight: 400; font-family: var(--pp-font-pixel); white-space: nowrap; color: var(--rh-ink); }
 .quick-label { font-size: 9px; letter-spacing: 0.12em; font-family: ui-monospace, 'Courier New', monospace; font-weight: 700; color: #6a7160; }
 .quick-url { font-family: var(--pp-font-pixel); font-size: 12px; line-height: 1.45; word-break: break-all; padding: 7px 9px; border: 3px double var(--rh-ink); background: #faf8f5; color: #2c2e33; background-clip: border-box; }
-.quick-actions { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 4px; }
-.quick-actions button { flex: 1 1 auto; min-height: 32px; padding: 5px 10px; border: 3px double var(--rh-ink); background: var(--rh-birch); color: var(--rh-ink); font-size: 12px; font-weight: 400; font-family: var(--pp-font-pixel); letter-spacing: 0.04em; cursor: pointer; transition: background-color 0.15s steps(2), color 0.15s steps(2); background-clip: border-box; }
-.quick-actions button:hover { background-color: var(--rh-accent); color: var(--rh-ink); }
-.quick-actions button:active { background-color: var(--rh-ink); color: var(--rh-paper); }
 .greeting-label { position: absolute; top: -24px; left: -2px; height: 24px; display: flex; justify-content: space-between; align-items: center; width: 82%; padding: 0 8px; background: var(--rh-paper); font-size: 9px; font-weight: bold; font-family: ui-monospace, 'Courier New', monospace; letter-spacing: 0.08em; border: 2px solid var(--rh-ink); border-bottom: none; background-image: repeating-conic-gradient(rgba(44, 46, 51, 0.06) 0 25%, transparent 0 50%); background-size: 4px 4px; }
 .greeting-label span { font-size: 16px; }
-.title-square { position: absolute; width: 8px; height: 8px; right: 18px; bottom: 13px; background: var(--rh-accent); border: 1px solid var(--rh-ink); }
 .greeting p { margin: 19px 0 0 16px; font-size: 11px; line-height: 1.95; letter-spacing: 0.06em; color: #53574d; }
 
 .display-panel {
@@ -394,30 +319,11 @@ onBeforeUnmount(() => {
 .rhine-home.entered .display-panel:hover,
 .rhine-home.entered .display-panel:focus-within { transform: none; border-image-source: none; }
 .panel-topline { height: 30px; position: absolute; left: 18px; right: 18px; top: 0; display: flex; align-items: center; justify-content: space-between; font-size: 8px; font-family: ui-monospace, 'Courier New', monospace; letter-spacing: 0.15em; border-bottom: 2px solid #e0ded6; color: #62695c; }
-.panel-corner { width: 8px; height: 8px; background: var(--rh-ink); position: absolute; }
-.corner-tl { top: -4px; left: -4px; }
-.corner-br { right: -4px; bottom: -4px; }
 
 .image-card { position: absolute; margin: 0; top: 9%; left: 6%; width: 51%; height: 56%; background: #ffffff; border: 5px solid var(--rh-ink); box-shadow: none; display: flex; flex-direction: column; border-image: var(--rh-frame) 5 / 5px; background-clip: border-box; }
 
-.section-nav { position: absolute; top: 17%; right: 7%; width: 27%; display: flex; flex-direction: column; gap: 20px; }
-.nav-item { display: block; width: 100%; text-align: left; text-decoration: none; padding: 8px 12px 10px; border: 3px double transparent; background: transparent; color: var(--rh-ink); cursor: pointer; position: relative; transition: background-color 0.15s steps(2); }
 .nav-number { display: block; font-size: 9px; font-family: ui-monospace, 'Courier New', monospace; letter-spacing: 0.08em; color: #62695c; margin-bottom: 4px; }
 .nav-name { font-size: 24px; letter-spacing: 0.05em; font-weight: 400; font-family: var(--pp-font-pixel); white-space: nowrap; }
-.nav-arrow { position: absolute; top: 7px; right: 6px; font-size: 16px; transition: transform 0.15s steps(2); }
-.nav-item::before { content: ''; position: absolute; inset: 0; pointer-events: none; background: linear-gradient(var(--rh-ink), var(--rh-ink)) left top / 3px 3px no-repeat, linear-gradient(var(--rh-ink), var(--rh-ink)) right top / 3px 3px no-repeat, linear-gradient(var(--rh-ink), var(--rh-ink)) left bottom / 3px 3px no-repeat, linear-gradient(var(--rh-ink), var(--rh-ink)) right bottom / 3px 3px no-repeat; opacity: 0.35; }
-.nav-item::after { content: ''; position: absolute; bottom: -4px; right: 0; height: 2px; width: 14%; background: var(--rh-ink); transition: width 0.3s steps(4); }
-.nav-item:hover { background-color: #f4f2ea; border-color: var(--rh-ink); }
-.nav-item:hover::after { width: 100%; }
-.nav-item:hover .nav-arrow { transform: translate(2px, -2px); }
-.nav-item.primary-action { background: var(--rh-accent); color: var(--rh-ink); border: 3px double var(--rh-ink); background-clip: border-box; }
-.primary-action .nav-number,
-.primary-action .nav-arrow { color: var(--rh-ink); }
-.nav-item.primary-action::before { opacity: 0; }
-.nav-item.primary-action::after { width: 100%; background: #ffffff; }
-.nav-item.primary-action:hover { background-color: var(--rh-accent-hover); }
-.nav-item.primary-action:active { background-color: var(--rh-ink); color: var(--rh-paper); }
-.nav-item.primary-action:active :is(.nav-number, .nav-arrow) { color: var(--rh-paper); }
 
 .information { position: absolute; left: 6%; bottom: 7%; width: 60%; }
 .information-tab { width: fit-content; padding: 4px 8px; background: var(--rh-accent); color: var(--rh-ink); font-size: 9px; font-weight: 700; font-family: ui-monospace, 'Courier New', monospace; letter-spacing: 0.1em; border: 2px solid var(--rh-ink); border-bottom: none; margin-bottom: 0; }
@@ -427,14 +333,7 @@ onBeforeUnmount(() => {
 .information-copy { display: flex; align-items: center; gap: 12px; padding: 10px 12px; border: 2px solid var(--rh-ink); background: #faf9f5; min-height: 64px; }
 .information-copy p { font-size: 11px; line-height: 1.7; letter-spacing: 0.02em; margin: 0; color: #43483f; }
 .copy-mark { font-size: 20px; font-weight: 400; margin-left: auto; color: var(--rh-accent); }
-.panel-index { position: absolute; right: 7%; bottom: 7%; width: 20%; font-size: 8px; font-family: ui-monospace, 'Courier New', monospace; letter-spacing: 0.12em; text-align: right; color: #62695c; }
-.panel-index div { height: 12px; margin: 8px 0 5px; background: repeating-linear-gradient(90deg, var(--rh-ink) 0 1px, transparent 1px 4px, var(--rh-ink) 4px 5px, transparent 5px 8px); }
 
-.identity { position: absolute; right: 5%; bottom: 7.5%; width: clamp(280px, 27vw, 420px); z-index: 4; }
-.identity-label { display: flex; justify-content: space-between; font-size: 8px; font-family: ui-monospace, 'Courier New', monospace; letter-spacing: 0.1em; color: #62695c; margin-bottom: 7px; }
-.identity-name { display: flex; align-items: center; gap: 10px; overflow: hidden; font-size: clamp(22px, 2.35vw, 37px); font-weight: 800; letter-spacing: -0.04em; border-bottom: 2px solid var(--rh-ink); padding-bottom: 6px; white-space: nowrap; }
-.identity-name i { width: 32px; height: 32px; flex-shrink: 0; background: var(--rh-logo) center / 32px 32px no-repeat; image-rendering: pixelated; }
-.identity-bottom { display: flex; justify-content: space-between; padding-top: 6px; font-size: 8px; font-family: ui-monospace, 'Courier New', monospace; letter-spacing: 0.09em; color: #62695c; }
 
 .rh-footer { position: absolute; bottom: 2.5%; left: 3.5%; right: 3.5%; display: flex; align-items: center; justify-content: space-between; font-size: 8px; letter-spacing: 0.08em; z-index: 5; font-family: ui-monospace, 'Courier New', monospace; color: #62695c; }
 .footer-copy { display: flex; gap: 14px; }
@@ -457,12 +356,7 @@ onBeforeUnmount(() => {
 .rhine-home.is-entering .brand { animation: brand-enter 1s 1.15s both; }
 .rhine-home.is-entering .display-panel { animation: panel-enter 1s 1.55s cubic-bezier(0.18, 0.72, 0.25, 1) both; }
 .rhine-home.is-entering .image-card { animation: image-enter 0.85s 1.9s both; }
-.rhine-home.is-entering .nav-item { animation: nav-enter 0.6s both; animation-delay: 2.1s; }
-.rhine-home.is-entering .nav-item:nth-child(2) { animation-delay: 2.25s; }
-.rhine-home.is-entering .nav-item:nth-child(3) { animation-delay: 2.4s; }
-.rhine-home.is-entering .identity,
-.rhine-home.is-entering .rh-footer,
-.rhine-home.is-entering .side-label { animation: fade-enter 0.7s 2.2s both; }
+.rhine-home.is-entering .rh-footer { animation: fade-enter 0.7s 2.2s both; }
 
 @keyframes greeting-enter { 0%, 30% { top: 50%; left: 50%; transform: translate(-50%, -50%); } 100% { top: 36%; left: 14.8%; transform: none; } }
 @keyframes vertical-enter { 0%, 30% { left: 50%; top: 50%; height: 220vh; transform: translateY(-50%) rotate(-45deg); } 100% { left: 0; top: 0; height: 100vh; transform: none; } }
@@ -471,19 +365,16 @@ onBeforeUnmount(() => {
 @keyframes brand-enter { from { opacity: 0; filter: blur(4px); transform: translateX(-10px); } to { opacity: 1; filter: blur(0); transform: none; } }
 @keyframes panel-enter { from { opacity: 0; transform: scale(0.97); } to { opacity: 1; transform: scale(1); } }
 @keyframes image-enter { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
-@keyframes nav-enter { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
 @keyframes greeting-enter-medium { 0%, 30% { top: 50%; left: 50%; transform: translate(-50%, -50%); } 100% { top: 36%; left: 10%; transform: none; } }
 
 @media (min-width: 1600px) {
   .display-panel { right: 8%; left: 39%; }
-  .identity { right: 8%; }
 }
 
 @media (max-width: 1100px) and (min-width: 901px) {
   .greeting { left: 10%; width: 210px; }
   .greeting h1 { font-size: 24px; }
   .display-panel { left: 35%; right: 4%; }
-  .section-nav { right: 5%; width: 28%; }
   .rhine-home.is-entering .greeting { animation-name: greeting-enter-medium; }
 }
 
@@ -493,7 +384,6 @@ onBeforeUnmount(() => {
   .brand-name { font-size: 36px; }
   .brand-system { font-size: 28px; }
   .brand-caption { font-size: 9px; }
-  .side-label { top: 42px; right: 22px; left: auto; font-size: 8px; }
   .greeting { position: relative; left: auto; top: auto; width: 240px; margin: 68px 0 45px 24px; }
   .greeting::before { height: 1400px; }
   .greeting::after { width: 220vw; }
@@ -502,26 +392,17 @@ onBeforeUnmount(() => {
   .rhine-home.entered .display-panel:hover,
   .rhine-home.entered .display-panel:focus-within { transform: none; }
   .image-card { left: 5%; top: 10%; width: 52%; height: 53%; }
-  .section-nav { right: 5%; width: 28%; top: 17%; gap: 20px; }
   .information { width: 65%; left: 5%; }
-  .identity { position: relative; right: auto; bottom: auto; margin: 36px 0 38px auto; width: 300px; }
-  .identity-name { font-size: 28px; }
   .rh-footer { position: relative; inset: auto; gap: 20px; flex-wrap: wrap; align-items: flex-end; }
   .footer-copy { flex-direction: column; gap: 5px; }
   .footer-status { display: none; }
-  .registration-grid { inset: 20% 5% 10% 5%; }
   .rhine-home.is-entering .greeting { animation: fade-enter 0.8s both; }
   .rhine-home.is-entering .greeting::before,
   .rhine-home.is-entering .greeting::after { animation: none; }
   .rhine-home.is-entering .brand { animation: brand-enter 0.7s 0.1s both; }
   .rhine-home.is-entering .display-panel { animation: fade-enter 0.8s 0.55s both; }
   .rhine-home.is-entering .image-card { animation-delay: 0.8s; }
-  .rhine-home.is-entering .nav-item { animation-delay: 0.9s; }
-  .rhine-home.is-entering .nav-item:nth-child(2) { animation-delay: 1.05s; }
-  .rhine-home.is-entering .nav-item:nth-child(3) { animation-delay: 1.2s; }
-  .rhine-home.is-entering .identity,
-  .rhine-home.is-entering .rh-footer,
-  .rhine-home.is-entering .side-label { animation-delay: 1.1s; }
+  .rhine-home.is-entering .rh-footer { animation-delay: 1.1s; }
   .rhine-home.is-entering .greeting-label,
   .rhine-home.is-entering .greeting p { animation-delay: 0.2s; }
 }
@@ -535,18 +416,9 @@ onBeforeUnmount(() => {
   .greeting h1 { font-size: 24px; }
   .display-panel { height: 700px; }
   .image-card { top: 8%; left: 8%; width: 84%; height: 46%; }
-  .section-nav { top: 59%; left: 8%; right: 8%; width: auto; flex-direction: row; gap: 8px; }
-  .nav-item { flex: 1; padding: 8px 5px 10px; }
-  .nav-number { font-size: 6px; letter-spacing: 0; }
-  .nav-name { font-size: 12px; letter-spacing: 0.02em; }
-  .nav-arrow { display: none; }
-  .nav-item:hover::after { width: 100%; }
   .information { left: 8%; width: 84%; bottom: 7%; }
   .information-title h2 { font-size: 12px; }
   .information-title > span { font-size: 7px; }
-  .panel-index { display: none; }
-  .identity { width: 270px; max-width: 100%; }
-  .identity-name { font-size: 24px; gap: 8px; }
 }
 
 /* Forced colours repaint borders but not border images, which would keep the landing ink. */
@@ -561,5 +433,80 @@ onBeforeUnmount(() => {
   .rhine-home :deep(*),
   .rhine-home :deep(*::before),
   .rhine-home :deep(*::after) { animation: none !important; transition: none !important; }
+}
+.rhine-home { display: grid; grid-template-columns: minmax(0, 5fr) minmax(0, 7.4fr); align-content: start; align-items: start; gap: 24px 56px; min-height: 100svh; height: auto; padding: 16px max(24px, 3.33vw) 24px; color: var(--pp-ink); background-color: var(--pp-canvas); overflow: visible; font-family: system-ui, sans-serif; }
+.home-top-nav { grid-column: 1 / -1; display: flex; flex-wrap: wrap; align-items: center; gap: 40px; min-height: 40px; margin-bottom: 24px; }
+.home-top-nav > a { font-size: 16px; }
+.home-nav-links { font-size: 14px; color: var(--pp-ink); }
+.home-nav-links a:first-child { font-weight: 600; }
+.rhine-home .brand { position: static; width: auto; min-width: 0; margin: 12px 0 0; }
+.rhine-home .brand-name { width: fit-content; max-width: calc(100% - 14px); font-size: 36px; color: var(--pp-ink); }
+.rhine-home .brand-system { margin-top: 12px; font: 400 36px/40px var(--pp-font-pixel); font-synthesis: none; color: var(--pp-ink); }
+.rhine-home .brand-system span { font-weight: 400; }
+.rhine-home .brand-caption { display: none; }
+.home-lead { margin-top: 16px; max-width: 560px; font-size: 15px; line-height: 1.6; color: var(--pp-ink); }
+.home-features { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); margin-top: 16px; border-top: 1px solid var(--pp-divider); border-left: 1px solid var(--pp-divider); background: var(--pp-surface); }
+.home-features > div { display: flex; gap: 10px; padding: 12px; border-right: 1px solid var(--pp-divider); border-bottom: 1px solid var(--pp-divider); }
+.home-features svg { flex-shrink: 0; margin-top: 2px; }
+.home-features h2 { font: 600 14px/20px system-ui, sans-serif; }
+.home-features p { margin-top: 2px; font-size: 12px; line-height: 20px; opacity: 0.8; }
+.rhine-home .greeting { position: relative; inset: auto; grid-column: 1; grid-row: 3 / span 2; width: auto; margin: 16px 0 0; padding: 0; }
+.rhine-home .greeting::before, .rhine-home .greeting::after, .rhine-home .greeting > p { display: none; }
+.rhine-home .greeting-label { z-index: 1; top: -16px; left: 5px; height: 20px; width: fit-content; padding: 0 8px; background: var(--pp-ink); color: var(--pp-canvas); font: 400 12px/16px var(--pp-font-pixel); }
+.rhine-home .quick-start { margin: 0; padding: 12px 16px; background-color: var(--pp-surface); color: var(--pp-ink); border-image-source: var(--pp-frame); }
+.rhine-home .quick-start h1 { display: none; }
+.home-steps { list-style: none; margin: 0; padding: 0; }
+.home-steps li { display: grid; grid-template-columns: 24px minmax(0, 1fr) auto; align-items: center; gap: 12px; padding: 14px 0; font-size: 13px; }
+.home-steps li + li { border-top: 1px dashed var(--pp-divider); }
+.step-number { padding: 4px; background: var(--pp-ink); color: var(--pp-canvas); text-align: center; font-family: var(--pp-font-pixel); }
+.step-action { padding: 5px 8px; border: 3px double var(--pp-control); white-space: nowrap; font-size: 12px; }
+.rhine-home .quick-url { display: block; margin-top: 4px; padding: 0; border: 0; white-space: normal; overflow-wrap: anywhere; font: 12px/20px ui-monospace, monospace; color: var(--pp-ink); background-color: transparent; }
+.rhine-home .display-panel, .rhine-home.entered .display-panel:hover, .rhine-home.entered .display-panel:focus-within { position: static; grid-column: 2; grid-row: 2 / span 2; display: grid; grid-template-columns: minmax(0, 1fr); align-content: start; width: auto; height: auto; min-height: 440px; transform: none; background-color: var(--pp-surface); color: var(--pp-ink); border-image-source: var(--pp-frame); }
+.rhine-home .panel-topline { position: static; grid-column: 1 / -1; gap: 12px; height: auto; padding: 12px 16px; border-bottom: 2px solid var(--pp-ink); font-size: 12px; }
+.rhine-home .panel-topline > span { white-space: nowrap; }
+.rhine-home .panel-topline > span:first-child { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+.rhine-home .image-card { position: static; width: auto; height: 100%; min-height: 380px; padding: 0; border: 0; border-image: none; background: var(--pp-surface); }
+.home-console { position: relative; display: flex; flex-direction: column; justify-content: center; min-width: 0; padding: 16px; border: 3px double var(--rh-ink); background: var(--pp-tone-sage); text-decoration: none; transition: background-color 0.15s steps(2); }
+.home-console, .rhine-home .home-console .nav-name, .rhine-home .home-console .nav-number { color: #2c2e33; }
+.home-console:hover .console-arrow { transform: translateX(4px); }
+.home-console:active { background-color: var(--rh-ink); color: var(--rh-paper); }
+.home-console:active :is(.nav-name, .nav-number) { color: var(--rh-paper); }
+.rhine-home .nav-name { display: block; margin-top: 8px; font-size: 24px; line-height: 28px; color: var(--pp-ink); }
+.rhine-home .nav-number { font-size: 12px; }
+.console-arrow { position: absolute; top: 14px; right: 16px; font-size: 24px; line-height: 1; transition: transform 0.15s steps(2); }
+.home-details { grid-column: 2; grid-row: 4; display: grid; grid-template-columns: minmax(0, 1.7fr) minmax(0, 1fr); gap: 16px; }
+.rhine-home .information { position: static; width: auto; padding: 16px; margin: 0; background-color: #2c2e33; }
+.rhine-home .information h2, .rhine-home .information p { color: #f8f7f2; }
+.rhine-home .information-tab { padding: 4px 8px; font-size: 12px; }
+.rhine-home .information-title { padding: 12px 0 0; }
+.rhine-home .information-title h2 { font-size: 24px; line-height: 32px; white-space: normal; letter-spacing: 0; }
+.rhine-home .information-title > span, .rhine-home .copy-mark { display: none; }
+.rhine-home .information-copy { margin-top: 8px; padding: 0; background-color: transparent; }
+.rhine-home .information-copy p { font: 14px/24px system-ui, sans-serif; }
+.rhine-home .rh-footer { position: static; grid-column: 1 / -1; display: flex; flex-wrap: wrap; gap: 16px; margin-top: 40px; padding-top: 16px; border-top: 1px solid var(--pp-divider); }
+.rhine-home .brand-subtitle { background-image: var(--pp-huiwen); color: var(--pp-ink); }
+.rhine-home .panel-topline, .rhine-home .nav-number, .rhine-home .quick-label, .rhine-home .rh-footer, .rhine-home .footer-copy span + span { color: var(--pp-ink); }
+.rhine-home .footer-copy, .rhine-home .footer-status { font-size: 12px; }
+@media (max-width: 1199px) {
+  .home-top-nav { gap: 16px; }
+  .home-nav-links { gap: 16px; }
+  .rhine-home { gap: 24px; }
+}
+@media (max-width: 1023px) {
+  .rhine-home { grid-template-columns: minmax(0, 1fr); padding: 20px; }
+  .rhine-home .display-panel, .home-details { grid-column: 1; grid-row: auto; }
+  .rhine-home .greeting { grid-row: auto; }
+  .home-top-nav { margin-bottom: 0; }
+}
+@media (max-width: 639px) {
+  .rhine-home { padding: 16px; }
+  .home-top-nav { gap: 16px; }
+  .home-top-nav > div { gap: 8px; }
+  .home-steps li { grid-template-columns: 24px minmax(0, 1fr); }
+  .step-action { grid-column: 2; justify-self: start; }
+  .home-details { grid-template-columns: minmax(0, 1fr); }
+  .home-features { grid-template-columns: minmax(0, 1fr); }
+  .rhine-home .panel-topline { letter-spacing: 0.06em; }
+  .rhine-home .brand > .btn { display: flex; width: fit-content; margin-left: 0; }
 }
 </style>

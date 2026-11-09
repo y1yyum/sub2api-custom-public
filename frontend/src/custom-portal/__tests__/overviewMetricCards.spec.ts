@@ -154,6 +154,14 @@ describe('OverviewMetricCards', () => {
 })
 
 describe('UsageSparkline', () => {
+  it('renders stepped areas and leaves missing values unpainted', () => {
+    const wrapper = mount(UsageSparkline, { props: { values: [1, null, 2, 4], area: true } })
+    const paths = wrapper.findAll('path')
+    expect(paths).toHaveLength(2)
+    expect(paths[0].attributes('d')).toBe('M0 24H8V32H0ZM16 16H24V0H32V32H16Z')
+    expect(paths[1].attributes('stroke')).toBe('var(--pp-ink)')
+    expect(wrapper.attributes('aria-hidden')).toBe('true')
+  })
   const bars = (values: (number | null)[]) =>
     mount(UsageSparkline, { props: { values } })
       .findAll('[data-testid="usage-sparkline-bar"]')

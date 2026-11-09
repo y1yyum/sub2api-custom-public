@@ -5,13 +5,14 @@ name: Local CI
 # security-scan.yml) on the local runner. Same jobs and commands; the only
 # changes are runner adaptations: builtin:checkout instead of downloaded
 # actions, tools preinstalled in the job image, checksum-pinned Node 24.
-# Local additions: the change-set secret scan (AGENTS.md §6), ci-gate (the
-# status main branch protection requires) and .gitea/ci-scope.py, which
+# Local additions: the change-set secret scan (AGENTS.md §6), bridge embed
+# routing regression, ci-gate (required by main protection) and .gitea/ci-scope.py, which
 # puts pull requests on a fast lane: only the jobs their diff affects, and
-# only the Go tests named after changed files plus .gitea/critical-tests.txt.
+# only the Go tests named after changed files plus .gitea/critical-tests.txt
+# (and .gitea/gateway-tests.txt when gateway code changes).
 # Release tags and manual runs run every test, including the full vitest
 # suite; merges to main do not rerun CI. Jobs are capped at 10 minutes;
-# unit, integration and frontend at 20 for the full release suites.
+# unit, integration, frontend and golangci-lint at 20 for compilation and analysis.
 # The previous isolated pipeline is tagged backup/ci-main-20261030.
 
 on:
@@ -107,6 +108,8 @@ jobs:
           if [ "$PACKAGES" = './...' ]; then bash ../.gitea/unit-full.sh
           elif [ -n "$PACKAGES" ]; then go test -tags=unit $PACKAGES; fi
           if [ -n "$SELECTED" ]; then go test -tags=unit -run "$RUN" $SELECTED; fi
+      - name: Bridge embedded frontend routing
+        run: bash scripts/test-gateway-embed.sh
 
   integration:
     needs: changes
@@ -129,15 +132,14 @@ jobs:
           PACKAGES: ${{ needs.changes.outputs.integration }}
           SELECTED: ${{ needs.changes.outputs.integration_selected }}
           RUN: ${{ needs.changes.outputs.integration_run }}
-        run: |
-          if [ -n "$PACKAGES" ]; then go test -tags=integration $PACKAGES; fi
-          if [ -n "$SELECTED" ]; then go test -tags=integration -run "$RUN" $SELECTED; fi
+        run: python3 ../.gitea/integration.py
 
   golangci-lint:
     needs: changes
     if: needs.changes.outputs.lint != ''
     runs-on: ubuntu-24.04
-    timeout-minutes: 10
+    # Cold analysis exceeded 10 minutes in run 372 (Issue #204).
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
         with:
@@ -164,6 +166,8 @@ jobs:
     timeout-minutes: 20
     # vitest otherwise starts (host CPUs - 1) forks and exhausts --pids-limit.
     env:
+      # vue-tsc exceeds Node's default 2 GiB heap; leave room in the 4 GiB cgroup.
+      NODE_OPTIONS: "--max-old-space-size=3072"
       VITEST_MAX_FORKS: "2"
       VITEST_MIN_FORKS: "1"
       VITEST_MAX_THREADS: "2"
@@ -279,6 +283,8 @@ jobs:
       - name: Run govulncheck
         working-directory: backend
         shell: bash
+        env:
+          GOMEMLIMIT: 2500MiB
         run: |
           set -uo pipefail
           govulncheck ./... 2>&1 | tee "$RUNNER_TEMP/govulncheck.txt"

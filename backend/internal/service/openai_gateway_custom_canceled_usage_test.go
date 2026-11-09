@@ -121,8 +121,8 @@ func TestOpenAIStreamingResponse_GrokWrappedBodyClosesOnTerminalOrCancel(t *test
 			account := &Account{ID: 1, Platform: PlatformGrok, Type: AccountTypeOAuth}
 			_, mapping, err := patchGrokResponsesBodyWithClientTools([]byte(`{"input":"hello","tools":[{"type":"custom","name":"apply_patch"}]}`), "grok-4.6")
 			require.NoError(t, err)
-			resp.Body = newGrokResponsesBillingPingFilterBody(resp.Body, account, defaultMaxLineSize)
-			resp.Body = newGrokResponsesClientToolStreamBody(resp.Body, mapping, defaultMaxLineSize)
+			resp.Body = newGrokResponsesBillingPingFilterBody(resp.Body, account, defaultMaxLineSize, nil)
+			resp.Body = newGrokResponsesClientToolStreamBody(resp.Body, mapping, defaultMaxLineSize, nil)
 			recorder := newOpenAIResponseFlushRecorder()
 			c, _ := gin.CreateTestContext(recorder)
 			c.Request = httptest.NewRequest(http.MethodPost, "/v1/responses", nil)

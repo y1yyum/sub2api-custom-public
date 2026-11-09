@@ -67,12 +67,12 @@ export const METRIC_TONES: Readonly<Record<OverviewMetric, MetricTone>> = {
   }
 }
 
-/** Same series colours as upstream `TokenUsageTrend`. */
+/** Shared with the portal's usage breakdown. */
 export const TOKEN_SERIES_COLORS: Readonly<Record<TokenSeries, string>> = {
-  input: '#3b82f6',
-  output: '#10b981',
-  cache_creation: '#f59e0b',
-  cache_read: '#06b6d4'
+  input: '#8fa888',
+  output: '#a9c4da',
+  cache_creation: '#e6d08a',
+  cache_read: '#c3b3dd'
 }
 
 export const TOKEN_SERIES: readonly TokenSeries[] = ['input', 'output', 'cache_creation', 'cache_read']
