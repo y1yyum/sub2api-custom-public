@@ -8,6 +8,7 @@ pushes, manual runs, unknown ranges, job image and module changes run every
 test; workflow edits run the jobs they touch in full.
 """
 import argparse
+import json
 import os
 from pathlib import Path
 import re
@@ -312,6 +313,10 @@ def main():
         result = scope(paths, args.base)
         if result is None:
             result, reason = full(), 'job image, module or shared workflow change'
+    result['required_jobs'] = json.dumps([
+        job for job, key in JOB_OUTPUTS.items()
+        if result[key] or result.get(f'{key}_selected')
+    ])
     for key, value in result.items():
         print(f'{key}: {shown(key, value)}')
     print(f'reason: {reason}')

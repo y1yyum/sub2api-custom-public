@@ -1,7 +1,11 @@
 """只允许平台接入差异；以原始 Gitea 工作流为业务策略基准。"""
 import copy
+import json
+import os
+import re
 from pathlib import Path
 import unittest
+from unittest.mock import patch
 
 import yaml
 
@@ -22,11 +26,39 @@ class WorkflowCompatibility(unittest.TestCase):
                 if step.get('uses') == 'builtin:checkout':
                     step['uses'] = CHECKOUT
                     step.setdefault('with', {})['persist-credentials'] = False
+            if name == 'integration':
+                tests = next(step for step in job['steps'] if step.get('name') == 'Integration tests')
+                tests['env']['GOMAXPROCS'] = "${{ matrix.shard == 'scoped' && env.GOMAXPROCS || '' }}"
             if name == 'changes':
                 next(s for s in job['steps'] if s.get('id') == 'scope')['env']['CI_WORKFLOW'] = '.github/workflows/local-ci.yml'
         for job in actual['jobs'].values():
             job['steps'] = [step for step in job['steps'] if step.get('uses') != './.github/actions/setup-ci']
         self.assertEqual(actual, expected)
+
+    def test_gate_rejects_missing_required_jobs_and_accepts_scoped_skips(self):
+        workflow = yaml.safe_load((ROOT / '.github/workflows/local-ci.yml').read_text(encoding='utf-8'))
+        gate = workflow['jobs']['ci-gate']
+        results = {job: 'skipped' for job in gate['needs']}
+        results.update(changes='success', security='success')
+
+        def check(required):
+            script = re.sub(r'\$\{\{ needs\.([\w-]+)\.result \}\}',
+                            lambda match: results[match[1]], gate['steps'][0]['run'])
+            with patch.dict(os.environ, REQUIRED_JOBS=json.dumps(required)):
+                exec(script, {})
+
+        check([])
+        for job in results.keys() - {'changes', 'security'}:
+            with self.subTest(job=job):
+                for result in ('skipped', 'failure', 'cancelled'):
+                    results[job] = result
+                    with self.assertRaisesRegex(SystemExit, job):
+                        check([job])
+                results[job] = 'success'
+                check([job])
+                with self.assertRaisesRegex(SystemExit, job):
+                    check([])
+                results[job] = 'skipped'
 
     def test_tool_versions_and_hashes_match_original_job_image(self):
         action = (ROOT / '.github/actions/setup-ci/action.yml').read_text(encoding='utf-8')
