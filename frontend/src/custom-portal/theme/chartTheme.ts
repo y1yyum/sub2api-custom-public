@@ -70,6 +70,31 @@ function isPlainObject(value: unknown): value is Record<string, unknown> {
   return proto === Object.prototype || proto === null
 }
 
+interface Recolored {
+  source: unknown
+  written: unknown
+}
+
+/** Colours as the chart author set them, so a palette switch remaps from the original rather than the previous palette. */
+const recolored = new WeakMap<object, Map<string, Recolored>>()
+
+function sameValue(a: unknown, b: unknown): boolean {
+  if (Array.isArray(a) && Array.isArray(b)) return a.length === b.length && a.every((item, i) => item === b[i])
+  return a === b
+}
+
+function recolor(node: Record<string, unknown>, key: string, scalarTable: ColorTable): void {
+  let entries = recolored.get(node)
+  const previous = entries?.get(key)
+  const source = previous && sameValue(previous.written, node[key]) ? previous.source : node[key]
+  const written = Array.isArray(source)
+    ? source.map((item) => mapColor(item, tables.neutrals))
+    : mapColor(source, scalarTable)
+  node[key] = written
+  if (!entries) recolored.set(node, (entries = new Map()))
+  entries.set(key, { source, written })
+}
+
 function recolorOptions(node: unknown, seen: WeakSet<object>): void {
   if (Array.isArray(node)) {
     node.forEach((item) => recolorOptions(item, seen))
@@ -78,18 +103,14 @@ function recolorOptions(node: unknown, seen: WeakSet<object>): void {
   if (!isPlainObject(node) || seen.has(node)) return
   seen.add(node)
   for (const [key, value] of Object.entries(node)) {
-    if (COLOR_KEY.test(key)) {
-      node[key] = Array.isArray(value) ? value.map((item) => mapColor(item, tables.neutrals)) : mapColor(value, tables.neutrals)
-    } else {
-      recolorOptions(value, seen)
-    }
+    if (COLOR_KEY.test(key)) recolor(node, key, tables.neutrals)
+    else recolorOptions(value, seen)
   }
 }
 
 function recolorDataset(dataset: Record<string, unknown>, scalarTable: ColorTable): void {
-  for (const [key, value] of Object.entries(dataset)) {
-    if (!COLOR_KEY.test(key)) continue
-    dataset[key] = Array.isArray(value) ? value.map((item) => mapColor(item, tables.neutrals)) : mapColor(value, scalarTable)
+  for (const key of Object.keys(dataset)) {
+    if (COLOR_KEY.test(key)) recolor(dataset, key, scalarTable)
   }
 }
 
@@ -105,7 +126,7 @@ function squareGeometry(config: Pick<ChartConfiguration, 'type' | 'data'>): void
   }
 }
 
-/** Rewrites upstream colours in place; mapping is idempotent. */
+/** Rewrites upstream colours in place from their original values; reruns are idempotent per palette. */
 export function recolorChartConfig(config: Pick<ChartConfiguration, 'data' | 'options'>): void {
   recolorOptions(config.options, new WeakSet())
   const datasets = config.data?.datasets ?? []
