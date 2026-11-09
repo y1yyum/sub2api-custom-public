@@ -13,7 +13,9 @@ GitHub 平台的工具准备集中在 [`actions/setup-ci`](actions/setup-ci/acti
 
 PR 沿用 Gitea 的改动范围选择；模块、工具镜像或公共工作流配置变更按原规则回退到全量。
 这里的“全量”指当前公开仓库保留的全部测试。发布标签和手动运行也使用同一裁剪版本。
-安全、lint 和门禁检查继续执行，测试资料缺失或运行失败会使 CI 失败。
+全量集成测试分到两个并行 runner：`owner` 只跑 `TestScheduledOwnerTopology`，
+`remaining` 跑仓储包其余用例和其他包。局部范围仍由一个 `scoped` 作业按原规则选测试。
+任一分片失败都会阻断 `ci-gate`，另一分片仍会跑完。
 
 ## 复现
 
@@ -24,7 +26,8 @@ PR 沿用 Gitea 的改动范围选择；模块、工具镜像或公共工作流�
 make test-frontend
 cd backend
 bash ../.gitea/unit-full.sh
-go test -tags=integration ./...
+python3 ../.gitea/integration.py owner
+PACKAGES=./... SELECTED='' RUN='' python3 ../.gitea/integration.py remaining
 golangci-lint run --timeout=30m ./...
 ```
 

@@ -114,6 +114,10 @@ jobs:
   integration:
     needs: changes
     if: needs.changes.outputs.integration != '' || needs.changes.outputs.integration_selected != ''
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: ${{ fromJSON(needs.changes.outputs.integration == './...' && '["owner", "remaining"]' || '["scoped"]') }}
     runs-on: ubuntu-24.04
     timeout-minutes: 20
     steps:
@@ -132,7 +136,7 @@ jobs:
           PACKAGES: ${{ needs.changes.outputs.integration }}
           SELECTED: ${{ needs.changes.outputs.integration_selected }}
           RUN: ${{ needs.changes.outputs.integration_run }}
-        run: python3 ../.gitea/integration.py
+        run: python3 ../.gitea/integration.py ${{ matrix.shard }}
 
   golangci-lint:
     needs: changes

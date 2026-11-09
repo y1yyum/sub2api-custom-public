@@ -1,4 +1,5 @@
 """Run ci-scope's whole and selected packages from the backend directory."""
+import argparse
 import os
 import re
 import subprocess
@@ -7,7 +8,7 @@ REPOSITORY = './internal/repository'
 OWNER = 'TestScheduledOwnerTopology'
 
 
-def run(packages, pattern=None):
+def run(packages, pattern=None, *, include_owner=True):
     if packages == ['./...']:
         listing = subprocess.check_output(
             ['go', 'list', '-tags=integration', '-f', '{{.Dir}}', './...'], text=True)
@@ -17,12 +18,19 @@ def run(packages, pattern=None):
     selection = ['-run', pattern] if pattern is not None else []
     if REPOSITORY in packages and (pattern is None or re.search(pattern, OWNER)):
         packages.remove(REPOSITORY)
-        subprocess.run([*test, '-run', f'^{OWNER}$', REPOSITORY], check=True)
+        if include_owner:
+            subprocess.run([*test, '-run', f'^{OWNER}$', REPOSITORY], check=True)
         subprocess.run([*test, *selection, '-skip', f'^{OWNER}$', REPOSITORY], check=True)
     if packages:
         subprocess.run([*test, *selection, *packages], check=True)
 
 
 if __name__ == '__main__':
-    run(os.environ['PACKAGES'].split())
-    run(os.environ['SELECTED'].split(), os.environ['RUN'])
+    parser = argparse.ArgumentParser()
+    parser.add_argument('shard', nargs='?', default='scoped', choices=('owner', 'remaining', 'scoped'))
+    shard = parser.parse_args().shard
+    if shard == 'owner':
+        subprocess.run(['go', 'test', '-tags=integration', '-run', f'^{OWNER}$', REPOSITORY], check=True)
+    else:
+        run(os.environ['PACKAGES'].split(), include_owner=shard != 'remaining')
+        run(os.environ['SELECTED'].split(), os.environ['RUN'])
