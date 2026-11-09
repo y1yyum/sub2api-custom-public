@@ -4,6 +4,8 @@ import { registerCustomPortalRoutes, replaceHomeRoute } from './routes'
 import { readShellOverride } from './shell/shellKind'
 import { loadRhineChartTheme } from './theme/chartTheme'
 import { installRhineTheme } from './theme/install'
+import { installPaletteSync } from './theme/palette'
+import { PALETTE_CSS } from './theme/palettes'
 import rhineThemeCss from './theme/rhine-theme.css?inline'
 
 registerCustomPortalRoutes(router)
@@ -13,7 +15,8 @@ if (readShellOverride(window.localStorage) !== 'upstream') {
   replacePortalPages(router)
   replacePortalModelsPage(router)
 }
-installRhineTheme(document, rhineThemeCss)
+installRhineTheme(document, PALETTE_CSS + rhineThemeCss)
+installPaletteSync(document, window.localStorage)
 
 // Charts only live behind login (upstream treats a missing requiresAuth as true),
 // so public pages never download chart.js for the theme.

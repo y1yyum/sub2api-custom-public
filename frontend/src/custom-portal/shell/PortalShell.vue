@@ -9,7 +9,7 @@
         :doc-url="docUrl"
         :custom-pages="customPages"
       />
-      <main class="portal-shell-main">
+      <main class="portal-shell-main" :class="{ 'portal-shell-main--wide': wide }">
         <slot />
       </main>
     </div>
@@ -20,9 +20,14 @@
 <script setup lang="ts">
 import PortalDock from './PortalDock.vue'
 import PortalTopBar from './PortalTopBar.vue'
+import { computed } from 'vue'
+import { useRoute } from 'vue-router'
 import { usePortalNav } from './usePortalNav'
+import { isWideTablePath } from './wideRoutes'
 
 const { dock, docs, avatar, docUrl, customPages } = usePortalNav()
+const route = useRoute()
+const wide = computed(() => isWideTablePath(route.path))
 </script>
 
 <style scoped>
@@ -56,14 +61,18 @@ const { dock, docs, avatar, docUrl, customPages } = usePortalNav()
   .portal-shell-main { width: min(100% - 64px, 1296px); }
 }
 
-/* Upstream sizes table pages to the viewport minus its header and lg padding at
-   every width; the Dock replaces the bottom padding, so subtract it instead. */
-.portal-shell-main :deep(.table-page-layout) {
-  height: calc(100vh - var(--portal-topbar-height) - var(--portal-main-top) - var(--portal-dock-space));
+.portal-shell-main--wide {
+  width: calc(100% - 32px);
 }
 
-/* Mobile table pages scroll with the document, so let them grow with content. */
-.portal-shell-main :deep(.table-page-layout.mobile-mode) {
+@media (min-width: 768px) {
+  .portal-shell-main--wide { width: calc(100% - 64px); }
+}
+
+/* Upstream fits table pages to one viewport and scrolls the table inside it, which
+   leaves room for only a few rows under the filters. Let them grow with the page
+   size instead; the main padding keeps pagination clear of the Dock. */
+.portal-shell-main :deep(.table-page-layout) {
   height: auto;
 }
 </style>

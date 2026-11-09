@@ -1,61 +1,43 @@
 import type { Chart, ChartConfiguration, Plugin, Tooltip } from 'chart.js'
 import { THEME_ROOT_CLASS } from './install'
+import { activePalette } from './palette'
+import { DEFAULT_PALETTE, PALETTE_ATTRIBUTE, SCALE_STEPS, type ColorScale, type PortalPalette } from './palettes'
 
 type ChartStatic = typeof Chart
 type ChartModule = { Chart: ChartStatic; Tooltip: typeof Tooltip }
 type ColorTable = Readonly<Record<string, string>>
 
-/**
- * Upstream charts hard-code Tailwind neutrals; these map them step for step
- * onto the console grays. Upstream `dark-*` is Tailwind slate.
- */
-const NEUTRALS: ColorTable = {
-  // gray
-  f9fafb: 'f8f7f2',
-  f3f4f6: 'efede6',
-  e5e7eb: 'e3e1d9',
-  d1d5db: 'cfccc2',
-  '9ca3af': 'a3a69c',
-  '6b7280': '686c62',
-  '4b5563': '55594f',
-  '374151': '43463f',
-  '1f2937': '34363a',
-  '111827': '2c2e33',
-  '030712': '1f2024',
-  // slate
-  f8fafc: 'f3f4f7',
-  f1f5f9: 'e6e8ee',
-  e2e8f0: 'd3d6df',
-  cbd5e1: 'b8bdcb',
-  '94a3b8': '9aa0b2',
-  '64748b': '7d8396',
-  '475569': '6b7186',
-  '334155': '383c4a',
-  '1e293b': '232630',
-  '0f172a': '1c1e26',
-  '020617': '16181f'
+/** Upstream Tailwind steps 50–950: gray, slate (upstream `dark-*`) and the teal primary. */
+const UPSTREAM_GRAY = ['f9fafb', 'f3f4f6', 'e5e7eb', 'd1d5db', '9ca3af', '6b7280', '4b5563', '374151', '1f2937', '111827', '030712']
+const UPSTREAM_SLATE = ['f8fafc', 'f1f5f9', 'e2e8f0', 'cbd5e1', '94a3b8', '64748b', '475569', '334155', '1e293b', '0f172a', '020617']
+const UPSTREAM_TEAL = ['f0fdfa', 'ccfbf1', '99f6e4', '5eead4', '2dd4bf', '14b8a6', '0d9488', '0f766e', '115e59', '134e4a', '042f2e']
+/** Portal charts draw in the sage scale; other palettes swap it for their primary. */
+const SAGE = SCALE_STEPS.map((step) => DEFAULT_PALETTE.light.primary[step].slice(1))
+
+function stepTable(from: readonly string[], to: ColorScale): Record<string, string> {
+  return Object.fromEntries(from.map((hex, i) => [hex, to[SCALE_STEPS[i]].slice(1)]))
 }
 
-/**
- * Upstream primary (teal) onto sage. Applied only to the sole series of a
- * chart: across several datasets or inside a palette array teal is a
- * categorical colour.
- */
-const BRAND: ColorTable = {
-  f0fdfa: 'f1f5ef',
-  ccfbf1: 'e2ebdf',
-  '99f6e4': 'c9d8c4',
-  '5eead4': 'b4c8ae',
-  '2dd4bf': 'a3bca0',
-  '14b8a6': '8fa888',
-  '0d9488': '58724f',
-  '0f766e': '46603f',
-  '115e59': '364a31',
-  '134e4a': '283826',
-  '042f2e': '192317'
+interface ChartTables {
+  /** Upstream neutrals onto the palette grays, step for step. */
+  neutrals: ColorTable
+  /**
+   * Neutrals plus teal/sage onto the palette primary. Applied only to the sole
+   * series of a chart: across several datasets or inside a palette array they
+   * are categorical colours.
+   */
+  series: ColorTable
 }
 
-const SERIES: ColorTable = { ...NEUTRALS, ...BRAND }
+export function chartTables(palette: PortalPalette): ChartTables {
+  const neutrals = { ...stepTable(UPSTREAM_GRAY, palette.gray), ...stepTable(UPSTREAM_SLATE, palette.dark) }
+  return {
+    neutrals,
+    series: { ...neutrals, ...stepTable(SAGE, palette.primary), ...stepTable(UPSTREAM_TEAL, palette.primary) }
+  }
+}
+
+let tables = chartTables(DEFAULT_PALETTE.light)
 
 const HEX = /^#([0-9a-f]{6})([0-9a-f]{2})?$/i
 const RGB = /^rgba?\(\s*(\d{1,3})\s*,\s*(\d{1,3})\s*,\s*(\d{1,3})\s*(?:,\s*([\d.]+%?)\s*)?\)$/i
@@ -66,7 +48,7 @@ function toHexPair(channel: string): string {
 }
 
 /** Maps one colour string through `table`, preserving its alpha and notation. */
-export function mapColor(value: unknown, table: ColorTable = SERIES): unknown {
+export function mapColor(value: unknown, table: ColorTable = tables.series): unknown {
   if (typeof value !== 'string') return value
   const text = value.trim()
   const hex = HEX.exec(text)
@@ -97,7 +79,7 @@ function recolorOptions(node: unknown, seen: WeakSet<object>): void {
   seen.add(node)
   for (const [key, value] of Object.entries(node)) {
     if (COLOR_KEY.test(key)) {
-      node[key] = Array.isArray(value) ? value.map((item) => mapColor(item, NEUTRALS)) : mapColor(value, NEUTRALS)
+      node[key] = Array.isArray(value) ? value.map((item) => mapColor(item, tables.neutrals)) : mapColor(value, tables.neutrals)
     } else {
       recolorOptions(value, seen)
     }
@@ -107,7 +89,7 @@ function recolorOptions(node: unknown, seen: WeakSet<object>): void {
 function recolorDataset(dataset: Record<string, unknown>, scalarTable: ColorTable): void {
   for (const [key, value] of Object.entries(dataset)) {
     if (!COLOR_KEY.test(key)) continue
-    dataset[key] = Array.isArray(value) ? value.map((item) => mapColor(item, NEUTRALS)) : mapColor(value, scalarTable)
+    dataset[key] = Array.isArray(value) ? value.map((item) => mapColor(item, tables.neutrals)) : mapColor(value, scalarTable)
   }
 }
 
@@ -127,7 +109,7 @@ function squareGeometry(config: Pick<ChartConfiguration, 'type' | 'data'>): void
 export function recolorChartConfig(config: Pick<ChartConfiguration, 'data' | 'options'>): void {
   recolorOptions(config.options, new WeakSet())
   const datasets = config.data?.datasets ?? []
-  const scalarTable = datasets.length === 1 ? SERIES : NEUTRALS
+  const scalarTable = datasets.length === 1 ? tables.series : tables.neutrals
   for (const dataset of datasets) {
     recolorDataset(dataset as unknown as Record<string, unknown>, scalarTable)
   }
@@ -149,20 +131,32 @@ export const rhineChartPlugin: Plugin = {
   }
 }
 
-function applyDefaults(ChartJS: ChartStatic, dark: boolean): void {
+function translucent(hex: string, alpha: number): string {
+  const [r, g, b] = [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16))
+  return `rgba(${r}, ${g}, ${b}, ${alpha})`
+}
+
+function applyDefaults(ChartJS: ChartStatic, palette: PortalPalette): void {
   const { defaults } = ChartJS
-  defaults.color = dark ? '#9aa0b2' : '#55594f'
-  defaults.borderColor = dark ? 'rgba(230, 232, 238, 0.08)' : 'rgba(44, 46, 51, 0.08)'
+  const dark = palette.mode === 'dark'
+  const { ink, surface, control } = palette.tokens
+  defaults.color = dark ? palette.dark[400] : palette.gray[600]
+  defaults.borderColor = translucent(ink, 0.08)
   // Exists only once the Tooltip plugin is registered (the loader does that).
   const tooltip = defaults.plugins.tooltip
   if (!tooltip) return
-  tooltip.backgroundColor = dark ? '#232630' : '#ffffff'
-  tooltip.titleColor = dark ? '#e6e8ee' : '#2c2e33'
-  tooltip.bodyColor = dark ? '#d3d6df' : '#43463f'
-  // Charcoal vanishes on the dark card, so dark mode uses the control border.
-  tooltip.borderColor = dark ? '#6b7186' : '#2c2e33'
+  tooltip.backgroundColor = surface
+  tooltip.titleColor = ink
+  tooltip.bodyColor = dark ? palette.dark[200] : palette.gray[700]
+  // Ink vanishes on the dark card, so dark mode uses the control border (equal to ink in light).
+  tooltip.borderColor = control
   tooltip.borderWidth = 2
   tooltip.cornerRadius = 0
+}
+
+function usePalette(ChartJS: ChartStatic, palette: PortalPalette): void {
+  tables = chartTables(palette)
+  applyDefaults(ChartJS, palette)
 }
 
 function snapshotDefaults(ChartJS: ChartStatic): () => void {
@@ -192,30 +186,31 @@ function refreshCharts(ChartJS: ChartStatic): void {
 }
 
 /**
- * Registers the recolouring plugin and pixel-pastel defaults, follows dark-mode
- * toggles, and refreshes charts that were created before the theme loaded.
+ * Registers the recolouring plugin and the palette's defaults, follows palette
+ * and dark-mode switches, and refreshes charts created before the theme loaded.
  */
 export function installRhineChartTheme(ChartJS: ChartStatic, doc: Document): () => void {
   const root = doc.documentElement
   ChartJS.register(rhineChartPlugin)
   const restoreDefaults = snapshotDefaults(ChartJS)
-  let dark = root.classList.contains('dark')
-  applyDefaults(ChartJS, dark)
+  let palette = activePalette(doc)
+  usePalette(ChartJS, palette)
   refreshCharts(ChartJS)
 
   const observer = new MutationObserver(() => {
-    const nextDark = root.classList.contains('dark')
-    if (nextDark === dark) return
-    dark = nextDark
-    applyDefaults(ChartJS, dark)
+    const next = activePalette(doc)
+    if (next === palette) return
+    palette = next
+    usePalette(ChartJS, palette)
     refreshCharts(ChartJS)
   })
-  observer.observe(root, { attributes: true, attributeFilter: ['class'] })
+  observer.observe(root, { attributes: true, attributeFilter: ['class', PALETTE_ATTRIBUTE] })
 
   return () => {
     observer.disconnect()
     ChartJS.unregister(rhineChartPlugin)
     restoreDefaults()
+    tables = chartTables(DEFAULT_PALETTE.light)
     refreshCharts(ChartJS)
   }
 }

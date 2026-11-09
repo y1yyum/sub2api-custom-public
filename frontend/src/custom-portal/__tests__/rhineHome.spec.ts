@@ -7,9 +7,8 @@ import type { ModelPlazaGroup, ModelPlazaResponse, PlazaModel } from '@/api/mode
 import type { CatalogStripConfig } from '@/api/channelStatusCatalog'
 import { summarizeHomepageModels, type HomepageModel } from '../api/homepage'
 import postcss from 'postcss'
-import { readFileSync } from 'node:fs'
-import { resolve as resolvePath } from 'node:path'
-import { contrastRatio, declarationsIn, scopedStyles } from './contrast'
+import { contrastRatio, declarationsIn, paletteTokens, resolveColor, scopedStyles } from './contrast'
+import { PALETTES, type PortalPalette } from '../theme/palettes'
 import homeSource from '../components/rhine/RhineHomePage.vue?raw'
 import { PIXEL_LOGO_DATA_URI } from '../theme/pixelLogo'
 import pricingSource from '../components/rhine/RhineModelPricing.vue?raw'
@@ -45,7 +44,7 @@ const RouterLinkStub = { props: ['to'], template: '<a :href="to"><slot /></a>' }
 
 function mountWith(component: object, locale = 'zh', props: Record<string, unknown> = {}) {
   const i18n = createI18n({ legacy: false, locale, fallbackLocale: 'en', messages: {} })
-  return mount(component, { props, global: { plugins: [i18n], stubs: { RouterLink: RouterLinkStub } } })
+  return mount(component, { props, global: { plugins: [i18n], stubs: { RouterLink: RouterLinkStub, PortalPalettePicker: true } } })
 }
 
 type Pricing = NonNullable<PlazaModel['pricing']>
@@ -498,24 +497,11 @@ describe('RhineHomePage', () => {
     expect(authStore.checkAuth).toHaveBeenCalledTimes(4)
   })
 
-  it('runs the entry animation once and clears its timer on unmount', async () => {
-    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] })
+  it('renders without an entry animation or replay control', async () => {
     const wrapper = await mountPage()
     await flushPromises()
-    const root = wrapper.get('[data-testid="rhine-home"]')
-    expect(root.classes()).toContain('is-entering')
-
-    vi.advanceTimersByTime(3100)
-    await flushPromises()
-    expect(root.classes()).toContain('entered')
-
-    await wrapper.get('[data-testid="rhine-replay"]').trigger('click')
-    await flushPromises()
-    expect(root.classes()).toContain('is-entering')
-    expect(vi.getTimerCount()).toBe(1)
-
-    wrapper.unmount()
-    expect(vi.getTimerCount()).toBe(0)
+    expect(wrapper.get('[data-testid="rhine-home"]').classes()).toEqual(['rhine-home'])
+    expect(wrapper.find('[data-testid="rhine-replay"]').exists()).toBe(false)
   })
 
   it('preloads the pixel font once', async () => {
@@ -527,16 +513,6 @@ describe('RhineHomePage', () => {
     expect(links[0].getAttribute('href')).toMatch(/fusion-pixel-12px-proportional-zh_hans\.subset\.woff2/)
     expect(links[0].type).toBe('font/woff2')
     expect(links[0].hasAttribute('crossorigin')).toBe(true)
-  })
-
-  it('skips the entry animation when reduced motion is preferred', async () => {
-    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] })
-    setReducedMotion(true)
-    const wrapper = await mountPage()
-    await flushPromises()
-
-    expect(wrapper.get('[data-testid="rhine-home"]').classes()).toContain('entered')
-    expect(vi.getTimerCount()).toBe(0)
   })
 })
 
@@ -626,32 +602,30 @@ describe('Rhine homepage styles', () => {
     expect(blurry).toEqual([])
   })
 
-  it('keeps the quick-start title, endpoint and secondary labels readable in both themes', () => {
-    const home = scopedStyles(homeSource)
-    const theme = readFileSync(resolvePath(__dirname, '../theme/rhine-theme.css'), 'utf8')
-    for (const mode of [':where(html.theme-rhine)', ':where(html.theme-rhine).dark']) {
-      const tokens = declarationsIn(theme, mode)
-      const resolve = (value: string) => value.replace(/var\((--[\w-]+)\)/g, (_, name: string) => tokens[name])
+  it.each(PALETTES.map((palette) => [palette.id, palette] as const))(
+    'keeps the quick-start title, endpoint and secondary labels readable in %s',
+    (_, palette) => {
+      const home = scopedStyles(homeSource)
+      const tokens = { ...paletteTokens(palette), ...declarationsIn(home, '.rhine-home') }
+      const resolve = (value: string) => resolveColor(value, tokens)
       for (const [selector, background] of [
         ['.rhine-home .greeting-label', 'var(--pp-ink)'],
         ['.rhine-home .quick-url', 'var(--pp-surface-2)'],
         ['.rhine-home .nav-number', 'var(--pp-surface)'],
-        ['.rhine-home .home-console .nav-name', 'var(--pp-tone-sage)'],
-        ['.rhine-home .home-console .nav-number', 'var(--pp-tone-sage)'],
+        ['.rhine-home .home-console .nav-name', 'var(--pp-accent)'],
+        ['.rhine-home .home-console .nav-number', 'var(--pp-accent)'],
         ['.rhine-home .rh-footer', 'var(--pp-canvas)']
       ]) {
-        expect(contrastRatio(resolve(declarationsIn(home, selector).color), resolve(background)), `${mode}: ${selector}`).toBeGreaterThanOrEqual(4.5)
+        expect(contrastRatio(resolve(declarationsIn(home, selector).color), resolve(background)), selector).toBeGreaterThanOrEqual(4.5)
       }
     }
-  })
+  )
 
   describe('text contrast', () => {
     const home = scopedStyles(homeSource)
     const pricing = scopedStyles(pricingSource)
-    const tokens = { ...declarationsIn(readFileSync(resolvePath(__dirname, '../theme/rhine-theme.css'), 'utf8'), ':where(html.theme-rhine)'), ...declarationsIn(home, '.rhine-home') }
-    const resolve = (value: string) => value.replace(/var\((--[\w-]+)\)/g, (_, name: string) => tokens[name])
-    const paper = tokens['--rh-paper']
-    const surface = '#ffffff'
+    const paper = 'var(--rh-paper)'
+    const surface = 'var(--pp-surface)'
 
     type Sample = [css: string, selector: string, background: string, foreground?: string]
     const samples: Sample[] = [
@@ -661,10 +635,9 @@ describe('Rhine homepage styles', () => {
       [home, '.greeting p', paper],
       [home, '.panel-topline', surface],
       [home, '.nav-number', surface],
-      [home, '.nav-number', '#f4f2ea'],
       [home, '.information-tab', 'self'],
       [home, '.information-title > span', 'var(--rh-ink)'],
-      [home, '.information-copy p', '#faf9f5'],
+      [home, '.information-copy p', 'var(--pp-canvas)'],
       [home, '.rh-footer', paper],
       [home, '.footer-copy span + span', paper],
       [pricing, '.model-columns', surface],
@@ -675,9 +648,13 @@ describe('Rhine homepage styles', () => {
       [pricing, '.status-empty', surface]
     ]
 
-    const cases = samples.map(([css, selector, background, foreground]) => ({ css, selector, background, foreground }))
+    const cases = PALETTES.flatMap((palette) =>
+      samples.map(([css, selector, background, foreground]) => ({ id: palette.id, palette, css, selector, background, foreground }))
+    )
 
-    it.each(cases)('$selector on $background reaches 4.5:1', ({ css, selector, background, foreground }) => {
+    it.each(cases)('$id: $selector on $background reaches 4.5:1', ({ palette, css, selector, background, foreground }) => {
+      const tokens = { ...paletteTokens(palette), ...declarationsIn(home, '.rhine-home') }
+      const resolve = (value: string) => resolveColor(value, tokens)
       const own = declarationsIn(css, selector)
       const fg = resolve(foreground ?? own.color)
       const bg = resolve(background === 'self' ? (own['background-color'] ?? own.background) : background)
@@ -688,7 +665,9 @@ describe('Rhine homepage styles', () => {
   describe('pixel cues', () => {
     const home = scopedStyles(homeSource)
     const pricing = scopedStyles(pricingSource)
-    const tokens = { ...declarationsIn(readFileSync(resolvePath(__dirname, '../theme/rhine-theme.css'), 'utf8'), ':where(html.theme-rhine)'), ...declarationsIn(home, '.rhine-home') }
+    const tokens = declarationsIn(home, '.rhine-home')
+    const resolveIn = (palette: PortalPalette, value: string, under?: string) =>
+      resolveColor(value, { ...paletteTokens(palette), ...tokens }, under)
 
     const outsideMedia = (rule: postcss.Rule) => rule.parent?.type !== 'atrule'
     /** Property names of every rule outside @media listing `selector`, in source order. */
@@ -706,12 +685,6 @@ describe('Rhine homepage styles', () => {
       })
       return selectors
     }
-    const blend = (rgba: string, under: string) => {
-      const [r, g, b, a] = /rgba\((\d+), (\d+), (\d+), ([\d.]+)\)/.exec(rgba)!.slice(1).map(Number)
-      const base = [1, 3, 5].map((i) => parseInt(under.slice(i, i + 2), 16))
-      return `#${[r, g, b].map((c, k) => Math.round(c * a + base[k] * (1 - a)).toString(16).padStart(2, '0')).join('')}`
-    }
-
     const framed: [css: string, selector: string][] = [
       [home, '.quick-start'],
       [home, '.display-panel'],
@@ -720,14 +693,14 @@ describe('Rhine homepage styles', () => {
     const doubled: [css: string, selector: string][] = [
       [home, '.quick-url'],
       [home, '.home-console'],
-      [home, '.replay'],
       [pricing, '.status-card-bottom button']
     ]
 
-    it('draws its own light-only frame of three 1px rules in the landing ink', () => {
-      expect(tokens['--rh-frame']).toMatch(/^url\("data:image\/svg\+xml,.*shape-rendering='crispEdges'.*fill='%232c2e33'/)
-      expect(tokens['--rh-frame']).toContain("fill-rule='evenodd' d='M0 0h11v11H0zM1 1v9h9V1zM2 2h7v7H2zM3 3v5h5V3zM4 4h3v3H4zM5 5v1h1V5z'")
-      expect(tokens['--rh-ink']).toBe('#2c2e33')
+    it('takes its frame, ink and paper from the palette like the console', () => {
+      expect(tokens['--rh-frame']).toBe('var(--pp-frame)')
+      expect(tokens['--rh-ink']).toBe('var(--pp-ink)')
+      expect(tokens['--rh-paper']).toBe('var(--pp-canvas)')
+      expect(tokens['color-scheme']).toBeUndefined()
     })
 
     it.each(framed.map(([css, selector]) => ({ css, selector })))('frames $selector with three rules', ({ css, selector }) => {
@@ -774,15 +747,17 @@ describe('Rhine homepage styles', () => {
           rule.walkDecls('transform', (decl) => expect(decl.value, rule.selector).toBe('none'))
         })
       }
-      expect(declarationsIn(home, '.rhine-home.entered .display-panel:hover')['border-image-source']).toBe('var(--pp-frame)')
+      expect(declarationsIn(home, '.rhine-home .display-panel:hover')['border-image-source']).toBe('var(--pp-frame)')
       for (const [css, selector] of [
         [home, '.home-console:active'],
-        [home, '.replay:active'],
         [pricing, '.status-card-bottom button:active:not(:disabled)']
       ]) {
         const pressed = declarationsIn(css, selector)
         expect(pressed['background-color'], selector).toBe('var(--rh-ink)')
-        expect(contrastRatio(pressed.color.replace('var(--rh-paper)', tokens['--rh-paper']), '#2c2e33'), selector).toBeGreaterThanOrEqual(4.5)
+        for (const palette of PALETTES) {
+          const ratio = contrastRatio(resolveIn(palette, pressed.color), resolveIn(palette, 'var(--rh-ink)'))
+          expect(ratio, `${palette.id}: ${selector}`).toBeGreaterThanOrEqual(4.5)
+        }
       }
     })
 
@@ -793,7 +768,6 @@ describe('Rhine homepage styles', () => {
           for (const part of decl.value.split(',')) expect(part, decl.parent!.toString().split('{')[0]).toMatch(/ steps\([2-4]\)$/)
         })
       }
-      expect(declarationsIn(home, '.replay span').transition).toBe('transform 0.6s steps(4)')
     })
 
     it('shows the pixel logo at 64px beside the wordmark', () => {
@@ -807,7 +781,7 @@ describe('Rhine homepage styles', () => {
     })
 
     it('underlines the wordmark with a square-spiral band instead of a rule', () => {
-      expect(tokens['--rh-huiwen']).toMatch(/^url\("data:image\/svg\+xml,<svg [^>]*width='8' height='8' shape-rendering='crispEdges'>/)
+      expect(tokens['--rh-huiwen']).toBe('var(--pp-huiwen)')
       const subtitle = declarationsIn(home, '.brand-subtitle')
       expect(subtitle['border-top']).toBe('0')
       expect(subtitle.background).toBe('var(--rh-huiwen) left top / 8px 8px repeat-x')
@@ -818,16 +792,18 @@ describe('Rhine homepage styles', () => {
       { css: pricing, selector: '.model-columns' }
     ])('dithers $selector with a 2px checkerboard', ({ css, selector }) => {
       const own = declarationsIn(css, selector)
-      expect(own['background-image']).toMatch(/^repeating-conic-gradient\(rgba\(44, 46, 51, [\d.]+\) 0 25%, transparent 0 50%\)$/)
+      expect(own['background-image']).toBe('repeating-conic-gradient(var(--pp-dither) 0 25%, transparent 0 50%)')
       expect(own['background-size']).toBe('4px 4px')
     })
 
     it.each([
-      { css: home, selector: '.greeting-label', under: tokens['--rh-paper'], ink: tokens['--rh-ink'] },
-      { css: pricing, selector: '.model-columns', under: '#ffffff', ink: declarationsIn(pricing, '.model-columns').color }
-    ])('keeps $selector text readable on the darkest dither cell', ({ css, selector, under, ink }) => {
-      const cell = blend(declarationsIn(css, selector)['background-image'], under)
-      expect(contrastRatio(ink === 'var(--pp-ink)' ? tokens['--pp-ink'] : ink, cell), `${ink} on ${cell}`).toBeGreaterThanOrEqual(4.5)
+      { selector: '.greeting-label', under: 'var(--rh-paper)', ink: 'var(--rh-ink)' },
+      { selector: '.model-columns', under: 'var(--pp-surface)', ink: declarationsIn(pricing, '.model-columns').color }
+    ])('keeps $selector text readable on the darkest dither cell', ({ under, ink }) => {
+      for (const palette of PALETTES) {
+        const cell = resolveIn(palette, 'var(--pp-dither)', resolveIn(palette, under))
+        expect(contrastRatio(resolveIn(palette, ink), cell), palette.id).toBeGreaterThanOrEqual(4.5)
+      }
     })
 
     it('stops every animation and transition when reduced motion is preferred', () => {

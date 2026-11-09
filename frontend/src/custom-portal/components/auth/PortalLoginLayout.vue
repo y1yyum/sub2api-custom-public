@@ -9,7 +9,7 @@
           app.siteName
         }}</router-link
       >
-      <div class="flex items-center gap-3"><LocaleSwitcher /><ThemeToggle /></div>
+      <div class="flex items-center gap-3"><LocaleSwitcher /><PortalPalettePicker /></div>
     </header>
     <div class="login-frame card mx-auto grid overflow-hidden lg:grid-cols-2">
       <aside
@@ -40,7 +40,7 @@ import { computed, onMounted } from 'vue'
 import { useAppStore } from '@/stores'
 import LegacyAuthLayout from '@/components/layout/AuthLayout.vue'
 import LocaleSwitcher from '@/components/common/LocaleSwitcher.vue'
-import ThemeToggle from '@/components/common/ThemeToggle.vue'
+import PortalPalettePicker from '../common/PortalPalettePicker.vue'
 import { sanitizeUrl } from '@/utils/url'
 import PixelIcon from '../common/PixelIcon.vue'
 import { usePortalI18n } from '../../i18n'
@@ -71,7 +71,7 @@ onMounted(() => {
 .brand-title { padding-bottom: 20px; position: relative; }
 .brand-title::after { content: ''; position: absolute; left: 0; bottom: 0; width: 160px; height: 8px; background: var(--pp-huiwen) left / 8px 8px repeat-x; filter: brightness(0) invert(1); opacity: 0.7; }
 .login-benefits li { padding: 12px 0; }
-.login-benefits li + li { border-top: 1px dashed #55594f; }
+.login-benefits li + li { border-top: 1px dashed rgb(var(--pp-c-gray-600)); }
 .login-benefits svg { margin-top: 2px; flex-shrink: 0; }
 .login-form :deep(.text-3xl), .login-form :deep(.text-2xl) { font: 400 24px/28px var(--pp-font-pixel); font-synthesis: none; }
 .login-form :deep(> .space-y-6 > .text-center:first-child) { text-align: left; }

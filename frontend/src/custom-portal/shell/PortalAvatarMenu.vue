@@ -108,6 +108,7 @@ import { availableLocales, setLocale } from '@/i18n'
 import { useAppStore } from '@/stores/app'
 import { useAuthStore } from '@/stores/auth'
 import { usePortalI18n } from '../i18n'
+import { setPaletteMode } from '../theme/palette'
 import type { PortalNavLink } from './nav'
 import PortalDropdown from './PortalDropdown.vue'
 
@@ -136,10 +137,10 @@ function syncTheme() {
   isDark.value = document.documentElement.classList.contains('dark')
 }
 
+// Switches to the last palette used in that mode; the TopBar picker chooses among them.
 function setTheme(dark: boolean) {
   isDark.value = dark
-  document.documentElement.classList.toggle('dark', dark)
-  localStorage.setItem('theme', dark ? 'dark' : 'light')
+  setPaletteMode(document, localStorage, dark ? 'dark' : 'light')
 }
 
 async function selectLocale(code: string) {

@@ -21,87 +21,29 @@
 }
 
 /*
- * --pp-edge outlines cards (decorative), --pp-control outlines inputs and must
- * reach 3:1 against the surface (WCAG 1.4.11), --pp-ink draws focus outlines.
- * There are no drop shadows: surfaces are framed by three 1px rules 1px apart
- * (--pp-frame, a 9-slice border image in the --pp-edge colour) and controls by
- * a 3px double border, which keeps their state colours.
+ * Colour tokens (--pp-*) and the palette scales Tailwind reads (--pp-c-*) come
+ * from theme/palettes.ts, injected ahead of this sheet. --pp-edge outlines
+ * cards (decorative), --pp-control outlines inputs and must reach 3:1 against
+ * the surface (WCAG 1.4.11), --pp-ink draws focus outlines. There are no drop
+ * shadows: surfaces are framed by three 1px rules 1px apart (--pp-frame, a
+ * 9-slice border image in the --pp-edge colour) and controls by a 3px double
+ * border, which keeps their state colours.
  */
 :where(html.theme-rhine) {
-  --pp-canvas: #f8f7f2;
-  --pp-surface: #ffffff;
-  --pp-surface-2: #f8f7f2;
-  --pp-divider: #e3e1d9;
-  --pp-heat-1: #c9d8c4;
-  --pp-heat-2: #a3bca0;
-  --pp-heat-3: #58724f;
-  --pp-heat-4: #364a31;
   --pp-font-pixel: 'Fusion Pixel 12', ui-monospace, monospace;
-  --pp-ink: #2c2e33;
-  --pp-edge: #2c2e33;
-  --pp-control: #2c2e33;
-  --pp-grid: rgba(44, 46, 51, 0.05);
-  --pp-frame: url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' width='11' height='11' shape-rendering='crispEdges'><path fill='%232c2e33' fill-rule='evenodd' d='M0 0h11v11H0zM1 1v9h9V1zM2 2h7v7H2zM3 3v5h5V3zM4 4h3v3H4zM5 5v1h1V5z'/></svg>");
-  --pp-dither: rgba(44, 46, 51, 0.06);
-  /* Square-spiral band under page titles (same tile as the landing --rh-huiwen). */
-  --pp-huiwen: url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' width='8' height='8' shape-rendering='crispEdges'><path fill='%232c2e33' d='M0 0h7v1h-7zM0 1h1v1h-1zM6 1h1v1h-1zM0 2h1v1h-1zM2 2h3v1h-3zM6 2h1v1h-1zM0 3h1v1h-1zM2 3h1v1h-1zM4 3h1v1h-1zM6 3h1v1h-1zM0 4h1v1h-1zM2 4h1v1h-1zM6 4h1v1h-1zM0 5h1v1h-1zM2 5h5v1h-5zM0 6h1v1h-1zM0 7h8v1h-8z'/></svg>");
-  /* Pixel icon fills (theme/pixelIcons.ts); the ink pixels use currentColor. */
-  --pp-tone-card: #ffffff;
-  --pp-tone-sand: #d4c5b0;
-  --pp-tone-sage: #8fa888;
-  --pp-tone-peach: #f7ece8;
-  --pp-tone-peach-mid: #e8b4a6;
-  --pp-tone-peach-ink: #522b22;
-  --pp-tone-sky: #ebf1f6;
-  --pp-tone-sky-mid: #a9c4da;
-  --pp-tone-mint: #e8f2e8;
-  --pp-tone-mint-mid: #a8cba6;
-  --pp-tone-lilac: #f0ecf6;
-  --pp-tone-lilac-mid: #c3b3dd;
-  --pp-tone-butter-mid: #e6d08a;
-}
-
-:where(html.theme-rhine).dark {
-  --pp-canvas: #1c1e26;
-  --pp-surface: #232630;
-  --pp-surface-2: #1c1e26;
-  --pp-divider: #383c4a;
-  --pp-heat-1: #2f4a33;
-  --pp-heat-2: #3f6b47;
-  --pp-heat-3: #6f9a6a;
-  --pp-heat-4: #b4c8ae;
-  --pp-ink: #e6e8ee;
-  --pp-edge: #383c4a;
-  --pp-control: #6b7186;
-  --pp-grid: rgba(255, 255, 255, 0.04);
-  --pp-frame: url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' width='11' height='11' shape-rendering='crispEdges'><path fill='%23383c4a' fill-rule='evenodd' d='M0 0h11v11H0zM1 1v9h9V1zM2 2h7v7H2zM3 3v5h5V3zM4 4h3v3H4zM5 5v1h1V5z'/></svg>");
-  --pp-dither: rgba(255, 255, 255, 0.05);
-  --pp-huiwen: url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' width='8' height='8' shape-rendering='crispEdges'><path fill='%23e6e8ee' d='M0 0h7v1h-7zM0 1h1v1h-1zM6 1h1v1h-1zM0 2h1v1h-1zM2 2h3v1h-3zM6 2h1v1h-1zM0 3h1v1h-1zM2 3h1v1h-1zM4 3h1v1h-1zM6 3h1v1h-1zM0 4h1v1h-1zM2 4h1v1h-1zM6 4h1v1h-1zM0 5h1v1h-1zM2 5h5v1h-5zM0 6h1v1h-1zM0 7h8v1h-8z'/></svg>");
-  --pp-tone-card: #232630;
-  --pp-tone-sand: #6f6150;
-  --pp-tone-sage: #a3bca0;
-  --pp-tone-peach: #3a2724;
-  --pp-tone-peach-mid: #7a4a40;
-  --pp-tone-peach-ink: #e8aaa0;
-  --pp-tone-sky: #223342;
-  --pp-tone-sky-mid: #3f6584;
-  --pp-tone-mint: #233827;
-  --pp-tone-mint-mid: #3f6b47;
-  --pp-tone-lilac: #2f243d;
-  --pp-tone-lilac-mid: #5e4880;
-  --pp-tone-butter-mid: #7a6a35;
 }
 
 :where(html.theme-rhine) body {
-  background-color: #f8f7f2;
+  background-color: var(--pp-canvas);
   background-image:
     repeating-linear-gradient(to right, var(--pp-grid) 0 1px, transparent 1px 16px),
     repeating-linear-gradient(to bottom, var(--pp-grid) 0 1px, transparent 1px 16px);
   @apply text-gray-900;
 }
 
+/* Repeated under .dark: upstream's `dark:bg-dark-950` on body outranks the rule above. */
 :where(html.theme-rhine).dark body {
-  background-color: #1c1e26;
+  background-color: var(--pp-canvas);
   background-image:
     repeating-linear-gradient(to right, var(--pp-grid) 0 1px, transparent 1px 16px),
     repeating-linear-gradient(to bottom, var(--pp-grid) 0 1px, transparent 1px 16px);
@@ -159,6 +101,11 @@
   @apply dark:bg-dark-800 dark:text-dark-100 dark:hover:bg-dark-700;
 }
 
+/* Upstream `dark:border-dark-600` (fixed slate, hover included) outranks the `.btn` edge. */
+:where(html.theme-rhine).dark .btn-secondary.btn-secondary {
+  border-color: var(--pp-edge);
+}
+
 :where(html.theme-rhine) .btn-ghost {
   border-color: transparent;
   @apply text-gray-600 hover:bg-gray-100 dark:text-dark-300 dark:hover:bg-dark-800;
@@ -184,6 +131,11 @@
 }
 
 /* Forced-colors mode drops box-shadow rings, so focus is also a real outline. */
+/* Upstream `dark:border-dark-600` (fixed slate) outranks the rule above. */
+:where(html.theme-rhine).dark .input {
+  border-color: var(--pp-control);
+}
+
 :where(html.theme-rhine) .input:focus-visible {
   outline: 2px solid var(--pp-ink);
   outline-offset: 2px;
@@ -277,13 +229,9 @@
   letter-spacing: 0.04em;
   border-bottom-width: 2px;
   border-bottom-color: var(--pp-edge);
-  background-image: repeating-conic-gradient(rgba(44, 46, 51, 0.06) 0 25%, transparent 0 50%);
+  background-image: repeating-conic-gradient(var(--pp-dither) 0 25%, transparent 0 50%);
   background-size: 4px 4px;
   @apply bg-gray-100 text-gray-600 dark:bg-dark-900 dark:text-dark-300;
-}
-
-:where(html.theme-rhine).dark .table th {
-  background-image: repeating-conic-gradient(var(--pp-dither) 0 25%, transparent 0 50%);
 }
 
 :where(html.theme-rhine) .table td {
@@ -318,6 +266,7 @@
 
 /* The upstream scoped container falls back to slate in dark mode; match the table body instead. */
 :where(html.theme-rhine).dark .portal-shell .table-scroll-container.table-scroll-container {
+  border-color: var(--pp-edge);
   background-color: var(--pp-surface-2);
 }
 
@@ -497,7 +446,7 @@
 }
 
 :where(html.theme-rhine) .progress-bar {
-  background-image: repeating-conic-gradient(rgba(44, 46, 51, 0.18) 0 25%, transparent 0 50%);
+  background-image: repeating-conic-gradient(rgb(var(--pp-c-gray-900) / 0.18) 0 25%, transparent 0 50%);
   background-size: 4px 4px;
   @apply bg-primary-500;
 }
@@ -535,7 +484,7 @@
  */
 /* RelayPulseMatrix reads this optional variable (falls back to indigo). */
 :where(html.theme-rhine) {
-  --color-primary-500: 143 168 136;
+  --color-primary-500: var(--pp-c-primary-500);
 }
 
 /* TablePageLayout narrows its card border to 1px, which would let the table paint over the inner rules. */
@@ -557,9 +506,38 @@
   @apply focus:border-gray-900 focus:ring-primary-400/50 dark:focus:border-primary-400;
 }
 
+/* Upstream scoped `dark:border-dark-600` / `dark:text-dark-400` are fixed slate; tie them before the open and error states. */
+:where(html.theme-rhine).dark .select-trigger.select-trigger,
+:where(html.theme-rhine).dark .date-picker-trigger.date-picker-trigger,
+:where(html.theme-rhine).dark .date-picker-input.date-picker-input {
+  border-color: var(--pp-control);
+}
+
+:where(html.theme-rhine).dark .select-icon.select-icon,
+:where(html.theme-rhine).dark .date-picker-icon.date-picker-icon,
+:where(html.theme-rhine).dark .date-picker-chevron.date-picker-chevron {
+  color: rgb(var(--pp-c-dark-400));
+}
+
 :where(html.theme-rhine) .select-trigger-open.select-trigger-open,
 :where(html.theme-rhine) .date-picker-trigger-open.date-picker-trigger-open {
   @apply border-gray-900 ring-primary-400/50 dark:border-primary-400;
+}
+
+/* Upstream scoped `dark:bg-dark-*` compiles to fixed slate, so the palette repaints these surfaces. */
+:where(html.theme-rhine) .select-trigger.select-trigger,
+:where(html.theme-rhine) .date-picker-trigger.date-picker-trigger,
+:where(html.theme-rhine) .select-dropdown-portal.select-dropdown-portal,
+:where(html.theme-rhine) .date-picker-dropdown.date-picker-dropdown {
+  @apply bg-white dark:bg-dark-800;
+}
+
+:where(html.theme-rhine) .select-trigger-disabled.select-trigger-disabled {
+  @apply bg-gray-100 dark:bg-dark-900;
+}
+
+:where(html.theme-rhine) .select-dropdown-portal .select-option-group.select-option-group {
+  @apply bg-gray-50 dark:bg-dark-900;
 }
 
 /* Re-asserted, dark variants included, because the focus and open overrides above outrank upstream's. */
@@ -590,7 +568,7 @@
 
 :where(html.theme-rhine) .settings-tab-active.settings-tab-active::after {
   background-image: none;
-  background-color: #8fa888;
+  background-color: rgb(var(--pp-c-primary-500));
 }
 
 :where(html.theme-rhine) .settings-tab-active .settings-tab-icon.settings-tab-icon {
@@ -608,23 +586,23 @@
 }
 
 :where(html.theme-rhine) .input-ring.input-ring:focus {
-  border-color: #58724f;
-  box-shadow: 0 0 0 3px rgba(143, 168, 136, 0.45);
+  border-color: rgb(var(--pp-c-primary-600));
+  box-shadow: 0 0 0 3px rgb(var(--pp-c-primary-500) / 0.45);
 }
 
 /* Onboarding tour (driver.js); upstream rules are !important. */
 :where(html.theme-rhine) .driver-active-element {
-  outline-color: rgba(143, 168, 136, 0.55) !important;
+  outline-color: rgb(var(--pp-c-primary-500) / 0.55) !important;
 }
 
 :where(html.theme-rhine) .theme-tour-popover .driver-popover-next-btn {
-  background-color: #2c2e33 !important;
-  color: #f8f7f2 !important;
+  background-color: var(--pp-ink) !important;
+  color: var(--pp-canvas) !important;
 }
 
 :where(html.theme-rhine) .theme-tour-popover .driver-popover-next-btn:hover {
-  background-color: #8fa888 !important;
-  color: #2c2e33 !important;
+  background-color: var(--pp-accent) !important;
+  color: var(--pp-on-accent) !important;
 }
 
 /* Forced colours repaint borders but not border images, which would keep the theme's charcoal. */

@@ -5,6 +5,7 @@ import postcss from 'postcss'
 import dockSource from '../shell/PortalDock.vue?raw'
 import topBarSource from '../shell/PortalTopBar.vue?raw'
 import { contrastRatio, declarationsIn, scopedStyles } from './contrast'
+import { PALETTES } from '../theme/palettes'
 import tailwindConfig from '../theme/tailwind.rhine.config.js'
 
 const LAYOUT_PROPERTY =
@@ -41,7 +42,7 @@ describe('pixel console shell', () => {
   it('preserves navigation markup while fitting the 56px header', () => {
     expect(templateHash(withUpstreamIcon(dockSource))).toBe('68589bed15dea4623a4459fde007fe4441d8ca55733628fd949aa8ae71dd6a3b')
     expect(topBarSource).toContain('h-[51px]')
-    expect(templateHash(withUpstreamIcon(topBarSource).replace('h-[51px]', 'h-16'))).toBe('a418a74ef334df45982ca4aade4c5e34df5b7418e26ea22d4eb502aa8d05d9fa')
+    expect(templateHash(withUpstreamIcon(topBarSource).replace('h-[51px]', 'h-16'))).toBe('2d05dd236601c948e2268192d469f7462945ff69c43a44ef45a9a29e88d0cfeb')
   })
 
   it('draws the Dock as a solid pixel bar without blur', () => {
@@ -50,9 +51,8 @@ describe('pixel console shell', () => {
     expect(bar['border-width']).toBe('5px')
     expect(bar['border-color']).toBe('var(--pp-edge)')
     expect(bar['box-shadow']).toBe('none')
-    expect(bar.outline).toBe('4px solid #f8f7f2')
-    expect(bar['background-color']).toBe('#ffffff')
-    expect(declarationsIn(dock, ':where(html.dark) .portal-dock > ul')['background-color']).toBe('#232630')
+    expect(bar.outline).toBe('4px solid var(--pp-canvas)')
+    expect(bar['background-color']).toBe('var(--pp-surface)')
     expect(bar['border-image']).toBe('var(--pp-frame) 5 / 5px')
     expect(bar['background-clip']).toBe('border-box')
     expect(dockSource).toMatch(/@media \(forced-colors: active\)\s*\{\s*\.portal-dock > ul[^}]*border-image-source: none/)
@@ -62,9 +62,10 @@ describe('pixel console shell', () => {
     const active = /const activeClass = '([^']+)'/.exec(dockSource)?.[1] ?? ''
     expect(active.split(' ')).toEqual(expect.arrayContaining(['bg-primary-500', 'text-gray-900', 'dark:bg-primary-400', 'dark:text-dark-900']))
     expect(active).not.toMatch(/text-white/)
-    const { primary, gray, dark } = tailwindConfig.theme.extend.colors as Record<string, Record<number, string>>
-    expect(contrastRatio(gray[900], primary[500])).toBeGreaterThanOrEqual(4.5)
-    expect(contrastRatio(dark[900], primary[400])).toBeGreaterThanOrEqual(4.5)
+    for (const { id, mode, primary, gray, dark } of PALETTES) {
+      const [text, fill] = mode === 'light' ? [gray[900], primary[500]] : [dark[900], primary[400]]
+      expect(contrastRatio(text, fill), id).toBeGreaterThanOrEqual(4.5)
+    }
   })
 
   it('sets Dock and TopBar titles in the pixel font on the 12px grid', () => {

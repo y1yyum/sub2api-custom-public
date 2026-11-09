@@ -229,7 +229,7 @@ onMounted(() => {
 .wallet-purchase :deep(.recharge-amounts), .wallet-purchase :deep(.recharge-methods), .wallet-purchase :deep(.recharge-summary) { padding: 0; border: 0; border-image: none; background: transparent; }
 .wallet-purchase :deep(.recharge-amounts) { margin-top: 0; }
 .wallet-purchase :deep(.recharge-summary) { padding: 16px; background: var(--pp-surface-2); border: 1px solid var(--pp-divider); }
-.wallet-purchase :deep(.recharge-submit) { background: var(--pp-tone-sage); color: #2c2e33; }
+.wallet-purchase :deep(.recharge-submit) { background: var(--pp-accent); color: var(--pp-on-accent); }
 .wallet-purchase :deep(.recharge-submit:disabled) { opacity: 0.5; }
 .wallet-purchase :deep(.recharge-summary .text-lg) { font: 400 24px/28px var(--pp-font-pixel); font-synthesis: none; }
 .wallet-purchase :deep(.portal-amount-input button) { min-height: 84px; text-align: left; padding: 12px; border: 3px double var(--pp-divider); color: var(--pp-ink); }

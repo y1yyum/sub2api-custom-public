@@ -1,13 +1,10 @@
-import { readFileSync } from 'node:fs'
-import { resolve } from 'node:path'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { mount } from '@vue/test-utils'
 import PixelIcon from '../components/common/PixelIcon.vue'
 import { PIXEL_ICONS, pixelRuns, type PixelIconName } from '../theme/pixelIcons'
-import { declarationsIn } from './contrast'
+import { PALETTES } from '../theme/palettes'
+import { paletteTokens } from './contrast'
 
-// A ?raw CSS import is emptied under jsdom, so read the file directly.
-const themeCss = readFileSync(resolve(__dirname, '../theme/rhine-theme.css'), 'utf8')
 const names = Object.keys(PIXEL_ICONS) as PixelIconName[]
 
 const sources = Object.entries(
@@ -49,13 +46,11 @@ describe('pixel icons', () => {
     expect(direct.map(([path]) => path)).toEqual([])
   })
 
-  it('defines every fill tone for both light and dark mode', () => {
-    const light = declarationsIn(themeCss, ':where(html.theme-rhine)')
-    const dark = declarationsIn(themeCss, ':where(html.theme-rhine).dark')
+  it('defines every icon fill in every palette', () => {
     const tones = new Set(names.flatMap((name) => [...PIXEL_ICONS[name].tones]))
-    for (const tone of [...tones, 'card']) {
-      expect(light[`--pp-tone-${tone}`], tone).toMatch(/^#[0-9a-f]{6}$/)
-      expect(dark[`--pp-tone-${tone}`], tone).toMatch(/^#[0-9a-f]{6}$/)
+    for (const palette of PALETTES) {
+      const tokens = paletteTokens(palette)
+      for (const tone of [...tones, 'card']) expect(tokens[`--pp-icon-${tone}`], `${palette.id}: ${tone}`).toMatch(/^#[0-9a-f]{6}$/)
     }
   })
 
@@ -70,7 +65,7 @@ describe('pixel icons', () => {
       { x: 12, y: 8, width: 2, fill: 'currentColor' }
     ])
     expect(pixelRuns('cube').map((run) => run.fill)).toEqual(
-      expect.arrayContaining(['var(--pp-tone-peach)', 'var(--pp-tone-peach-mid)', 'var(--pp-tone-peach-ink)'])
+      expect.arrayContaining(['var(--pp-icon-peach)', 'var(--pp-icon-peach-mid)', 'var(--pp-icon-peach-ink)'])
     )
   })
 

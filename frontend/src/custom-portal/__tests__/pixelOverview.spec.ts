@@ -1,6 +1,4 @@
 // @vitest-environment node
-import { readFileSync } from 'node:fs'
-import { resolve } from 'node:path'
 import { describe, expect, it } from 'vitest'
 import avatarSource from '../shell/PortalAvatarMenu.vue?raw'
 import dockSource from '../shell/PortalDock.vue?raw'
@@ -9,12 +7,12 @@ import cardsSource from '../components/overview/OverviewMetricCards.vue?raw'
 import ranksSource from '../components/overview/OverviewTopModels.vue?raw'
 import overviewSource from '../views/PortalOverviewView.vue?raw'
 import { METRIC_TONES } from '../overview/metricTones'
-import { pixelFrame } from '../theme/pixelFrame'
-import { contrastRatio, declarationsIn, scopedStyles } from './contrast'
+import { pixelFrame, pixelHuiwen } from '../theme/pixelFrame'
+import { DEFAULT_PALETTE } from '../theme/palettes'
+import { contrastRatio, declarationsIn, paletteTokens, scopedStyles } from './contrast'
 
-const themeCss = readFileSync(resolve(__dirname, '../theme/rhine-theme.css'), 'utf8')
-const light = declarationsIn(themeCss, ':where(html.theme-rhine)')
-const dark = declarationsIn(themeCss, ':where(html.theme-rhine).dark')
+const light = paletteTokens(DEFAULT_PALETTE.light)
+const dark = paletteTokens(DEFAULT_PALETTE.dark)
 const DOUBLE_RULE = '3px double currentColor'
 
 /** Base rules only: declarationsIn also merges the matching rules inside @media blocks. */
@@ -66,7 +64,7 @@ describe('pixel console overview', () => {
 
   it('sets the page title in the pixel font over the square-spiral band', () => {
     expect(light['--pp-huiwen']).toMatch(/^url\("data:image\/svg\+xml,<svg [^>]*width='8' height='8'.*fill='%232c2e33'/)
-    expect(dark['--pp-huiwen']).toBe(light['--pp-huiwen'].replace('%232c2e33', '%23e6e8ee'))
+    expect(dark['--pp-huiwen']).toBe(pixelHuiwen(DEFAULT_PALETTE.dark.tokens.ink))
     const title = declarationsIn(withoutMedia(scopedStyles(overviewSource)), '.overview-title')
     expect(title).toMatchObject({ 'font-family': 'var(--pp-font-pixel)', 'font-size': '24px' })
     expect(declarationsIn(scopedStyles(overviewSource), '.overview-description::after').background).toBe('var(--pp-huiwen) left bottom / 8px 8px repeat-x')

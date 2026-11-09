@@ -123,14 +123,8 @@ onBeforeUnmount(() => document.removeEventListener('click', onDocumentClick))
   background-clip: border-box;
   box-shadow: none;
   /* A canvas-coloured ring lifts the floating bar off the grid instead of a drop shadow. */
-  outline: 4px solid #f8f7f2;
-  background-color: #ffffff;
-}
-
-:where(html.dark) .portal-dock > ul,
-:where(html.dark) .portal-dock ul[role='menu'] {
-  background-color: #232630;
-  outline-color: #1c1e26;
+  outline: 4px solid var(--pp-canvas);
+  background-color: var(--pp-surface);
 }
 
 @media (forced-colors: active) {

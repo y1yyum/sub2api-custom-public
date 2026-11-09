@@ -4,6 +4,7 @@ import { defineComponent, h, reactive, ref } from 'vue'
 import { enableAutoUnmount, flushPromises, mount } from '@vue/test-utils'
 import { createI18n } from 'vue-i18n'
 import { createMemoryHistory, createRouter, type Router } from 'vue-router'
+import { declarationsIn, scopedStyles } from './contrast'
 
 const appStore = reactive({
   siteName: 'Sub2API',
@@ -306,5 +307,28 @@ describe('portal TopBar logo', () => {
     expect(brand.get('img').attributes('src')).toBe('/brand.png')
     expect(brand.get('span').classes()).toEqual(expect.arrayContaining(['bg-gray-900', 'dark:bg-white']))
     expect(brand.get('span').classes()).not.toContain('pixel-logo')
+  })
+})
+
+describe('portal content width and table height', () => {
+  it('spans the window on table pages and keeps the 1296px column elsewhere', async () => {
+    for (const path of ['/keys', '/usage', '/available-channels']) {
+      const { wrapper } = await mountShell(path)
+      expect(wrapper.get('main').classes(), path).toContain('portal-shell-main--wide')
+      wrapper.unmount()
+    }
+    for (const path of ['/dashboard', '/purchase', '/monitor']) {
+      const { wrapper } = await mountShell(path)
+      expect(wrapper.get('main').classes(), path).not.toContain('portal-shell-main--wide')
+      wrapper.unmount()
+    }
+  })
+
+  it('lets table pages grow with the page size instead of scrolling inside one viewport', async () => {
+    const { default: source } = await import('../shell/PortalShell.vue?raw')
+    const css = scopedStyles(source)
+    expect(declarationsIn(css, '.portal-shell-main :deep(.table-page-layout)').height).toBe('auto')
+    expect(declarationsIn(css, '.portal-shell-main--wide').width).toBe('calc(100% - 64px)')
+    expect(css).not.toMatch(/100vh/)
   })
 })
