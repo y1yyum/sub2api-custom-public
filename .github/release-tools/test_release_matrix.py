@@ -65,6 +65,9 @@ class ReleaseMatrixTest(unittest.TestCase):
         self.assertEqual(leaf['builds'][0]['goarch'], ['arm64'])
         self.assertEqual(leaf['builds'][0]['ignore'], [])
         self.assertEqual(leaf['archives'], original['archives'])
+        archive_files = leaf['archives'][0]['files']
+        for name in ('LICENSE', 'COPYING', 'THIRD_PARTY_NOTICES.md'):
+            self.assertIn(f'backend/internal/upstreamsites/{name}', archive_files)
         self.assertEqual(leaf['release'], original['release'])
         self.assertFalse(leaf['dockers'])
         self.assertIn('{{ .Env.RELEASE_DATE }}', '\n'.join(leaf['builds'][0]['ldflags']))
@@ -115,11 +118,21 @@ class ReleaseMatrixTest(unittest.TestCase):
         Path('deploy/docker-entrypoint.sh').write_text('#!/bin/sh\nexec /app/sub2api\n')
         Path('backend/resources').mkdir()
         Path('backend/resources/data').write_text('fixture')
+        notices = Path('backend/internal/upstreamsites')
+        notices.mkdir(parents=True)
+        for name in ('LICENSE', 'COPYING', 'NOTICE.md'):
+            Path(name).write_text(f'host {name}')
+        for name in ('LICENSE', 'COPYING', 'THIRD_PARTY_NOTICES.md'):
+            (notices / name).write_text(f'module {name}')
         release.contexts(args)
         for arch in ('amd64', 'arm64'):
             binary = Path('contexts') / arch / 'sub2api'
             self.assertEqual(binary.read_bytes(), b'fixture')
             self.assertEqual(binary.stat().st_mode & 0o777, 0o755)
+            for name in ('LICENSE', 'COPYING', 'NOTICE.md'):
+                self.assertEqual((binary.parent / name).read_text(), f'host {name}')
+            for name in ('LICENSE', 'COPYING', 'THIRD_PARTY_NOTICES.md'):
+                self.assertEqual((binary.parent / notices / name).read_text(), f'module {name}')
 
     def test_plan_requires_a_tag_for_publication(self):
         args = argparse.Namespace(ref='main', dry_run=False, simple=False)

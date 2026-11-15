@@ -3,10 +3,12 @@ package handler
 import (
 	"github.com/Wei-Shaw/sub2api/internal/handler/admin"
 	"github.com/Wei-Shaw/sub2api/internal/securityaudit"
+	"github.com/Wei-Shaw/sub2api/internal/upstreamsites"
 )
 
 // AdminHandlers contains all admin-related HTTP handlers
 type AdminHandlers struct {
+	UpstreamSites          *upstreamsites.Manager
 	Dashboard              *admin.DashboardHandler
 	User                   *admin.UserHandler
 	Group                  *admin.GroupHandler

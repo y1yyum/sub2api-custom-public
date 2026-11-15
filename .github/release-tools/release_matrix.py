@@ -152,6 +152,12 @@ def contexts(args):
         (dest / 'deploy').mkdir(exist_ok=True)
         shutil.copy2('deploy/docker-entrypoint.sh', dest / 'deploy/docker-entrypoint.sh')
         shutil.copytree('backend/resources', dest / 'backend/resources', dirs_exist_ok=True)
+        for name in ('LICENSE', 'COPYING', 'NOTICE.md'):
+            shutil.copy2(name, dest / name)
+        notices = Path('backend/internal/upstreamsites')
+        (dest / notices).mkdir(parents=True, exist_ok=True)
+        for name in ('LICENSE', 'COPYING', 'THIRD_PARTY_NOTICES.md'):
+            shutil.copy2(notices / name, dest / notices / name)
 
 
 def main():

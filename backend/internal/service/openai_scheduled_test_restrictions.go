@@ -36,7 +36,7 @@ func (s *OpenAIGatewayService) CheckScheduledTestWSRestrictions(ctx context.Cont
 		!s.shouldBridgeOpenAIWSPassthroughFirstMessage(selected, firstMessage) {
 		upstreamModel = strings.TrimSpace(mappedModel)
 	}
-	if latest.IsScheduledTestAccountBlocked() ||
+	if latest.IsUpstreamSiteBlocked() || latest.IsScheduledTestAccountBlocked() ||
 		latest.isScheduledTestModelBlocked(strings.TrimSpace(requestedModel), upstreamModel) ||
 		latest.isScheduledTestModelBlocked(strings.TrimSpace(mappedModel), upstreamModel) {
 		return NewOpenAIWSClientCloseError(coderws.StatusTryAgainLater, "account or model is no longer eligible for this connection, please reconnect", nil)
