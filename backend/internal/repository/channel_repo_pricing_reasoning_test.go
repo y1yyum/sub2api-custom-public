@@ -31,7 +31,7 @@ func reasoningPricingRow(multipliers any) *sqlmock.Rows {
 	return sqlmock.NewRows(channelModelPricingTimePricingColumns).AddRow(
 		int64(11), int64(7), "openai", `["custom-model"]`, service.BillingModeToken,
 		nil, nil, nil, nil, nil, nil, nil, multipliers, nil, nil, nil, nil,
-		time.Time{}, time.Time{},
+		time.Time{}, time.Time{}, false,
 	)
 }
 
@@ -58,7 +58,7 @@ func TestChannelReasoningEffortMultipliersRoundTrip(t *testing.T) {
 				if operation == "update" {
 					mock.ExpectExec(`(?s)UPDATE channel_model_pricing.*reasoning_effort_multipliers = \$10.*WHERE id = \$16`).
 						WithArgs([]byte(`["custom-model"]`), service.BillingModeToken,
-							nil, nil, nil, nil, nil, nil, nil, stored, nil, nil, nil, nil, "openai", int64(11)).
+							nil, nil, nil, nil, nil, nil, nil, stored, nil, nil, nil, nil, "openai", int64(11), false).
 						WillReturnResult(sqlmock.NewResult(0, 1))
 					require.NoError(t, repo.UpdateModelPricing(ctx, pricing))
 				} else {
@@ -69,7 +69,7 @@ func TestChannelReasoningEffortMultipliersRoundTrip(t *testing.T) {
 					}
 					mock.ExpectQuery(`INSERT INTO channel_model_pricing .*reasoning_effort_multipliers`).
 						WithArgs(int64(7), "openai", []byte(`["custom-model"]`), service.BillingModeToken,
-							nil, nil, nil, nil, nil, nil, nil, stored, nil, nil, nil, nil).
+							nil, nil, nil, nil, nil, nil, nil, stored, nil, nil, nil, nil, false).
 						WillReturnRows(sqlmock.NewRows([]string{"id", "created_at", "updated_at"}).AddRow(int64(11), time.Time{}, time.Time{}))
 					if operation == "replace" {
 						mock.ExpectCommit()

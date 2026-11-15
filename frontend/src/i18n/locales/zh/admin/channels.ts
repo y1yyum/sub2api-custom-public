@@ -45,6 +45,8 @@ export default {
 
     // Channel Management
     channels: {
+      copySuffix: '（副本）',
+      duplicateHint: '已复制渠道配置。请设置新名称并选择关联分组后保存；原渠道保持不变。',
       title: '渠道管理',
       description: '管理渠道和自定义模型定价',
       searchChannels: '搜索渠道...',
@@ -121,6 +123,7 @@ export default {
         noGroupsAvailable: '暂无可用分组',
         inOtherChannel: '已属于「{name}」',
         modelPricing: '模型定价',
+        showInCatalog: '在模型与渠道中展示',
         models: '模型列表',
         modelsPlaceholder: '输入完整模型名后按回车添加',
         modelInputHint: '按回车添加，支持粘贴批量导入',

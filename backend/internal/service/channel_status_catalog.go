@@ -25,7 +25,7 @@ const CatalogStatusUnavailable = "status_unavailable"
 var ErrCatalogRowNotFound = errors.New("channel status catalog row not found")
 
 type catalogPlazaSource interface {
-	ListGroups(ctx context.Context) ([]PlazaGroup, error)
+	ListCatalogGroups(ctx context.Context) ([]PlazaGroup, error)
 }
 
 type catalogStatusSource interface {
@@ -264,7 +264,7 @@ func isCatalogFatalStatusError(err error) bool {
 // visibleGroups lists plaza groups the viewer may see, applying the group
 // filter. Visibility is decided before any status is joined.
 func (s *ChannelStatusCatalogService) visibleGroups(ctx context.Context, f ChannelMonitorV2Filter) ([]PlazaGroup, error) {
-	all, err := s.plaza.ListGroups(ctx)
+	all, err := s.plaza.ListCatalogGroups(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("list catalog groups: %w", err)
 	}

@@ -106,6 +106,13 @@
                 <span class="text-xs">{{ t('common.edit', 'Edit') }}</span>
               </button>
               <button
+                @click="openDuplicateDialog(row)"
+                class="flex flex-col items-center gap-0.5 rounded-lg p-1.5 text-gray-500 transition-colors hover:bg-gray-100 hover:text-primary-600 dark:hover:bg-dark-700 dark:hover:text-primary-400"
+              >
+                <Icon name="copy" size="sm" />
+                <span class="text-xs">{{ t('common.copy', 'Copy') }}</span>
+              </button>
+              <button
                 @click="handleDelete(row)"
                 class="flex flex-col items-center gap-0.5 rounded-lg p-1.5 text-gray-500 transition-colors hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-900/20 dark:hover:text-red-400"
               >
@@ -146,6 +153,9 @@
       @close="closeDialog"
     >
       <div class="channel-dialog-body">
+        <p v-if="duplicatingChannel" class="mb-3 text-sm text-gray-500 dark:text-gray-400" role="status">
+          {{ t('admin.channels.duplicateHint') }}
+        </p>
         <!-- Tab Bar -->
         <div class="flex items-center border-b border-gray-200 dark:border-dark-700 flex-shrink-0 -mx-4 sm:-mx-6 px-4 sm:px-6 -mt-3 sm:-mt-4">
           <!-- Basic Settings Tab -->
@@ -450,6 +460,7 @@
                   :platform="section.platform"
                   enable-time-pricing
                   enable-tier-multipliers
+                  enable-catalog-visibility
                   @update="updatePricingEntry(sIdx, idx, $event)"
                   @remove="removePricingEntry(sIdx, idx)"
                 />
@@ -753,6 +764,7 @@ const sortState = reactive({
 // Dialog state
 const showDialog = ref(false)
 const editingChannel = ref<Channel | null>(null)
+const duplicatingChannel = ref<Channel | null>(null)
 const submitting = ref(false)
 const showDeleteDialog = ref(false)
 const deletingChannel = ref<Channel | null>(null)
@@ -1126,9 +1138,8 @@ function formToAPI(): { group_ids: number[], model_pricing: ChannelModelPricing[
   const model_pricing: ChannelModelPricing[] = []
   const model_mapping: Record<string, Record<string, string>> = {}
   // Preserve existing features_config fields not managed by the form
-  const featuresConfig: Record<string, unknown> = editingChannel.value?.features_config
-    ? { ...editingChannel.value.features_config }
-    : {}
+  const sourceChannel = editingChannel.value ?? duplicatingChannel.value
+  const featuresConfig: Record<string, unknown> = { ...sourceChannel?.features_config }
 
   for (const section of form.platforms) {
     if (!section.enabled) continue
@@ -1145,6 +1156,7 @@ function formToAPI(): { group_ids: number[], model_pricing: ChannelModelPricing[
       model_pricing.push({
         platform: section.platform,
         models: entry.models,
+        hide_in_catalog: entry.hide_in_catalog ?? false,
         billing_mode: entry.billing_mode,
         input_price: mTokToPerToken(entry.input_price),
         output_price: mTokToPerToken(entry.output_price),
@@ -1191,15 +1203,9 @@ function formToAPI(): { group_ids: number[], model_pricing: ChannelModelPricing[
     delete featuresConfig.codex_image_generation_bridge
   }
 
-  const bedrockCCCompat: Record<string, boolean> = {}
-  for (const section of form.platforms) {
-    if (!section.enabled) continue
-    if (section.platform === 'anthropic') {
-      bedrockCCCompat[section.platform] = !!section.bedrock_cc_compat
-    }
-  }
-  if (Object.keys(bedrockCCCompat).length > 0) {
-    featuresConfig.bedrock_cc_compat = bedrockCCCompat
+  const anthropicSection = form.platforms.find(section => section.enabled && section.platform === 'anthropic')
+  if (anthropicSection) {
+    featuresConfig.bedrock_cc_compat = anthropicSection.bedrock_cc_compat
   } else {
     delete featuresConfig.bedrock_cc_compat
   }
@@ -1245,7 +1251,8 @@ function apiToForm(channel: Channel): PlatformSection[] {
     const pricing = (channel.model_pricing || [])
       .filter(p => (p.platform || 'anthropic') === platform)
       .map(p => ({
-        models: p.models || [],
+        models: [...(p.models || [])],
+        hide_in_catalog: p.hide_in_catalog ?? false,
         billing_mode: p.billing_mode,
         input_price: perTokenToMTok(p.input_price),
         output_price: perTokenToMTok(p.output_price),
@@ -1367,6 +1374,7 @@ function handleSort(key: string, order: 'asc' | 'desc') {
 
 // ── Dialog ──
 function resetForm() {
+  duplicatingChannel.value = null
   form.name = ''
   form.description = ''
   form.status = 'active'
@@ -1388,6 +1396,7 @@ async function openCreateDialog() {
 }
 
 async function openEditDialog(channel: Channel) {
+  resetForm()
   editingChannel.value = channel
   form.name = channel.name
   form.description = channel.description || ''
@@ -1481,6 +1490,25 @@ async function populateRuleAccountNameCache() {
       ruleAccountNameCache.value[ids[i]] = result.value.name
     }
     // If rejected, the cache won't have the name, so it'll show "#ID" which is acceptable
+  }
+}
+
+async function openDuplicateDialog(channel: Channel) {
+  const copy: Channel = JSON.parse(JSON.stringify(channel))
+  await openEditDialog(copy)
+  editingChannel.value = null
+  duplicatingChannel.value = copy
+  const suffix = t('admin.channels.copySuffix')
+  const baseName = `${channel.name.slice(0, 80)}${suffix}`
+  const existingNames = new Set(allChannelsForConflict.value.map(item => item.name))
+  let name = baseName
+  let number = 2
+  while (existingNames.has(name)) name = `${baseName} ${number++}`
+  form.name = name
+  form.status = 'active'
+  for (const section of form.platforms) {
+    section.group_ids = []
+    for (const rule of section.account_stats_pricing_rules) rule.group_ids = []
   }
 }
 
@@ -1636,6 +1664,7 @@ async function handleSubmit() {
     } else {
       const req: CreateChannelRequest = {
         name: form.name.trim(),
+        features: duplicatingChannel.value?.features,
         description: form.description.trim() || undefined,
         group_ids,
         model_pricing,

@@ -21,6 +21,7 @@ export interface IntervalFormEntry {
 }
 
 export interface PricingFormEntry {
+  hide_in_catalog?: boolean
   models: string[]
   billing_mode: BillingMode
   input_price: number | string | null

@@ -39,6 +39,7 @@ export interface ChannelTimePricing {
 }
 
 export interface ChannelModelPricing {
+  hide_in_catalog?: boolean
   id?: number
   platform: string
   models: string[]
@@ -73,6 +74,7 @@ export interface Channel {
   status: ChannelStatus
   billing_model_source: BillingModelSource
   restrict_models: boolean
+  features?: string
   features_config?: Record<string, unknown>
   group_ids: number[]
   model_pricing: ChannelModelPricing[]
@@ -91,6 +93,7 @@ export interface CreateChannelRequest {
   model_mapping?: Record<string, Record<string, string>>
   billing_model_source?: string
   restrict_models?: boolean
+  features?: string
   features_config?: Record<string, unknown>
   apply_pricing_to_account_stats?: boolean
   account_stats_pricing_rules?: AccountStatsPricingRule[]
@@ -105,6 +108,7 @@ export interface UpdateChannelRequest {
   model_mapping?: Record<string, Record<string, string>>
   billing_model_source?: string
   restrict_models?: boolean
+  features?: string
   features_config?: Record<string, unknown>
   apply_pricing_to_account_stats?: boolean
   account_stats_pricing_rules?: AccountStatsPricingRule[]

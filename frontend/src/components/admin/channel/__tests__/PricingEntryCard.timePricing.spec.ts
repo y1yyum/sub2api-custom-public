@@ -37,6 +37,24 @@ function createEntry(billingMode: PricingFormEntry['billing_mode'] = 'token'): P
 }
 
 describe('PricingEntryCard time pricing visibility', () => {
+  it('defaults catalog visibility to on and emits both switch states without changing pricing', async () => {
+    const entry = createEntry()
+    const wrapper = shallowMount(PricingEntryCard, { props: { entry, enableCatalogVisibility: true } })
+    const toggle = wrapper.findComponent({ name: 'Toggle' })
+    expect(toggle.props('modelValue')).toBe(true)
+    toggle.vm.$emit('update:modelValue', false)
+    expect(wrapper.emitted('update')?.[0]?.[0]).toEqual({ ...entry, hide_in_catalog: true })
+    await wrapper.setProps({ entry: { ...entry, hide_in_catalog: true } })
+    expect(toggle.props('modelValue')).toBe(false)
+    toggle.vm.$emit('update:modelValue', true)
+    expect(wrapper.emitted('update')?.[1]?.[0]).toEqual({ ...entry, hide_in_catalog: false })
+  })
+
+  it('does not offer catalog visibility for other pricing forms', () => {
+    const wrapper = shallowMount(PricingEntryCard, { props: { entry: createEntry() } })
+    expect(wrapper.findComponent({ name: 'Toggle' }).exists()).toBe(false)
+  })
+
   it('is hidden by default', () => {
     const wrapper = shallowMount(PricingEntryCard, {
       props: { entry: createEntry() },
