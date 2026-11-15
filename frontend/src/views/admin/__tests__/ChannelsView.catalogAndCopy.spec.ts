@@ -68,6 +68,35 @@ describe('ChannelsView catalog visibility and copy', () => {
     ])
   })
 
+  it.each([true, false])('preserves the Bedrock boolean contract when copying %s', async enabled => {
+    const original = fixture()
+    original.model_pricing[0].platform = 'anthropic'
+    original.account_stats_pricing_rules = []
+    const channel = {
+      ...original,
+      model_mapping: {},
+      features_config: { bedrock_cc_compat: enabled }
+    }
+    list.mockResolvedValue({ items: [channel], total: 1 })
+    getGroups.mockResolvedValue([
+      { id: 10, name: 'Original group', platform: 'anthropic' },
+      { id: 20, name: 'New group', platform: 'anthropic' }
+    ])
+    const wrapper = mountView()
+    await flushPromises()
+    await wrapper.findAll('.actions button')[1].trigger('click')
+    await flushPromises()
+    const groupLabel = wrapper.findAll('label').find(label => label.text().includes('New group'))!
+    await groupLabel.get('input[type="checkbox"]').setValue(true)
+    await wrapper.get('#channel-form').trigger('submit')
+    await flushPromises()
+    expect(create).toHaveBeenCalledWith(expect.objectContaining({
+      features_config: expect.objectContaining({ bedrock_cc_compat: enabled })
+    }))
+    expect(channel.features_config.bedrock_cc_compat).toBe(enabled)
+    wrapper.unmount()
+  })
+
   it('loads and saves the visibility switch through edit', async () => {
     list.mockResolvedValue({ items: [fixture()], total: 1 })
     const wrapper = mountView()
