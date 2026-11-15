@@ -104,6 +104,14 @@ func NewModelPlazaService(
 //
 // 可见性过滤（专属分组）不在此层做，由 handler 按登录态裁剪。
 func (s *ModelPlazaService) ListGroups(ctx context.Context) ([]PlazaGroup, error) {
+	return s.listGroups(ctx, false)
+}
+
+func (s *ModelPlazaService) ListCatalogGroups(ctx context.Context) ([]PlazaGroup, error) {
+	return s.listGroups(ctx, true)
+}
+
+func (s *ModelPlazaService) listGroups(ctx context.Context, catalogOnly bool) ([]PlazaGroup, error) {
 	channels, err := s.channelRepo.ListAll(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("list channels: %w", err)
@@ -158,6 +166,19 @@ func (s *ModelPlazaService) ListGroups(ctx context.Context) ([]PlazaGroup, error
 		}
 		ch.normalizeBillingModelSource()
 		supported := ch.SupportedModels()
+		if catalogOnly {
+			visible := supported[:0]
+			for _, model := range supported {
+				pricing := ch.GetModelPricingByPlatform(model.Platform, model.Name)
+				if pricing == nil {
+					pricing = model.Pricing
+				}
+				if pricing == nil || !pricing.HideInCatalog {
+					visible = append(visible, model)
+				}
+			}
+			supported = visible
+		}
 		fillGlobalPricingFallback(s.pricingService, supported)
 
 		for _, gid := range ch.GroupIDs {

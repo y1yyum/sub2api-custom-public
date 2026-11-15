@@ -67,6 +67,14 @@
       :class="{ 'collapsible-content--collapsed': collapsed }"
     >
       <div class="collapsible-inner">
+        <div v-if="enableCatalogVisibility" class="mt-3 flex items-center justify-between gap-3">
+          <span class="text-sm text-gray-700 dark:text-gray-200">{{ t('admin.channels.form.showInCatalog') }}</span>
+          <Toggle
+            :model-value="!entry.hide_in_catalog"
+            :aria-label="t('admin.channels.form.showInCatalog')"
+            @update:model-value="emit('update', { ...entry, hide_in_catalog: !$event })"
+          />
+        </div>
         <!-- Header: Models + Billing Mode -->
         <div class="mt-3 flex items-start gap-2">
           <div class="flex-1">
@@ -302,6 +310,7 @@
 import { ref, computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import Select from '@/components/common/Select.vue'
+import Toggle from '@/components/common/Toggle.vue'
 import Icon from '@/components/icons/Icon.vue'
 import IntervalRow from './IntervalRow.vue'
 import ModelTagInput from './ModelTagInput.vue'
@@ -320,10 +329,12 @@ const props = withDefaults(defineProps<{
   hideTokenIntervals?: boolean
   enableTimePricing?: boolean
   enableTierMultipliers?: boolean
+  enableCatalogVisibility?: boolean
 }>(), {
   hideTokenIntervals: false,
   enableTimePricing: false,
   enableTierMultipliers: false,
+  enableCatalogVisibility: false,
 })
 
 const emit = defineEmits<{

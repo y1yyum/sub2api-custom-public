@@ -58,6 +58,7 @@ type updateChannelRequest struct {
 }
 
 type channelModelPricingRequest struct {
+	HideInCatalog              bool                       `json:"hide_in_catalog"`
 	Platform                   string                     `json:"platform" binding:"omitempty,max=50"`
 	Models                     []string                   `json:"models" binding:"required,min=1,max=100"`
 	BillingMode                string                     `json:"billing_mode" binding:"omitempty,oneof=token per_request image"`
@@ -131,6 +132,7 @@ type channelResponse struct {
 }
 
 type channelModelPricingResponse struct {
+	HideInCatalog              bool                        `json:"hide_in_catalog"`
 	ID                         int64                       `json:"id"`
 	Platform                   string                      `json:"platform"`
 	Models                     []string                    `json:"models"`
@@ -261,6 +263,7 @@ func pricingToResponse(p *service.ChannelModelPricing) channelModelPricingRespon
 		intervals = append(intervals, intervalToResponse(iv))
 	}
 	return channelModelPricingResponse{
+		HideInCatalog:              p.HideInCatalog,
 		ID:                         p.ID,
 		Platform:                   platform,
 		Models:                     models,
@@ -360,6 +363,7 @@ func pricingRequestToService(reqs []channelModelPricingRequest, allowChannelMult
 			flexMultiplier = r.FlexMultiplier
 		}
 		result = append(result, service.ChannelModelPricing{
+			HideInCatalog:              allowChannelMultipliers && r.HideInCatalog,
 			Platform:                   platform,
 			Models:                     r.Models,
 			BillingMode:                billingMode,

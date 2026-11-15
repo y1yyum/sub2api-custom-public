@@ -45,6 +45,8 @@ export default {
 
     // Channel Management
     channels: {
+      copySuffix: ' (copy)',
+      duplicateHint: 'Channel configuration copied. Set a new name and select groups before saving; the original channel is unchanged.',
       title: 'Channel Management',
       description: 'Manage channels and custom model pricing',
       searchChannels: 'Search channels...',
@@ -121,6 +123,7 @@ export default {
         noGroupsAvailable: 'No groups available',
         inOtherChannel: 'In "{name}"',
         modelPricing: 'Model Pricing',
+        showInCatalog: 'Show in Models & Channels',
         models: 'Models',
         modelsPlaceholder: 'Type full model name and press Enter',
         modelInputHint: 'Press Enter to add, supports paste for batch import.',

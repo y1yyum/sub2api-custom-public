@@ -1,0 +1,2 @@
+ALTER TABLE channel_model_pricing
+    ADD COLUMN IF NOT EXISTS hide_in_catalog BOOLEAN NOT NULL DEFAULT FALSE;
