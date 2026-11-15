@@ -92,6 +92,57 @@ async function click(wrapper: ReturnType<typeof mount>, label: string) {
 }
 
 describe("上游站点管理", () => {
+  it.each([
+    { budget: 10, responseAfter: 8000, requestTimeout: 30000 },
+    { budget: 60, responseAfter: 40000, requestTimeout: 70000 },
+  ])("手动探针保留 $budget 秒预算及完成余量", async ({ budget, responseAfter, requestTimeout }) => {
+    vi.useFakeTimers();
+    const current = {
+      ...site(),
+      config: {
+        ...config(),
+        probes: [{ id: "health", timeout_seconds: budget }],
+      },
+    };
+    const original = request.getMockImplementation()!;
+    request.mockImplementation((r) => {
+      if (r.url.endsWith("/sites")) return Promise.resolve({ data: { sites: [current] } });
+      if (r.url.endsWith("/history")) return Promise.resolve({ data: { items: [], total: 0 } });
+      if (r.url.endsWith("/daily") || r.url.endsWith("/alerts")) return Promise.resolve({ data: [] });
+      if (r.url.endsWith("/query")) {
+        return new Promise((resolve, reject) => {
+          const responseTimer = setTimeout(() => {
+            clearTimeout(timeoutTimer);
+            resolve({ data: { outcome: "healthy" } });
+          }, responseAfter);
+          const timeoutTimer = setTimeout(() => {
+            clearTimeout(responseTimer);
+            reject(new Error("request timed out"));
+          }, r.timeout ?? 30000);
+        });
+      }
+      return original(r);
+    });
+    const wrapper = mount(UpstreamSitesView);
+    try {
+      await flushPromises();
+      await click(wrapper, "记录");
+      await click(wrapper, "测试探针：health");
+      expect(request.mock.calls.find(([r]) => r.url.endsWith("/query"))![0]).toMatchObject({
+        params: { source: "health" }, timeout: requestTimeout,
+      });
+      await vi.advanceTimersByTimeAsync(responseAfter);
+      await flushPromises();
+      expect(wrapper.text()).toContain(`Example：${i18n.global.t("admin.upstreamSites.healthy")}`);
+      expect(wrapper.text()).not.toContain("request timed out");
+      expect(request.mock.calls.filter(([r]) => r.url.endsWith("/history"))).toHaveLength(2);
+      expect(request.mock.calls.filter(([r]) => r.method === "GET").every(([r]) => r.timeout === undefined)).toBe(true);
+    } finally {
+      wrapper.unmount();
+      vi.useRealTimers();
+    }
+  });
+
   it("已有阈值可编辑，新增阈值可保存", async () => {
     const current = site();
     current.config.policy.mode = "balance";

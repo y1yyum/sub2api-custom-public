@@ -95,13 +95,14 @@ export default {
           .includes(search.value.toLowerCase()),
       ),
     );
-    async function api(method, path, body, query) {
+    async function api(method, path, body, query, timeout) {
       const request = () =>
         apiClient.request({
           method,
           url: "/admin/upstream-sites" + path,
           data: body,
           params: query,
+          timeout,
         });
       const r = await (method === "GET" ? request() : stepUp.run(request));
       return r.data;
@@ -266,9 +267,13 @@ export default {
       message.value = t("admin.upstreamSites.siteSaved");
     }
     async function query(site, source = "balance") {
-      const o = await api("POST", `/sites/${site.id}/query`, undefined, {
-        source,
-      });
+      const probe = site.config.probes.find((p) => p.id === source);
+      const timeout = source === "balance"
+        ? undefined
+        : Math.max(30000, probe.timeout_seconds * 1000 + 10000);
+      const o = await api(
+        "POST", `/sites/${site.id}/query`, undefined, { source }, timeout,
+      );
       await refresh();
       if (tab.value === "history" && selected.value)
         await loadDetails(selected.value, offset.value);
