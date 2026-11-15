@@ -41,6 +41,11 @@ archives:
         format: zip
     files:
       - LICENSE*
+      - COPYING
+      - NOTICE.md
+      - backend/internal/upstreamsites/LICENSE
+      - backend/internal/upstreamsites/COPYING
+      - backend/internal/upstreamsites/THIRD_PARTY_NOTICES.md
       - README*
       - deploy/*
 

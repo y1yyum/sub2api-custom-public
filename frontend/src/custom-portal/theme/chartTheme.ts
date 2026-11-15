@@ -78,21 +78,21 @@ interface Recolored {
 /** Colours as the chart author set them, so a palette switch remaps from the original rather than the previous palette. */
 const recolored = new WeakMap<object, Map<string, Recolored>>()
 
-function sameValue(a: unknown, b: unknown): boolean {
-  if (Array.isArray(a) && Array.isArray(b)) return a.length === b.length && a.every((item, i) => item === b[i])
-  return a === b
-}
-
 function recolor(node: Record<string, unknown>, key: string, scalarTable: ColorTable): void {
   let entries = recolored.get(node)
   const previous = entries?.get(key)
-  const source = previous && sameValue(previous.written, node[key]) ? previous.source : node[key]
+  const current = node[key]
+  const oldSource = previous?.source
+  const oldWritten = previous?.written
+  const source = Array.isArray(current)
+    ? current.map((item, i) => Array.isArray(oldWritten) && Array.isArray(oldSource) && item === oldWritten[i] ? oldSource[i] : item)
+    : previous && current === oldWritten ? oldSource : current
   const written = Array.isArray(source)
     ? source.map((item) => mapColor(item, tables.neutrals))
     : mapColor(source, scalarTable)
   node[key] = written
   if (!entries) recolored.set(node, (entries = new Map()))
-  entries.set(key, { source, written })
+  entries.set(key, { source, written: Array.isArray(written) ? written.slice() : written })
 }
 
 function recolorOptions(node: unknown, seen: WeakSet<object>): void {

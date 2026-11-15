@@ -107,6 +107,7 @@ func RegisterAdminRoutes(
 
 		// 本地进程插件管理
 		registerPluginRoutes(admin, h, stepUpAuth)
+		registerUpstreamSiteRoutes(admin, h, stepUpAuth)
 
 		// API Key 管理
 		registerAdminAPIKeyRoutes(admin, h)

@@ -141,6 +141,8 @@ WORKDIR /app
 # Copy binary/resources with ownership to avoid extra full-layer chown copy
 COPY --from=backend-builder --chown=sub2api:sub2api /app/sub2api /app/sub2api
 COPY --from=backend-builder --chown=sub2api:sub2api /app/backend/resources /app/resources
+COPY LICENSE COPYING NOTICE.md /app/licenses/
+COPY backend/internal/upstreamsites/LICENSE backend/internal/upstreamsites/COPYING backend/internal/upstreamsites/THIRD_PARTY_NOTICES.md /app/licenses/upstream-sites/
 
 # Create data directory
 RUN mkdir -p /app/data && chown sub2api:sub2api /app/data

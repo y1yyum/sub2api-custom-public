@@ -26,9 +26,11 @@ CONTEXT = "Local CI / ci-gate (pull_request)"
 GATE_JOB_ID = "ci-gate"
 ACTIONS_CREATOR_ID = -2
 ACTIONS_SUCCESS = 1
-# Gitea records a synchronize push as pull_request_sync but still reports
-# the status under the pull_request context (Issue #74).
-PR_EVENTS = ("pull_request", "pull_request_sync")
+# Gitea records a synchronize push as pull_request_sync and a label change as
+# pull_request_label, but reports both under the pull_request context
+# (Issue #74; services/actions/commit_status.go). Local CI runs on demand by
+# adding the ci:run label, so its PR runs are pull_request_label.
+PR_EVENTS = ("pull_request", "pull_request_sync", "pull_request_label")
 DEFAULT_GAPI = pathlib.Path.home() / ".local" / "share" / "sub2api-gitea" / "gapi.py"
 DEFAULT_DB_CONTAINER = "local-gitea-postgres"
 SHA_RE = re.compile(r"[0-9a-f]{40}")
@@ -240,6 +242,19 @@ def selftest():
         ("job not success", base, with_job(**{"job.status": 2}), "job.status"),
         ("run in another repo", base, with_job(**{"run.repo_id": 3}), "run.repo_id"),
         ("synchronize run", base, with_job(**{"run.event": "pull_request_sync"}), None),
+        ("ci:run label run", base, with_job(**{"run.event": "pull_request_label"}), None),
+        ("label run of another PR", base,
+         with_job(**{"run.event": "pull_request_label", "run.ref": "refs/pull/70/head"}), "run.ref"),
+        ("label run on another commit", base,
+         with_job(**{"run.event": "pull_request_label", "run.commit_sha": other}), "run.commit_sha"),
+        ("label run gate skipped", base,
+         with_job(**{"run.event": "pull_request_label", "job.status": 7}), "job.status"),
+        ("skipped label run reported as success after a genuine one",
+         base + [status(4, url=f"/{REPO}/actions/runs/160/jobs/1300")],
+         {1279: job, 1300: {**job, "job.id": 1300, "job.run_id": 160,
+                            "run.event": "pull_request_label", "job.status": 7, "run.status": 7}},
+         "job.status"),
+        ("manual dispatch run", base, with_job(**{"run.event": "workflow_dispatch"}), "run.event"),
         ("push run", base, with_job(**{"run.event": "push"}), "run.event"),
         ("pull_request_target run", base,
          with_job(**{"run.event": "pull_request_target"}), "run.event"),

@@ -14,11 +14,14 @@ name: Local CI
 # unit, integration, frontend and golangci-lint at 20 for compilation and analysis.
 # The previous isolated pipeline is tagged backup/ci-main-20261030.
 
+# Runs only on demand (CI load on the shared host): a manual dispatch, or
+# adding the ci:run label to a pull request. Each new head needs the label
+# added again. Removing it or adding other labels may still create a run and
+# skipped statuses, but every job is skipped. Release
+# tags are dispatched manually on the tag ref.
 on:
-  push:
-    tags:
-      - 'v*'
   pull_request:
+    types: [labeled]
     branches:
       - main
   workflow_dispatch:
@@ -47,6 +50,7 @@ env:
 
 jobs:
   changes:
+    if: github.event_name == 'workflow_dispatch' || contains(github.event.changes.added_labels.*.name, 'ci:run')
     runs-on: sub2api-local
     timeout-minutes: 10
     outputs:
@@ -201,7 +205,7 @@ jobs:
       # history. Scan what the tag adds beyond main instead; main commits were
       # already scanned as PR ranges.
       - name: Resolve tag scan base
-        if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/')
+        if: startsWith(github.ref, 'refs/tags/')
         shell: bash
         env:
           JOB_TOKEN: ${{ github.token }}
@@ -318,7 +322,9 @@ jobs:
   # Jobs outside the change scope are skipped and count as passed; the scope
   # job and the always-on security job must succeed.
   ci-gate:
-    if: always()
+    # always() keeps upstream failures and cancellations visible once the
+    # run was requested; unrequested label events skip the gate entirely.
+    if: always() && (github.event_name == 'workflow_dispatch' || contains(github.event.changes.added_labels.*.name, 'ci:run'))
     runs-on: sub2api-local
     timeout-minutes: 10
     needs: [changes, unit, integration, golangci-lint, frontend, security, shell, release-helpers]

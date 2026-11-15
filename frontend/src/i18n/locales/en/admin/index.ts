@@ -1,3 +1,4 @@
+import upstreamSites from './upstreamSites'
 import overview from './overview'
 import channels from './channels'
 import accounts from './accounts'
@@ -10,6 +11,7 @@ import plugins from './plugins'
 import scheduledTestKinds from './scheduledTestKinds'
 
 export default {
+  ...upstreamSites,
   ...overview,
   ...channels,
   ...accounts,
