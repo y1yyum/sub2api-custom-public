@@ -92,7 +92,7 @@ jobs:
         with:
           go: 'true'
       - name: Verify Go version
-        run: go version | grep -q 'go1.27.3'
+        run: go version | grep -q 'go1.27.4'
       # Scoped runs skip the tests of importing packages; the build still
       # catches production code they no longer compile against.
       - name: Build every package
@@ -130,7 +130,7 @@ jobs:
         with:
           go: 'true'
       - name: Verify Go version
-        run: go version | grep -q 'go1.27.3'
+        run: go version | grep -q 'go1.27.4'
       - name: Integration tests
         working-directory: backend
         env:
@@ -156,7 +156,7 @@ jobs:
           go: 'true'
           lint: 'true'
       - name: Verify Go version
-        run: go version | grep -q 'go1.27.3'
+        run: go version | grep -q 'go1.27.4'
       # Soft heap limit below the 4 GiB job cgroup (OOM kills, Issue #15).
       - name: golangci-lint
         working-directory: backend
@@ -283,7 +283,7 @@ jobs:
       - name: v-html sink inventory (blocking)
         run: python3 scripts/check-v-html-sinks.py
       - name: Verify Go version
-        run: go version | grep -q 'go1.27.3'
+        run: go version | grep -q 'go1.27.4'
       # Crashes (Go/x-tools mismatch, SECURITY_REVIEW §6.6) and output without
       # a conclusion block, as do reachable vulnerabilities.
       - name: Run govulncheck
