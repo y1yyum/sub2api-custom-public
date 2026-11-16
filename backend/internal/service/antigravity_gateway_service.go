@@ -468,7 +468,7 @@ func testConnectionHandleError(
 }
 
 // buildGeminiTestRequestWithPrompt 构建 Gemini 格式测试请求
-// 无提示词时保留最小连通性探测；文本题目允许完整回答，图片模型使用图片生成配置。
+// 文本与图片题保留 1024 token 预算；无提示词使用上游默认，图片模型使用图片生成配置。
 func (s *AntigravityGatewayService) buildGeminiTestRequestWithPrompt(projectID, model, prompt string, opts ...AccountTestOptions) ([]byte, error) {
 	if isImageGenerationModel(model) && firstAccountTestOptions(opts).ImageDataURL == "" {
 		imagePrompt := strings.TrimSpace(prompt)
@@ -500,10 +500,7 @@ func (s *AntigravityGatewayService) buildGeminiTestRequestWithPrompt(projectID, 
 		return s.wrapV1InternalRequest(projectID, model, payloadBytes)
 	}
 
-	text, maxTokens := ".", 1
-	if strings.TrimSpace(prompt) != "" {
-		text, maxTokens = strings.TrimSpace(prompt), 1024
-	}
+	text, maxTokens := antigravityTestPrompt(prompt), antigravityTestTokenBudget(prompt)
 	image := firstAccountTestOptions(opts).ImageDataURL
 	if image != "" {
 		maxTokens = 1024
@@ -535,15 +532,18 @@ func (s *AntigravityGatewayService) buildGeminiTestRequestWithPrompt(projectID, 
 }
 
 // buildClaudeTestRequest 构建 Claude 格式测试请求并转换为 Gemini 格式
-// 无提示词时保留最小连通性探测；文本题目允许完整回答。
+// 无提示词使用上游默认；文本与图片题留出完整回答预算。
 func (s *AntigravityGatewayService) buildClaudeTestRequest(projectID, mappedModel, prompt string, opts ...AccountTestOptions) ([]byte, error) {
-	text, maxTokens := ".", 1
-	if strings.TrimSpace(prompt) != "" {
-		text, maxTokens = strings.TrimSpace(prompt), 1024
+	maxTokens := antigravityTestTokenBudget(prompt)
+	content, err := json.Marshal(antigravityTestPrompt(prompt))
+	if err != nil {
+		return nil, err
 	}
-	content, _ := json.Marshal(text)
 	if image := firstAccountTestOptions(opts).ImageDataURL; image != "" {
-		content, _ = json.Marshal(accountTestImageContent(image))
+		content, err = json.Marshal(accountTestImageContent(image))
+		if err != nil {
+			return nil, err
+		}
 		maxTokens = 1024
 	}
 	claudeReq := &antigravity.ClaudeRequest{
@@ -551,7 +551,7 @@ func (s *AntigravityGatewayService) buildClaudeTestRequest(projectID, mappedMode
 		Messages: []antigravity.ClaudeMessage{
 			{
 				Role:    "user",
-				Content: content,
+				Content: json.RawMessage(content),
 			},
 		},
 		MaxTokens: maxTokens,
@@ -568,6 +568,25 @@ func (s *AntigravityGatewayService) getClaudeTransformOptions(ctx context.Contex
 	opts.EnableIdentityPatch = s.settingService.IsIdentityPatchEnabled(ctx)
 	opts.IdentityPatch = s.settingService.GetIdentityPatchPrompt(ctx)
 	return opts
+}
+
+// antigravityTestMaxOutputTokens leaves a thinking model room to think and still answer a short
+// test prompt. It was 1, so gemini-4-argon / gemini-3.8-flash returned no text at all.
+const antigravityTestMaxOutputTokens = 256
+
+func antigravityTestTokenBudget(prompt string) int {
+	if strings.TrimSpace(prompt) != "" {
+		return 1024
+	}
+	return antigravityTestMaxOutputTokens
+}
+
+// antigravityTestPrompt is the admin's test prompt, or "hi" like the other platforms' tests.
+func antigravityTestPrompt(prompt string) string {
+	if trimmed := strings.TrimSpace(prompt); trimmed != "" {
+		return trimmed
+	}
+	return defaultGeminiTextTestPrompt
 }
 
 // extractContentFromSSEResponse 从 SSE 流式响应中提取文本和内联图片

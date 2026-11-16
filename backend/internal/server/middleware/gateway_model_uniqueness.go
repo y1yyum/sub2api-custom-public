@@ -66,15 +66,15 @@ func GatewayJSONModelUniquenessWithEndpointLimits(maxNormalizedBytes int64, endp
 			c.Next()
 			return
 		}
-		if RejectRequestBodyReadError(c, err) {
+		if RejectRequestBodyReadError(c, "middleware.gateway_model_uniqueness", err) {
 			return
 		}
-		status, message := http.StatusBadRequest, "Failed to read request body"
-		var maxErr *http.MaxBytesError
-		if errors.As(err, &maxErr) {
-			status, message = http.StatusRequestEntityTooLarge, "Request body is too large"
-		} else if errors.Is(err, requestmodel.ErrDuplicateModelField) {
+		failure := httputil.DescribeRequestBodyReadFailure(c.Request, err)
+		status, message := failure.Status, failure.Message
+		if errors.Is(err, requestmodel.ErrDuplicateModelField) {
 			message = err.Error()
+		} else if failure.Kind != httputil.RequestBodyReadErrorMaxBytes {
+			logRequestBodyReadFailure(c, "middleware.gateway_model_uniqueness", failure)
 		}
 		path := c.Request.URL.Path
 		switch {

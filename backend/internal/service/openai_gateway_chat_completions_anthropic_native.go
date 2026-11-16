@@ -270,7 +270,8 @@ func (s *OpenAIGatewayService) handleCCBufferedFromNativeAnthropic(
 		_ = resp.Body.Close()
 		writeChatCompletionsError(c, http.StatusBadGateway, "server_error", failure.message)
 		return &OpenAIForwardResult{
-			RequestID: requestID, UpstreamHeaders: resp.Header, Usage: claudeUsageToOpenAIUsage(&usage),
+			ResponseDiagnostics: observedResponseDiagnostics(c),
+			RequestID:           requestID, UpstreamHeaders: resp.Header, Usage: claudeUsageToOpenAIUsage(&usage),
 			Model: originalModel, BillingModel: billingModel, UpstreamModel: upstreamModel,
 			UpstreamEndpoint: "/v1/messages", ReasoningEffort: reasoningEffort, Duration: time.Since(startTime),
 		}, failure.err
