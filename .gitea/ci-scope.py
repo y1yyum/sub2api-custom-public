@@ -242,7 +242,10 @@ def scope(paths, base):
         if (name.startswith('deploy/') or name == 'Dockerfile'
                 or name.startswith('backend/resources/')):
             result['shell'] = True
-        if name.startswith('.github/release-tools/'):
+        if name.startswith('.github/release-tools/') or name in (
+                'scripts/public-sync.py', 'scripts/test_public_sync.py',
+                'scripts/release-preflight.py', 'scripts/watch-pr.py',
+                'scripts/test_release_preflight.py'):
             result['release'] = True
         if name == 'backend/.golangci.yml':
             lint_all = True
