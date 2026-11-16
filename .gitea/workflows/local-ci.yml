@@ -316,7 +316,12 @@ jobs:
     steps:
       - uses: builtin:checkout
       # PyYAML (requirements-release.txt) is preinstalled in the job image.
-      - run: python3 -m unittest discover -s .github/release-tools -p 'test_release_matrix.py'
+      - run: python3 -m unittest discover -s .github/release-tools -p 'test_release_*.py'
+      - name: Internal release orchestration tests
+        run: |
+          if [ -f scripts/test_public_sync.py ]; then
+            python3 -m unittest scripts/test_public_sync.py scripts/test_release_preflight.py
+          fi
       - run: bash -n .github/release-tools/release-images.sh
 
   # Jobs outside the change scope are skipped and count as passed; the scope
