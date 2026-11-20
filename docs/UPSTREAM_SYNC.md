@@ -1,5 +1,14 @@
 # 公开源码同步记录
 
+## 2026-11-20  WebSocket 缓存写入计费
+
+公开 PR #54 的原生 WebSocket 中继只传递缓存写入总量，导致 12 小时用量按通用写入价计费。现与 HTTP 共用分桶校验，逐轮传递并按会话累加 30 分钟和 12 小时用量。上游缺少完整有效明细时沿用总量定价。
+
+| 冲突热点（相对 `backend/internal/`） | 后续同步核对 |
+| --- | --- |
+| `pkg/openai/cache_write_usage.go`、`service/openai_gateway_response_handling.go` | HTTP 与 WebSocket 使用同一套分桶校验 |
+| `service/openai_ws_v2/passthrough_relay.go`、`service/openai_ws_v2_passthrough_adapter.go` | 单轮回调与会话结果均保留计费分桶 |
+
 ## 2026-10-31：门户、依赖与 OAuth 刷新
 
 关联：[Issue #15](https://github.com/y1yyum/sub2api-custom-public/issues/15)。

@@ -795,3 +795,18 @@ func TestObserveUpstreamMessage_ResponseServiceTierOnlyFromTerminalEvents(t *tes
 	)
 	require.Equal(t, "", second.responseServiceTier)
 }
+
+func TestRelayCacheWriteTTLAcrossTurns(t *testing.T) {
+	state := &relayState{}
+	parseUsageAndAccumulate(state, []byte(`{"usage":{"prompt_tokens_details":{"cache_write_tokens":10,"cache_write_tokens_details":{"ttl_30m_tokens":3,"ttl_12h_tokens":7}}}}`), "response.in_progress", nil)
+	parseUsageAndAccumulate(state, []byte(`{"response":{"id":"partial"}}`), "response.completed", nil)
+	first := finalizeRelayTurnUsage(state)
+	require.Equal(t, Usage{CacheCreationInputTokens: 10, CacheCreation30mInputTokens: 3, CacheCreation12hInputTokens: 7}, first)
+
+	parseUsageAndAccumulate(state, []byte(`{"response":{"usage":{"input_tokens":20,"output_tokens":1,"input_tokens_details":{"cache_write_tokens":5,"cache_write_tokens_details":{"ttl_30m_tokens":0,"ttl_12h_tokens":5}}}}}`), "response.completed", nil)
+	second := finalizeRelayTurnUsage(state)
+	require.Equal(t, 5, second.CacheCreation12hInputTokens)
+	require.Equal(t, 15, state.usage.CacheCreationInputTokens)
+	require.Equal(t, 3, state.usage.CacheCreation30mInputTokens)
+	require.Equal(t, 12, state.usage.CacheCreation12hInputTokens)
+}
