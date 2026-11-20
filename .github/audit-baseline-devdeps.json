@@ -34,11 +34,6 @@
       "severity": "high"
     },
     {
-      "package": "braces",
-      "advisory": "GHSA-vfj7-8cjw-p6xm",
-      "severity": "high"
-    },
-    {
       "package": "browserslist",
       "advisory": "GHSA-73wf-gq98-2v4g",
       "severity": "high"
@@ -114,29 +109,9 @@
       "severity": "critical"
     },
     {
-      "package": "vite",
-      "advisory": "GHSA-fx2h-pf6j-xcff",
-      "severity": "high"
-    },
-    {
-      "package": "vitest",
-      "advisory": "GHSA-5xrq-8626-4rwp",
-      "severity": "critical"
-    },
-    {
       "package": "ws",
       "advisory": "GHSA-96hv-2xvq-fx4p",
       "severity": "high"
-    },
-    {
-      "package": "vite",
-      "advisory": "GHSA-587h-7wmj-h5pm",
-      "severity": "high",
-      "reason": "Dev server only: vite 5.4.21 registers launch-editor under /__open-in-editor in the dev server; production ships only the vite build output and CI runs on Linux, while the bypass requires Windows. No patched 5.x exists (first fix 6.4.4).",
-      "mitigation": "Partial only: on Windows run `pnpm dev --host 127.0.0.1` (the official vite.config.ts binds 0.0.0.0) to remove LAN exposure, but any page open in a local browser can still send a simple GET to /__open-in-editor; while the dev server runs on Windows, do not browse untrusted sites in that browser, or run the dev server in WSL/Linux. Only upgrading to vite >=6.4.4 removes the risk.",
-      "review_by": "2026-11-04",
-      "review_note": "Issue #19 stays open until review_by; audit-gate.py ignores per-entry dates and enforces only the top-level recheck_on.",
-      "reviewed_on": "2026-10-21"
     }
   ]
 }
