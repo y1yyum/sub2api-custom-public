@@ -185,18 +185,17 @@ func isAntigravityGeminiImageModel(model string) bool {
 	return strings.HasPrefix(normalized, "gemini-") && strings.Contains(normalized, "-image")
 }
 
+func (a *Account) modelRateLimitEntry(scope string) map[string]any {
+	if a == nil || scope == "" {
+		return nil
+	}
+	limits, _ := a.Extra[modelRateLimitsKey].(map[string]any)
+	entry, _ := limits[scope].(map[string]any)
+	return entry
+}
+
 func (a *Account) modelRateLimitResetAt(scope string) *time.Time {
-	if a == nil || a.Extra == nil || scope == "" {
-		return nil
-	}
-	rawLimits, ok := a.Extra[modelRateLimitsKey].(map[string]any)
-	if !ok {
-		return nil
-	}
-	rawLimit, ok := rawLimits[scope].(map[string]any)
-	if !ok {
-		return nil
-	}
+	rawLimit := a.modelRateLimitEntry(scope)
 	resetAtRaw, ok := rawLimit["rate_limit_reset_at"].(string)
 	if !ok || strings.TrimSpace(resetAtRaw) == "" {
 		return nil
@@ -210,12 +209,7 @@ func (a *Account) modelRateLimitResetAt(scope string) *time.Time {
 
 // modelRateLimitReason 返回指定 scope 冷却记录中的原因；没有记录时为空。
 func (a *Account) modelRateLimitReason(scope string) string {
-	if a == nil || a.Extra == nil {
-		return ""
-	}
-	rawLimits, _ := a.Extra[modelRateLimitsKey].(map[string]any)
-	rawLimit, _ := rawLimits[scope].(map[string]any)
-	reason, _ := rawLimit["reason"].(string)
+	reason, _ := a.modelRateLimitEntry(scope)["reason"].(string)
 	return reason
 }
 

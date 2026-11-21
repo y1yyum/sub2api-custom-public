@@ -2752,15 +2752,13 @@ func (r *accountRepository) ClearModelRateLimits(ctx context.Context, id int64) 
 	return nil
 }
 
-// ClearModelRateLimit 删除 model_rate_limits 中指定的单个 scope。
-// 与 ClearModelRateLimits 的全量清除不同，这里只解封一个模型窗口，
-// 不会把其他模型或并发新写入的限流一起抹掉。
-func (r *accountRepository) ClearModelRateLimit(ctx context.Context, id int64, scope string) error {
+// ClearModelRateLimitIfUnchanged 仅在限流原因和重置时间仍匹配时恢复该模型。
+func (r *accountRepository) ClearModelRateLimitIfUnchanged(ctx context.Context, id int64, scope, reason, resetAt string) (bool, error) {
 	if strings.TrimSpace(scope) == "" {
-		return nil
+		return false, nil
 	}
 	if scoped := r.accountTransactionScope(ctx); scoped != r {
-		return scoped.ClearModelRateLimit(ctx, id, scope)
+		return scoped.ClearModelRateLimitIfUnchanged(ctx, id, scope, reason, resetAt)
 	}
 	client := clientFromContext(ctx, r.client)
 	result, err := client.ExecContext(
@@ -2773,26 +2771,28 @@ func (r *accountRepository) ClearModelRateLimit(ctx context.Context, id int64, s
 				true
 			),
 			updated_at = NOW()
-		WHERE id = $2 AND deleted_at IS NULL`,
+		WHERE id = $2 AND deleted_at IS NULL
+			AND extra->'model_rate_limits'->$1::text->>'reason' = $3
+			AND extra->'model_rate_limits'->$1::text->>'rate_limit_reset_at' = $4`,
 		strings.TrimSpace(scope),
-		id,
+		id, reason, resetAt,
 	)
 	if err != nil {
-		return err
+		return false, err
 	}
 
 	affected, err := result.RowsAffected()
 	if err != nil {
-		return err
+		return false, err
 	}
 	if affected == 0 {
-		return service.ErrAccountNotFound
+		return false, nil
 	}
 	if err := enqueueSchedulerOutbox(ctx, r.sql, service.SchedulerOutboxEventAccountChanged, &id, nil, nil); err != nil {
 		logger.LegacyPrintf("repository.account", "[SchedulerOutbox] enqueue clear model rate limit scope failed: account=%d err=%v", id, err)
 	}
 	r.syncSchedulerAccountSnapshot(ctx, id)
-	return nil
+	return true, nil
 }
 
 func (r *accountRepository) UpdateSessionWindow(ctx context.Context, id int64, start, end *time.Time, status string) error {

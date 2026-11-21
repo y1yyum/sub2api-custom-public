@@ -212,8 +212,8 @@ func (m *mockAccountRepoForPlatform) ClearModelRateLimits(ctx context.Context, i
 	return nil
 }
 
-func (m *mockAccountRepoForPlatform) ClearModelRateLimit(ctx context.Context, id int64, scope string) error {
-	return nil
+func (m *mockAccountRepoForPlatform) ClearModelRateLimitIfUnchanged(ctx context.Context, id int64, scope, reason, resetAt string) (bool, error) {
+	return true, nil
 }
 func (m *mockAccountRepoForPlatform) UpdateSessionWindow(ctx context.Context, id int64, start, end *time.Time, status string) error {
 	return nil

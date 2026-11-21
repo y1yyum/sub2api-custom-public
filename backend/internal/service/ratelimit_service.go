@@ -1631,11 +1631,16 @@ func recoverAnthropicFableWindowLimit(ctx context.Context, repo AccountRepositor
 	if account.modelRateLimitReason(anthropicFableRateLimitKey) != anthropicFableWindowReason {
 		return false
 	}
-	if err := repo.ClearModelRateLimit(ctx, account.ID, anthropicFableRateLimitKey); err != nil {
+	resetAt, _ := account.modelRateLimitEntry(anthropicFableRateLimitKey)["rate_limit_reset_at"].(string)
+	cleared, err := repo.ClearModelRateLimitIfUnchanged(ctx, account.ID, anthropicFableRateLimitKey, anthropicFableWindowReason, resetAt)
+	if err != nil {
 		slog.Warn("anthropic_fable_window_recovery_clear_failed",
 			"account_id", account.ID,
 			"utilization", utilization,
 			"error", err)
+		return false
+	}
+	if !cleared {
 		return false
 	}
 	clearAccountModelRateLimitSnapshot(account, anthropicFableRateLimitKey)

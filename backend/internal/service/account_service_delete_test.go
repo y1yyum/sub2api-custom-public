@@ -195,7 +195,7 @@ func (s *accountRepoStub) ClearModelRateLimits(ctx context.Context, id int64) er
 	panic("unexpected ClearModelRateLimits call")
 }
 
-func (s *accountRepoStub) ClearModelRateLimit(ctx context.Context, id int64, scope string) error {
+func (s *accountRepoStub) ClearModelRateLimitIfUnchanged(ctx context.Context, id int64, scope, reason, resetAt string) (bool, error) {
 	panic("unexpected ClearModelRateLimit call")
 }
 

@@ -24,11 +24,12 @@ type fableRecoveryRepo struct {
 	sessionWindowMockRepo
 	clearedScopes []string
 	clearErr      error
+	stale         bool
 }
 
-func (r *fableRecoveryRepo) ClearModelRateLimit(_ context.Context, _ int64, scope string) error {
+func (r *fableRecoveryRepo) ClearModelRateLimitIfUnchanged(_ context.Context, _ int64, scope, reason, resetAt string) (bool, error) {
 	r.clearedScopes = append(r.clearedScopes, scope)
-	return r.clearErr
+	return !r.stale && r.clearErr == nil, r.clearErr
 }
 
 func newFableRecoveryAccount(reason string, extraLimits map[string]any) *Account {
@@ -79,6 +80,14 @@ func TestPassiveUsageClearsExhaustedFableLimitAfterQuotaReset(t *testing.T) {
 		"必须只按 claude-fable-5 这一个 scope 撤销")
 	require.False(t, account.isModelRateLimitedWithContext(ctx, "claude-fable-5-2"),
 		"本实例的账号快照要同步解除，否则当前实例仍会继续跳过该账号")
+}
+
+func TestFableRecoveryKeepsSnapshotAfterConditionalMiss(t *testing.T) {
+	account := newFableRecoveryAccount(anthropicFableWindowReason, nil)
+	repo := &fableRecoveryRepo{stale: true}
+	require.False(t, recoverAnthropicFableWindowLimit(context.Background(), repo, account, 0))
+	require.Equal(t, []string{anthropicFableRateLimitKey}, repo.clearedScopes)
+	require.True(t, account.isRateLimitActiveForKey(anthropicFableRateLimitKey))
 }
 
 func TestPassiveUsageKeepsFableLimitWhenUtilizationMissing(t *testing.T) {

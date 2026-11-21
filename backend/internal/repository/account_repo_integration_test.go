@@ -1074,6 +1074,30 @@ func (s *AccountRepoSuite) TestSetTempUnschedulableSkipsOutboxWhenWindowDoesNotE
 	s.Require().WithinDuration(until, *got.TempUnschedulableUntil, time.Second)
 }
 
+func (s *AccountRepoSuite) TestClearModelRateLimitIfUnchanged() {
+	const scope = "claude-fable-5"
+	const reason = "window_exhausted"
+	reset := time.Now().UTC().Truncate(time.Second).Add(time.Hour)
+	account := mustCreateAccount(s.T(), s.client, &service.Account{Name: "conditional-model-recovery"})
+	s.Require().NoError(s.repo.SetModelRateLimit(s.ctx, account.ID, scope, reset, reason))
+	recorder := &schedulerCacheRecorder{}
+	s.repo.schedulerCache = recorder
+	for _, stale := range []struct{ reason, reset string }{
+		{"credits_required", reset.Format(time.RFC3339)},
+		{reason, reset.Add(-time.Minute).Format(time.RFC3339)},
+	} {
+		cleared, err := s.repo.ClearModelRateLimitIfUnchanged(s.ctx, account.ID, scope, stale.reason, stale.reset)
+		s.Require().NoError(err)
+		s.Require().False(cleared)
+	}
+	s.Require().Empty(recorder.setAccounts)
+	cleared, err := s.repo.ClearModelRateLimitIfUnchanged(s.ctx, account.ID, scope, reason, reset.Format(time.RFC3339))
+	s.Require().NoError(err)
+	s.Require().True(cleared)
+	s.Require().Len(recorder.setAccounts, 1)
+	s.Require().NotContains(recorder.setAccounts[0].Extra["model_rate_limits"], scope)
+}
+
 func (s *AccountRepoSuite) TestClearModelRateLimits_SyncsSchedulerSnapshot() {
 	account := mustCreateAccount(s.T(), s.client, &service.Account{
 		Name: "acc-clear-model-rate",
