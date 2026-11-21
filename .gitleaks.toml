@@ -172,3 +172,12 @@ description = "Issue #156：正文为 MIIEvQIBADANBg... 或 data 的截断 PEM �
 condition = "AND"
 paths = ['''^backend/internal/payment/provider/wxpay_test\.go$''']
 regexes = ['''^-----BEGIN (?:RSA )?PRIVATE KEY-----\\n(?:MIIEvQIBADANBg\.\.\.|data)\\n-----END (?:RSA )?PRIVATE KEY-----\s*"''']
+
+[[rules]]
+id = "curl-auth-header"
+
+[[rules.allowlists]]
+description = "Issue #292：双语 README 的固定示例；负责人 y1yyum，复核到期 2026-12-21"
+condition = "AND"
+paths = ['''^README(?:_CN)?\.md$''']
+regexes = ['''^sk-your-sub2api-key$''']

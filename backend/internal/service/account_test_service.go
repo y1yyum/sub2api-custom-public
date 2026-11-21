@@ -357,7 +357,7 @@ func createTestPayload(modelID string, prompt string, opts ...AccountTestOptions
 	if image := firstAccountTestOptions(opts).ImageDataURL; image != "" {
 		content = accountTestImageContent(image)
 	}
-	return map[string]any{
+	payload := map[string]any{
 		"model": modelID,
 		"messages": []map[string]any{
 			{
@@ -377,10 +377,13 @@ func createTestPayload(modelID string, prompt string, opts ...AccountTestOptions
 		"metadata": map[string]string{
 			"user_id": sessionID,
 		},
-		"max_tokens":  1024,
-		"temperature": 1,
-		"stream":      true,
-	}, nil
+		"max_tokens": 1024,
+		"stream":     true,
+	}
+	if !claude.RejectsTemperature(modelID) {
+		payload["temperature"] = 1
+	}
+	return payload, nil
 }
 
 // TestAccountConnection tests an account's connection by sending a test request
@@ -724,6 +727,27 @@ func (s *AccountTestService) testClaudeVertexServiceAccountConnection(c *gin.Con
 	return s.processClaudeStream(c, resp.Body)
 }
 
+func buildBedrockTestPayload(c *gin.Context, modelID string) map[string]any {
+	content := []map[string]any{{"type": "text", "text": accountTestTextPrompt(c)}}
+	if image := c.GetString(accountTestQuestionImageKey); image != "" {
+		content = accountTestImageContent(image)
+	}
+	payload := map[string]any{
+		"anthropic_version": "bedrock-2023-05-31",
+		"messages": []map[string]any{
+			{
+				"role":    "user",
+				"content": content,
+			},
+		},
+		"max_tokens": bedrockTestMaxTokens(c),
+	}
+	if !claude.RejectsTemperature(modelID) {
+		payload["temperature"] = 1
+	}
+	return payload
+}
+
 // testBedrockAccountConnection tests a Bedrock (SigV4 or API Key) account using non-streaming invoke
 func (s *AccountTestService) testBedrockAccountConnection(c *gin.Context, ctx context.Context, account *Account, testModelID string) error {
 	region := bedrockRuntimeRegion(account)
@@ -741,22 +765,7 @@ func (s *AccountTestService) testBedrockAccountConnection(c *gin.Context, ctx co
 	c.Writer.Flush()
 
 	// Create a minimal Bedrock-compatible payload (no stream, no cache_control)
-	bedrockContent := []map[string]any{{"type": "text", "text": accountTestTextPrompt(c)}}
-	if image := c.GetString(accountTestQuestionImageKey); image != "" {
-		bedrockContent = accountTestImageContent(image)
-	}
-	bedrockPayload := map[string]any{
-		"anthropic_version": "bedrock-2023-05-31",
-		"messages": []map[string]any{
-			{
-				"role":    "user",
-				"content": bedrockContent,
-			},
-		},
-		"max_tokens":  bedrockTestMaxTokens(c),
-		"temperature": 1,
-	}
-	bedrockBody, _ := json.Marshal(bedrockPayload)
+	bedrockBody, _ := json.Marshal(buildBedrockTestPayload(c, testModelID))
 
 	// Use non-streaming endpoint (response is standard Claude JSON)
 	apiURL := BuildBedrockURL(region, testModelID, false)
@@ -2636,7 +2645,7 @@ func (s *AccountTestService) buildGeminiOAuthRequest(ctx context.Context, accoun
 }
 
 func (s *AccountTestService) buildGeminiServiceAccountRequest(ctx context.Context, account *Account, modelID string, payload []byte) (*http.Request, error) {
-	fullURL, err := buildVertexGeminiAccountURL(account, modelID, "streamGenerateContent", true)
+	fullURL, err := buildVertexGeminiAccountURL(account, modelID, "streamGenerateContent", true, "")
 	if err != nil {
 		return nil, err
 	}

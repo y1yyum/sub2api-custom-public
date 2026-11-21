@@ -18,13 +18,13 @@ func TestOpenAIWSModelMultiplicityWithoutAllowlist(t *testing.T) {
 			t.Run(mode+"/first/"+payload, func(t *testing.T) {
 				runOpenAIResponsesWebSocketUsageLogCase(t, openAIResponsesWSUsageLogCase{
 					firstPayload: payload, group: wsAllowlistGroup(false), ingressMode: mode,
-					firstFrameCloseExpected: true, closeReason: "duplicate model field",
+					firstFrameCloseExpected: true, closeReason: `declares field "model" more than once`,
 				})
 			})
 			t.Run(mode+"/subsequent/"+payload, func(t *testing.T) {
 				runOpenAIResponsesWebSocketUsageLogCase(t, openAIResponsesWSUsageLogCase{
 					firstPayload: `{"type":"response.create","model":"gpt-5.4"}`, secondPayload: payload,
-					group: wsAllowlistGroup(false), ingressMode: mode, secondTurnCloseExpected: true, closeReason: "duplicate model field",
+					group: wsAllowlistGroup(false), ingressMode: mode, secondTurnCloseExpected: true, closeReason: `declares field "model" more than once`,
 				})
 			})
 		}

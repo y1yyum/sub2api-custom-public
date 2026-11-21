@@ -185,18 +185,17 @@ func isAntigravityGeminiImageModel(model string) bool {
 	return strings.HasPrefix(normalized, "gemini-") && strings.Contains(normalized, "-image")
 }
 
+func (a *Account) modelRateLimitEntry(scope string) map[string]any {
+	if a == nil || scope == "" {
+		return nil
+	}
+	limits, _ := a.Extra[modelRateLimitsKey].(map[string]any)
+	entry, _ := limits[scope].(map[string]any)
+	return entry
+}
+
 func (a *Account) modelRateLimitResetAt(scope string) *time.Time {
-	if a == nil || a.Extra == nil || scope == "" {
-		return nil
-	}
-	rawLimits, ok := a.Extra[modelRateLimitsKey].(map[string]any)
-	if !ok {
-		return nil
-	}
-	rawLimit, ok := rawLimits[scope].(map[string]any)
-	if !ok {
-		return nil
-	}
+	rawLimit := a.modelRateLimitEntry(scope)
 	resetAtRaw, ok := rawLimit["rate_limit_reset_at"].(string)
 	if !ok || strings.TrimSpace(resetAtRaw) == "" {
 		return nil
@@ -210,12 +209,7 @@ func (a *Account) modelRateLimitResetAt(scope string) *time.Time {
 
 // modelRateLimitReason 返回指定 scope 冷却记录中的原因；没有记录时为空。
 func (a *Account) modelRateLimitReason(scope string) string {
-	if a == nil || a.Extra == nil {
-		return ""
-	}
-	rawLimits, _ := a.Extra[modelRateLimitsKey].(map[string]any)
-	rawLimit, _ := rawLimits[scope].(map[string]any)
-	reason, _ := rawLimit["reason"].(string)
+	reason, _ := a.modelRateLimitEntry(scope)["reason"].(string)
 	return reason
 }
 
@@ -240,6 +234,30 @@ func setAccountModelRateLimitSnapshot(account *Account, scope string, resetAt ti
 	limits[scope] = payload
 
 	extra := make(map[string]any, len(account.Extra)+1)
+	maps.Copy(extra, account.Extra)
+	extra[modelRateLimitsKey] = limits
+	account.Extra = extra
+}
+
+// clearAccountModelRateLimitSnapshot 从本账号对象的 Extra 快照中删除指定 scope，
+// 让当前实例立刻停止跳过该模型，而不必等下一次快照重建。
+// 与 setAccountModelRateLimitSnapshot 一样写时复制，不修改可能共享的旧 map。
+func clearAccountModelRateLimitSnapshot(account *Account, scope string) {
+	if account == nil || strings.TrimSpace(scope) == "" {
+		return
+	}
+	oldLimits, ok := account.Extra[modelRateLimitsKey].(map[string]any)
+	if !ok {
+		return
+	}
+	if _, exists := oldLimits[scope]; !exists {
+		return
+	}
+	limits := make(map[string]any, len(oldLimits))
+	maps.Copy(limits, oldLimits)
+	delete(limits, scope)
+
+	extra := make(map[string]any, len(account.Extra))
 	maps.Copy(extra, account.Extra)
 	extra[modelRateLimitsKey] = limits
 	account.Extra = extra

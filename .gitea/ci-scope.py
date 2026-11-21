@@ -277,6 +277,8 @@ def scope(paths, base):
             result.update({tag: ALL, f'{tag}_selected': '', f'{tag}_run': ''})
         else:
             result.update(go_test_outputs(tag, whole[tag], named[tag]))
+    if result['unit'] == ALL:
+        result['frontend'] = True
     result['lint'] = ALL if lint_all or 'lint' in forced else ' '.join(sorted(lint))
     for key in ('frontend', 'shell', 'release'):
         result[key] = result[key] or key in forced

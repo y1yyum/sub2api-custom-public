@@ -199,8 +199,8 @@ jobs:
           pnpm install --frozen-lockfile
       - name: Frontend typecheck and critical vitest
         run: make test-frontend
-      - name: Full vitest suite (release tags and manual runs)
-        if: github.event_name != 'pull_request'
+      - name: Full vitest suite for full CI
+        if: github.event_name != 'pull_request' || needs.changes.outputs.unit == './...'
         working-directory: frontend
         run: pnpm run test:run
 

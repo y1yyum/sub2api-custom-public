@@ -765,7 +765,7 @@ func (s *OpenAIGatewayService) proxyResponsesWebSocketV2Passthrough(
 			firstClientMessage = aliasedBody
 		}
 	}
-	accountScopedFirst, accountScoped, scopeErr := applyCodexAccountIdentityClientMetadataRaw(firstClientMessage, codexAccountIdentitySource(c, account), getAPIKeyIDFromContext(c))
+	accountScopedFirst, accountScoped, scopeErr := applyCodexAccountIdentityClientMetadataRaw(firstClientMessage, codexAccountIdentitySource(c, account), getAPIKeyIDFromContext(c), codexClientSessionID(c))
 	if scopeErr != nil {
 		return NewOpenAIWSClientCloseError(coderws.StatusPolicyViolation, "invalid websocket identity metadata", scopeErr)
 	}
@@ -987,6 +987,12 @@ func (s *OpenAIGatewayService) proxyResponsesWebSocketV2Passthrough(
 			if requestmodel.HasDuplicateTopLevelModel(payload) {
 				return payload, nil, NewOpenAIWSClientCloseError(coderws.StatusPolicyViolation, ErrDuplicateModelField.Error(), ErrDuplicateModelField)
 			}
+			// passthrough 原样转发 session.update 等所有客户端事件；任何帧内的重复
+			// 字段都会让网关（gjson 取首个、sjson 只改首个）与上游读到不同的值
+			// （GHSA-p3r4-jcm3-2hph），在读取任何字段之前拒绝。
+			if field, conflict := requestmodel.ConflictingField("application/json", payload); conflict {
+				return payload, nil, NewOpenAIWSClientCloseError(coderws.StatusPolicyViolation, fmt.Sprintf("websocket request payload declares field %.64q more than once", field), nil)
+			}
 			eventType := strings.TrimSpace(gjson.GetBytes(payload, "type").String())
 			isResponseCreate := eventType == "response.create"
 			responseCreateAt := time.Time{}
@@ -1022,7 +1028,7 @@ func (s *OpenAIGatewayService) proxyResponsesWebSocketV2Passthrough(
 				}
 			}
 			if isResponseCreate || eventType == "session.update" {
-				accountScopedPayload, accountScoped, scopeErr := applyCodexAccountIdentityClientMetadataRaw(payload, codexAccountIdentitySource(c, account), getAPIKeyIDFromContext(c))
+				accountScopedPayload, accountScoped, scopeErr := applyCodexAccountIdentityClientMetadataRaw(payload, codexAccountIdentitySource(c, account), getAPIKeyIDFromContext(c), codexClientSessionID(c))
 				if scopeErr != nil {
 					return payload, nil, NewOpenAIWSClientCloseError(coderws.StatusPolicyViolation, "invalid websocket identity metadata", scopeErr)
 				}
