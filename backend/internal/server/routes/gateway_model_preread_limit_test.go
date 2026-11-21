@@ -54,12 +54,12 @@ func TestGatewayModelGuardFirstReadUsesEndpointLimit(t *testing.T) {
 				router.ServeHTTP(w, req)
 				if path == "/v1/responses" {
 					require.Equal(t, http.StatusBadRequest, w.Code)
-					require.Contains(t, w.Body.String(), "duplicate model field")
+					require.Contains(t, w.Body.String(), `declares field \"model\" more than once`)
 					require.Equal(t, len(payload), body.consumed)
 				} else {
 					require.Equal(t, http.StatusRequestEntityTooLarge, w.Code)
 					require.LessOrEqual(t, body.consumed, textLimit+1, "first reader must not consume global-limit payload")
-					require.NotContains(t, w.Body.String(), "duplicate model field")
+					require.NotContains(t, w.Body.String(), `declares field \"model\" more than once`)
 				}
 			})
 		}

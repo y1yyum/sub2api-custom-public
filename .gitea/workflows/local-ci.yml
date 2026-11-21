@@ -148,6 +148,7 @@ jobs:
     needs: changes
     if: contains(fromJSON(needs.changes.outputs.required_jobs), 'frontend')
     runs-on: sub2api-local
+    container: sub2api-ci:go1.27.4-node24archive-20261121
     timeout-minutes: 20
     # vitest otherwise starts (host CPUs - 1) forks and exhausts --pids-limit.
     env:
@@ -168,8 +169,8 @@ jobs:
           pnpm install --frozen-lockfile
       - name: Frontend typecheck and critical vitest
         run: make test-frontend
-      - name: Full vitest suite (release tags and manual runs)
-        if: github.event_name != 'pull_request'
+      - name: Full vitest suite for full CI
+        if: github.event_name != 'pull_request' || needs.changes.outputs.unit == './...'
         working-directory: frontend
         run: pnpm run test:run
 
@@ -182,6 +183,7 @@ jobs:
   security:
     needs: changes
     runs-on: sub2api-local
+    container: sub2api-ci:go1.27.4-node24archive-20261121
     timeout-minutes: 10
     steps:
       - uses: builtin:checkout

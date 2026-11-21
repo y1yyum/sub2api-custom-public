@@ -11,8 +11,8 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-// GatewayJSONModelUniqueness must run after authentication but before model
-// allowlists, composite rewriting, account selection and billing. Admission does
+// GatewayJSONModelUniqueness checks the normalized JSON before composite
+// rewriting, account selection and billing. Admission does
 // not depend on an allowlist being enabled. WebSocket frames are checked by the
 // Responses handler; multipart/session model semantics remain unchanged.
 func GatewayJSONModelUniqueness(maxNormalizedBytes int64) gin.HandlerFunc {

@@ -64,7 +64,9 @@ def main():
     work = Path(tempfile.mkdtemp(prefix='sub2api-node-', dir=temporary))
     archive = work / filename
     url = 'https://nodejs.org/dist/v' + VERSION + '/' + filename
-    with urllib.request.urlopen(url, timeout=60) as source, archive.open('xb') as output:
+    cached = Path('/opt/sub2api-ci/node') / filename
+    source = cached.open('rb') if cached.is_file() else urllib.request.urlopen(url, timeout=60)
+    with source, archive.open('xb') as output:
         size = 0
         while block := source.read(1024 * 1024):
             size += len(block)

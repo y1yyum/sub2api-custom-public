@@ -78,7 +78,7 @@ func TestCustomCombinedFirstReaderEndpointAndDecodeContracts(t *testing.T) {
 				if source.bytes > limit+1 {
 					t.Fatalf("first reader consumed %d raw bytes before rejection", source.bytes)
 				}
-				if strings.Contains(rec.Body.String(), "duplicate model field") != tc.duplicate {
+				if strings.Contains(rec.Body.String(), `declares field \"model\" more than once`) != tc.duplicate {
 					t.Fatalf("unexpected parser precedence: %s", rec.Body.String())
 				}
 				wantCalls := 0

@@ -26,7 +26,7 @@ func TestGatewayModelUniquenessBeforeRoutingAndBilling(t *testing.T) {
 			req := httptest.NewRequest(http.MethodPost, path, strings.NewReader(body))
 			req.Header.Set("Content-Type", "application/json")
 			r.ServeHTTP(w, req)
-			if w.Code != http.StatusBadRequest || reached || !strings.Contains(w.Body.String(), "duplicate model field") {
+			if w.Code != http.StatusBadRequest || reached || !strings.Contains(w.Body.String(), `declares field \"model\" more than once`) {
 				t.Fatalf("%s: code=%d reached=%v body=%s", path, w.Code, reached, w.Body.String())
 			}
 		}
@@ -134,7 +134,7 @@ func TestGatewayModelUniquenessEndpointCompressedExpansion(t *testing.T) {
 	req := httptest.NewRequest(http.MethodPost, "/text", bytes.NewReader(compressed.Bytes()))
 	req.Header.Set("Content-Encoding", "gzip")
 	r.ServeHTTP(w, req)
-	if w.Code != http.StatusRequestEntityTooLarge || strings.Contains(w.Body.String(), "duplicate model field") {
+	if w.Code != http.StatusRequestEntityTooLarge || strings.Contains(w.Body.String(), `declares field \"model\" more than once`) {
 		t.Fatalf("decoded cap must precede scan: %d %s", w.Code, w.Body.String())
 	}
 }
